@@ -1,0 +1,10 @@
+{
+  "name": "@erplora/module-inventory",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Módulo inventory (manifest declarativo + Web Component Stencil). Se compila con @erplora/module-cli.",
+  "dependencies": {
+    "@stencil/core": "^4.20.0"
+  }
+}
