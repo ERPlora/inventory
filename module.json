@@ -4,7 +4,15 @@
   "version": "1.0.14",
   "agent": {
     "description": "Manages stock, warehouses and products: check availability, adjust stock, receive goods, create or remove products and categories.",
-    "keywords": ["stock", "inventory", "warehouse", "product", "category", "availability", "receive"]
+    "keywords": [
+      "stock",
+      "inventory",
+      "warehouse",
+      "product",
+      "category",
+      "availability",
+      "receive"
+    ]
   },
   "depends_on": [],
   "permissions": [
@@ -59,27 +67,101 @@
     "inventory.products.list": {
       "permission": "inventory.view_product",
       "sql": "queries/products_list.sql",
-      "ai": { "description": "Lists inventory products with their current stock." }
+      "list": {
+        "search": [
+          "name",
+          "sku"
+        ],
+        "sort": [
+          "name",
+          "sku",
+          "price",
+          "stock",
+          "created_at"
+        ],
+        "default_sort": "name",
+        "default_dir": "asc",
+        "filters": {
+          "is_active": {
+            "op": "eq"
+          },
+          "product_type": {
+            "op": "eq"
+          },
+          "price": {
+            "op": "range"
+          },
+          "stock": {
+            "op": "range"
+          }
+        },
+        "page_size": 50
+      },
+      "ai": {
+        "description": "Lists inventory products with their current stock."
+      }
     },
     "inventory.products.get": {
       "permission": "inventory.view_product",
       "sql": "queries/product_get.sql",
-      "ai": { "description": "Retrieves the full detail of an inventory product by its identifier." }
+      "ai": {
+        "description": "Retrieves the full detail of an inventory product by its identifier."
+      }
     },
     "inventory.products.low_stock": {
       "permission": "inventory.view_product",
       "sql": "queries/low_stock.sql",
-      "ai": { "description": "Lists products whose stock is below the configured minimum threshold." }
+      "ai": {
+        "description": "Lists products whose stock is below the configured minimum threshold."
+      }
     },
     "inventory.products.stats": {
       "permission": "inventory.view_product",
       "sql": "queries/stats.sql",
-      "ai": { "description": "Returns global inventory statistics (totals, value, active products)." }
+      "ai": {
+        "description": "Returns global inventory statistics (totals, value, active products)."
+      }
     },
     "inventory.categories.list": {
       "permission": "inventory.view_category",
       "sql": "queries/categories_list.sql",
-      "ai": { "description": "Lists inventory product categories." }
+      "list": {
+        "search": [
+          "name",
+          "slug"
+        ],
+        "sort": [
+          "id",
+          "name",
+          "slug",
+          "icon",
+          "color",
+          "product_count"
+        ],
+        "default_sort": "name",
+        "default_dir": "asc",
+        "filters": {
+          "name": {
+            "op": "eq"
+          },
+          "slug": {
+            "op": "eq"
+          },
+          "icon": {
+            "op": "eq"
+          },
+          "color": {
+            "op": "eq"
+          },
+          "product_count": {
+            "op": "range"
+          }
+        },
+        "page_size": 50
+      },
+      "ai": {
+        "description": "Lists inventory product categories."
+      }
     }
   },
   "commands": {
@@ -92,7 +174,9 @@
       "emit": [
         "inventory.product.created"
       ],
-      "ai": { "description": "Creates a new product in the inventory." }
+      "ai": {
+        "description": "Creates a new product in the inventory."
+      }
     },
     "inventory.products.update": {
       "permission": "inventory.change_product",
@@ -103,7 +187,9 @@
       "emit": [
         "inventory.product.updated"
       ],
-      "ai": { "description": "Updates the data of an existing inventory product." }
+      "ai": {
+        "description": "Updates the data of an existing inventory product."
+      }
     },
     "inventory.products.delete": {
       "permission": "inventory.delete_product",
@@ -114,7 +200,9 @@
       "emit": [
         "inventory.product.deleted"
       ],
-      "ai": { "description": "Soft-deletes a product from the inventory (destructive)." }
+      "ai": {
+        "description": "Soft-deletes a product from the inventory (destructive)."
+      }
     },
     "inventory.products.bulk_create": {
       "permission": "inventory.add_product",
@@ -123,7 +211,9 @@
         "file": "dist/handler.wasm",
         "function": "bulk_create"
       },
-      "ai": { "description": "Creates multiple products in the inventory in a single operation." }
+      "ai": {
+        "description": "Creates multiple products in the inventory in a single operation."
+      }
     },
     "inventory.stock.adjust": {
       "permission": "inventory.change_product",
@@ -134,7 +224,9 @@
       "emit": [
         "inventory.stock_changed"
       ],
-      "ai": { "description": "Adjusts a product's stock to an absolute value (inventory correction)." }
+      "ai": {
+        "description": "Adjusts a product's stock to an absolute value (inventory correction)."
+      }
     },
     "inventory.stock.decrease": {
       "permission": "inventory.change_product",
@@ -145,7 +237,9 @@
       "emit": [
         "inventory.stock_changed"
       ],
-      "ai": { "description": "Decreases a product's stock by a given quantity." }
+      "ai": {
+        "description": "Decreases a product's stock by a given quantity."
+      }
     },
     "inventory.stock.receive": {
       "permission": "inventory.change_product",
@@ -154,7 +248,9 @@
         "file": "dist/handler.wasm",
         "function": "receive_stock"
       },
-      "ai": { "description": "Records goods received and increases the stock of the received products." }
+      "ai": {
+        "description": "Records goods received and increases the stock of the received products."
+      }
     },
     "inventory.categories.create": {
       "permission": "inventory.add_category",
@@ -162,7 +258,9 @@
       "sql": [
         "commands/category_create.sql"
       ],
-      "ai": { "description": "Creates a new product category in the inventory." }
+      "ai": {
+        "description": "Creates a new product category in the inventory."
+      }
     },
     "inventory.categories.update": {
       "permission": "inventory.change_category",
@@ -170,7 +268,9 @@
       "sql": [
         "commands/category_update.sql"
       ],
-      "ai": { "description": "Updates the data of an existing product category." }
+      "ai": {
+        "description": "Updates the data of an existing product category."
+      }
     },
     "inventory.categories.delete": {
       "permission": "inventory.delete_category",
@@ -178,7 +278,9 @@
       "sql": [
         "commands/category_delete.sql"
       ],
-      "ai": { "description": "Deletes a product category from the inventory (destructive)." }
+      "ai": {
+        "description": "Deletes a product category from the inventory (destructive)."
+      }
     },
     "inventory._insert_product": {
       "permission": "inventory.add_product",
@@ -199,7 +301,9 @@
         "file": "dist/handler.wasm",
         "function": "decrease_on_sale"
       },
-      "ai": { "description": "Automatically decreases stock of sold products when a sale is completed." }
+      "ai": {
+        "description": "Automatically decreases stock of sold products when a sale is completed."
+      }
     }
   },
   "events": {

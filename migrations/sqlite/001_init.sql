@@ -1,6 +1,6 @@
 -- Inventory · esquema inicial (SQLite). Portado fielmente de modules/m_inventory/models.py.
 -- Modelos: InventoryConfig (singleton), Category, Product, ProductVariant + M2M product↔category.
--- Contrato de fila estándar de hub-next (§2.5): hub_id + soft-delete + auditoría.
+-- Contrato de fila estándar de hub (§2.5): hub_id + soft-delete + auditoría.
 
 -- Config singleton por hub.
 CREATE TABLE IF NOT EXISTS inventory_config (

@@ -1,7 +1,7 @@
--- Lista de productos activos del hub. Runtime inyecta :hub_id. (Búsqueda en UI/SDK.)
--- Portado de ProductService.list_products (active_only por defecto, orden por nombre).
-SELECT id, name, sku, price, stock, is_active
+-- Proyección base de productos del hub. Runtime inyecta :hub_id.
+-- Es una query de LISTA: el runtime compone búsqueda/filtro/orden/paginación a partir del
+-- bloque `list` de module.json. NO lleva ORDER BY / LIMIT / `;` aquí (los añade el runtime).
+-- Toda columna que se quiera ordenar o filtrar debe estar proyectada.
+SELECT id, name, sku, price, cost, stock, is_active, product_type, created_at
 FROM inventory_product
-WHERE hub_id = :hub_id AND is_deleted = 0 AND is_active = 1
-ORDER BY name ASC
-LIMIT 50;
+WHERE hub_id = :hub_id AND is_deleted = 0
