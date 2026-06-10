@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "inventory.stock.decrease",
+  "description": "Descuento de stock de un producto por qty (>0; el SQL no baja de 0).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["product_id", "qty"],
+  "properties": {
+    "product_id": { "type": "string", "minLength": 1 },
+    "qty": { "type": "number", "exclusiveMinimum": 0 }
+  }
+}

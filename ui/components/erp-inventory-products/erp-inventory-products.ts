@@ -28,7 +28,9 @@ interface Product {
   name: string;
   sku: string;
   price: number;
+  cost: number;
   stock: number;
+  low_stock_threshold: number;
   is_active: number;
 }
 
@@ -123,7 +125,7 @@ export class ErpInventoryProducts extends LitElement {
       this.dataTable()?.open('create'); // abre el panel lateral con el form pre-rellenado
     } else if (actionId === 'delete') {
       try {
-        await erplora().command('inventory.products.delete', { id: p.id });
+        await erplora().command('inventory.products.delete', { product_id: p.id });
         await this.ctrl.load();
       } catch (e) {
         this.formError = e instanceof Error ? e.message : 'No se pudo eliminar';
@@ -134,7 +136,16 @@ export class ErpInventoryProducts extends LitElement {
   private async toggleActive(p: Product, ev: Event): Promise<void> {
     const checked = (ev.target as HTMLInputElement).checked;
     try {
-      await erplora().command('inventory.products.update', { id: p.id, is_active: checked ? 1 : 0 });
+      // El command exige el conjunto completo de campos editables (schemas/product_update.json):
+      // se reenvían los valores actuales de la fila y solo cambia is_active.
+      await erplora().command('inventory.products.update', {
+        product_id: p.id,
+        name: p.name,
+        price: p.price,
+        cost: p.cost ?? 0,
+        low_stock_threshold: p.low_stock_threshold ?? 10,
+        is_active: checked ? 1 : 0,
+      });
       await this.ctrl.load();
     } catch (e) {
       this.formError = e instanceof Error ? e.message : 'No se pudo actualizar';
@@ -159,6 +170,13 @@ export class ErpInventoryProducts extends LitElement {
           sku: r.sku ?? '',
           price: Number(r.price) || 0,
           stock: Number(r.stock) || 0,
+          cost: Number(r.cost) || 0,
+          low_stock_threshold: Number(r.low_stock_threshold) || 10,
+          product_type: 'physical',
+          ean13: r.ean13 || null,
+          description: r.description ?? '',
+          tax_class_id: null,
+          image: '',
         });
       } catch {
         /* ignora filas inválidas */

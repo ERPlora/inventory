@@ -2833,7 +2833,7 @@ var ErpInventoryCategories = class extends i3 {
       this.dataTable()?.open("create");
     } else if (actionId === "delete") {
       try {
-        await erplora().command("inventory.categories.delete", { id: c5.id });
+        await erplora().command("inventory.categories.delete", { category_id: c5.id });
         await this.ctrl.load();
       } catch (e5) {
         this.formError = e5 instanceof Error ? e5.message : "No se pudo eliminar";
@@ -3258,7 +3258,7 @@ var ErpInventoryProducts = class extends i3 {
       this.dataTable()?.open("create");
     } else if (actionId === "delete") {
       try {
-        await erplora3().command("inventory.products.delete", { id: p4.id });
+        await erplora3().command("inventory.products.delete", { product_id: p4.id });
         await this.ctrl.load();
       } catch (e5) {
         this.formError = e5 instanceof Error ? e5.message : "No se pudo eliminar";
@@ -3268,7 +3268,14 @@ var ErpInventoryProducts = class extends i3 {
   async toggleActive(p4, ev) {
     const checked = ev.target.checked;
     try {
-      await erplora3().command("inventory.products.update", { id: p4.id, is_active: checked ? 1 : 0 });
+      await erplora3().command("inventory.products.update", {
+        product_id: p4.id,
+        name: p4.name,
+        price: p4.price,
+        cost: p4.cost ?? 0,
+        low_stock_threshold: p4.low_stock_threshold ?? 10,
+        is_active: checked ? 1 : 0
+      });
       await this.ctrl.load();
     } catch (e5) {
       this.formError = e5 instanceof Error ? e5.message : "No se pudo actualizar";
@@ -3288,7 +3295,14 @@ var ErpInventoryProducts = class extends i3 {
           name: r6.name ?? "",
           sku: r6.sku ?? "",
           price: Number(r6.price) || 0,
-          stock: Number(r6.stock) || 0
+          stock: Number(r6.stock) || 0,
+          cost: Number(r6.cost) || 0,
+          low_stock_threshold: Number(r6.low_stock_threshold) || 10,
+          product_type: "physical",
+          ean13: r6.ean13 || null,
+          description: r6.description ?? "",
+          tax_class_id: null,
+          image: ""
         });
       } catch {
       }

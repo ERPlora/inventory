@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "inventory.products.create",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "sku", "price"],
+  "properties": {
+    "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "sku": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "ean13": { "type": ["string", "null"], "default": null, "maxLength": 13 },
+    "description": { "type": "string", "default": "" },
+    "product_type": { "type": "string", "enum": ["physical", "service"], "default": "physical" },
+    "price": { "type": "number", "minimum": 0 },
+    "cost": { "type": "number", "minimum": 0, "default": 0 },
+    "stock": { "type": "integer", "minimum": 0, "default": 0 },
+    "low_stock_threshold": { "type": "integer", "minimum": 0, "default": 10 },
+    "tax_class_id": { "type": ["string", "null"], "default": null },
+    "image": { "type": "string", "default": "" }
+  }
+}

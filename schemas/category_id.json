@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "inventory.category_id",
+  "description": "Payload común de commands que solo identifican una categoría (delete).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["category_id"],
+  "properties": {
+    "category_id": { "type": "string", "minLength": 1 }
+  }
+}

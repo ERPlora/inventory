@@ -75,7 +75,7 @@ export class ErpInventoryCategories extends LitElement {
       this.dataTable()?.open('create');
     } else if (actionId === 'delete') {
       try {
-        await erplora().command('inventory.categories.delete', { id: c.id });
+        await erplora().command('inventory.categories.delete', { category_id: c.id });
         await this.ctrl.load();
       } catch (e) {
         this.formError = e instanceof Error ? e.message : 'No se pudo eliminar';

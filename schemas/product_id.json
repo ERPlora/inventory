@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "inventory.product_id",
+  "description": "Payload común de commands que solo identifican un producto (delete).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["product_id"],
+  "properties": {
+    "product_id": { "type": "string", "minLength": 1 }
+  }
+}
