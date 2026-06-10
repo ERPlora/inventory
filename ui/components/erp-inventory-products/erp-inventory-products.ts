@@ -1,11 +1,12 @@
-import { LitElement, html, css, nothing } from 'lit';
+import { LitElement, html, css, nothing, svg } from 'lit';
 import { state } from 'lit/decorators.js';
+import { code128b } from '../../lib/code128';
 // `define` por su subpath ligero: importar el barrel '@erplora/outfitkit' arrastraría (efectos
 // secundarios) el registro de TODOS los ok-* al bundle del módulo. `ok-data-table` se importa por
 // su efecto secundario (se auto-registra). Tipos desde el barrel (se borran en build).
 import { define } from '@erplora/outfitkit/define';
 import '@erplora/outfitkit/ok-data-table';
-import type { DataTableColumn } from '@erplora/outfitkit';
+import type { DataTableColumn, DataTableAction } from '@erplora/outfitkit';
 import { createListController } from '@erplora/module-sdk';
 import type { ListController, ListClient, ListParams, ListPage } from '@erplora/module-sdk';
 
@@ -31,6 +32,7 @@ interface Product {
   is_active: number;
 }
 
+
 function erplora(): ErploraClientLike {
   const c = (globalThis as { erplora?: ErploraClientLike }).erplora;
   if (!c) throw new Error('erplora SDK no inicializado por el shell');
@@ -39,12 +41,20 @@ function erplora(): ErploraClientLike {
 
 export class ErpInventoryProducts extends LitElement {
   static styles = css`
-    :host { display:block; font-family: system-ui, sans-serif; color: var(--ion-text-color, #1c1b18); }
-    header { display:flex; gap:.5rem; align-items:center; margin-bottom:.75rem; }
-    h2 { margin:0; font-size:1.15rem; flex:1; }
-    .form { display:flex; gap:.5rem; flex-wrap:wrap; align-items:end; margin:.5rem 0 1rem; }
-    .form ion-input { --background:var(--surface-2,#f7f4ec); border:1px solid var(--ion-border-color,#e0ddd4); border-radius:8px; flex:1; min-width:7rem; }
+    :host { display:flex; flex-direction:column; height:100%; min-height:0; font-family: system-ui, sans-serif; color: var(--ion-text-color, #1c1b18); }
+    /* La vista llena el alto: el data-table ocupa todo (scroll interno, footer fijo). */
+    .page { display:flex; flex-direction:column; min-height:0; flex:1 1 auto; }
+    .page > ok-data-table { flex:1 1 auto; min-height:0; }
+    .form { display:flex; flex-direction:column; gap:.7rem; }
+    .form ion-button { align-self:flex-end; }
     .err { color:#d9480f; font-weight:600; }
+    /* Detalle de producto */
+    .detail { display:flex; flex-direction:column; gap:.6rem; }
+    .drow { display:flex; justify-content:space-between; border-bottom:1px solid var(--ion-border-color,#eee); padding:.4rem 0; }
+    .drow span { color:var(--ion-color-medium,#6b6557); }
+    .barcode { text-align:center; margin:1rem 0; padding:1rem; border:1px solid var(--ion-border-color,#e6e2d8); border-radius:10px; }
+    .barcode .bc { max-width:100%; height:auto; }
+    .bccode { font:14px ui-monospace,monospace; margin-top:.4rem; letter-spacing:.08em; }
   `;
 
   @state() private newName = '';
@@ -79,9 +89,107 @@ export class ErpInventoryProducts extends LitElement {
         { value: '1', label: 'Sí' },
         { value: '0', label: 'No' },
       ],
-      format: (r) => (r.is_active ? '✓' : '—'),
+      // Celda interactiva: ion-toggle (verde = activo). Al cambiar, persiste vía command.
+      // El color va por CSS var (--background-checked) y no por `color=`, porque las clases
+      // .ion-color-* no penetran el shadow DOM de ok-data-table; las custom props sí heredan.
+      render: (r) => html`
+        <ion-toggle
+          style="--track-background-checked: rgba(var(--ion-color-success-rgb, 45,211,111), 0.5); --handle-background-checked: var(--ion-color-success, #2dd36f);"
+          ?checked=${!!r.is_active}
+          @ionChange=${(e: Event) => this.toggleActive(r as unknown as Product, e)}
+        ></ion-toggle>
+      `,
     },
   ];
+
+  @state() private detail: Product | null = null;
+
+  // Acciones por fila (botones) → la tabla emite `rowAction` con { actionId, row }.
+  private actions: DataTableAction[] = [
+    { id: 'detail', label: 'Detalles', icon: 'eye-outline' },
+    { id: 'edit', label: 'Editar', icon: 'create-outline' },
+    { id: 'delete', label: 'Eliminar', icon: 'trash-outline', color: 'danger' },
+  ];
+
+  private async onRowAction(ev: CustomEvent<{ actionId: string; row: Record<string, unknown> }>): Promise<void> {
+    const { actionId, row } = ev.detail;
+    const p = row as unknown as Product;
+    if (actionId === 'detail') {
+      this.detail = p; // abre el modal de detalle (con código de barras)
+    } else if (actionId === 'edit') {
+      this.newName = p.name;
+      this.newSku = p.sku;
+      this.newPrice = String(p.price ?? '');
+      this.dataTable()?.open('create'); // abre el panel lateral con el form pre-rellenado
+    } else if (actionId === 'delete') {
+      try {
+        await erplora().command('inventory.products.delete', { id: p.id });
+        await this.ctrl.load();
+      } catch (e) {
+        this.formError = e instanceof Error ? e.message : 'No se pudo eliminar';
+      }
+    }
+  }
+
+  private async toggleActive(p: Product, ev: Event): Promise<void> {
+    const checked = (ev.target as HTMLInputElement).checked;
+    try {
+      await erplora().command('inventory.products.update', { id: p.id, is_active: checked ? 1 : 0 });
+      await this.ctrl.load();
+    } catch (e) {
+      this.formError = e instanceof Error ? e.message : 'No se pudo actualizar';
+    }
+  }
+
+  // Referencia al ok-data-table para abrir/cerrar su panel lateral (drawer).
+  private dataTable(): { open(p?: 'filters' | 'create'): void; close(): void } | null {
+    return this.renderRoot.querySelector('ok-data-table') as
+      | { open(p?: 'filters' | 'create'): void; close(): void }
+      | null;
+  }
+
+  // Importa productos desde CSV (cabeceras = name, sku, price, stock…). Crea uno por fila.
+  private async onCsvImport(ev: CustomEvent<{ rows: Record<string, string>[] }>): Promise<void> {
+    const rows = ev.detail.rows ?? [];
+    for (const r of rows) {
+      if (!r.name && !r.sku) continue;
+      try {
+        await erplora().command('inventory.products.create', {
+          name: r.name ?? '',
+          sku: r.sku ?? '',
+          price: Number(r.price) || 0,
+          stock: Number(r.stock) || 0,
+        });
+      } catch {
+        /* ignora filas inválidas */
+      }
+    }
+    await this.ctrl.load();
+  }
+
+  // Código de barras Code128 (SVG) del SKU.
+  private renderBarcode(text: string) {
+    const bc = code128b(text, 2, 70);
+    return html`<svg class="bc" width=${bc.width} height=${bc.height} viewBox="0 0 ${bc.width} ${bc.height}" fill="#000">
+      ${bc.bars.map((b) => svg`<rect x=${b.x} y="0" width=${b.w} height=${bc.height}></rect>`)}
+    </svg>`;
+  }
+  // Imprime el código de barras en una ventana aparte (en el Hub real iría al Bridge/etiquetadora).
+  private printBarcode(p: Product): void {
+    const bc = code128b(p.sku, 2, 90);
+    const rects = bc.bars.map((b) => `<rect x="${b.x}" y="0" width="${b.w}" height="${bc.height}"/>`).join('');
+    const win = window.open('', '_blank', 'width=420,height=320');
+    if (!win) return;
+    win.document.write(
+      `<!doctype html><meta charset="utf-8"><title>${p.sku}</title>` +
+        `<body style="margin:0;display:grid;place-items:center;height:100vh;font-family:system-ui">` +
+        `<div style="text-align:center"><svg width="${bc.width}" height="${bc.height}" viewBox="0 0 ${bc.width} ${bc.height}" fill="#000">${rects}</svg>` +
+        `<div style="font:14px monospace;margin-top:6px">${p.sku}</div>` +
+        `<div style="font:13px system-ui;color:#555">${p.name}</div></div>` +
+        `<script>window.onload=function(){window.print()}<\/script>`,
+    );
+    win.document.close();
+  }
 
   // Init una sola vez tras el primer render (equivalente a `componentWillLoad` de Stencil: el shell
   // crea una instancia nueva del WC en cada montaje de la vista). El re-render lo dispara el
@@ -96,8 +204,9 @@ export class ErpInventoryProducts extends LitElement {
     await this.ctrl.load();
     // Reactividad: al cambiar stock o crearse un producto, recargamos la página actual.
     try {
-      const off1 = erplora().on('inventory.stock_changed', () => this.ctrl.load());
-      const off2 = erplora().on('inventory.product.created', () => this.ctrl.load());
+      const reload = () => this.ctrl.load();
+      const off1 = erplora().on('inventory.stock_changed', reload);
+      const off2 = erplora().on('inventory.product.created', reload);
       this.unsub = () => {
         off1();
         off2();
@@ -134,6 +243,7 @@ export class ErpInventoryProducts extends LitElement {
       this.newName = '';
       this.newSku = '';
       this.newPrice = '';
+      this.dataTable()?.close(); // cierra el panel lateral tras crear
       await this.ctrl.load(); // refresco inmediato (además del evento)
     } catch (e) {
       this.formError = e instanceof Error ? e.message : 'No se pudo crear';
@@ -144,40 +254,22 @@ export class ErpInventoryProducts extends LitElement {
 
   render() {
     return html`
-      <div>
-        <header>
-          <h2>Productos</h2>
-        </header>
-
-        <form class="form" @submit=${(e: Event) => this.createProduct(e)}>
-          <ion-input
-            placeholder="Nombre"
-            .value=${this.newName}
-            @ionInput=${(e: Event) => (this.newName = (e.target as HTMLInputElement).value)}
-          ></ion-input>
-          <ion-input
-            placeholder="SKU"
-            .value=${this.newSku}
-            @ionInput=${(e: Event) => (this.newSku = (e.target as HTMLInputElement).value)}
-          ></ion-input>
-          <ion-input
-            type="number"
-            step="0.01"
-            placeholder="Precio"
-            .value=${this.newPrice}
-            @ionInput=${(e: Event) => (this.newPrice = (e.target as HTMLInputElement).value)}
-          ></ion-input>
-          <ion-button type="submit" size="small" ?disabled=${this.saving || !this.newName || !this.newSku}>
-            ${this.saving ? 'Guardando…' : 'Añadir'}
-          </ion-button>
-        </form>
-
+      <div class="page">
         ${this.formError ? html`<p class="err">${this.formError}</p>` : nothing}
         ${this.ctrl?.error ? html`<p class="err">${this.ctrl.error}</p>` : nothing}
 
         <ok-data-table
           .serverSide=${true}
+          .fill=${true}
           .columns=${this.columns}
+          .actions=${this.actions}
+          .addable=${true}
+          .views=${true}
+          .columnPicker=${true}
+          .csv=${true}
+          .csvName=${'inventory-products.csv'}
+          @csvImport=${(e: CustomEvent<{ rows: Record<string, string>[] }>) => this.onCsvImport(e)}
+          @rowAction=${(e: CustomEvent<{ actionId: string; row: Record<string, unknown> }>) => this.onRowAction(e)}
           .rows=${this.ctrl?.rows ?? []}
           .total=${this.ctrl?.total ?? 0}
           .page=${this.ctrl?.state.page ?? 0}
@@ -188,12 +280,73 @@ export class ErpInventoryProducts extends LitElement {
           .searchPlaceholder=${'Buscar nombre o SKU…'}
           .emptyMessage=${this.ctrl?.loading ? 'Cargando…' : 'Sin productos.'}
           @pageChange=${(e: CustomEvent<number>) => this.ctrl.setPage(e.detail)}
+          @pageSizeChange=${(e: CustomEvent<number>) => this.ctrl.setPageSize(e.detail)}
           @sortChange=${(e: CustomEvent<{ sort: string; dir: 'asc' | 'desc' }>) =>
             this.ctrl.setSort(e.detail.sort, e.detail.dir)}
           @searchChange=${(e: CustomEvent<string>) => this.ctrl.setSearch(e.detail)}
           @filterChange=${(e: CustomEvent<{ col: string; value: unknown }>) =>
             this.ctrl.setFilter(e.detail.col, e.detail.value)}
-        ></ok-data-table>
+        >
+          <!-- Formulario de alta: el botón "+" del data-table despliega este acordeón. -->
+          <form slot="create" class="form" @submit=${(e: Event) => this.createProduct(e)}>
+            <ion-input
+              fill="outline"
+              label="Nombre"
+              label-placement="stacked"
+              .value=${this.newName}
+              @ionInput=${(e: Event) => (this.newName = (e.target as HTMLInputElement).value)}
+            ></ion-input>
+            <ion-input
+              fill="outline"
+              label="SKU"
+              label-placement="stacked"
+              .value=${this.newSku}
+              @ionInput=${(e: Event) => (this.newSku = (e.target as HTMLInputElement).value)}
+            ></ion-input>
+            <ion-input
+              fill="outline"
+              label="Precio"
+              label-placement="stacked"
+              type="number"
+              step="0.01"
+              .value=${this.newPrice}
+              @ionInput=${(e: Event) => (this.newPrice = (e.target as HTMLInputElement).value)}
+            ></ion-input>
+            <ion-button type="submit" ?disabled=${this.saving || !this.newName || !this.newSku}>
+              ${this.saving ? 'Guardando…' : 'Guardar'}
+            </ion-button>
+          </form>
+        </ok-data-table>
+
+        <ion-modal .isOpen=${!!this.detail} @ionModalDidDismiss=${() => (this.detail = null)}>
+          <ion-header>
+            <ion-toolbar>
+              <ion-title>${this.detail?.name ?? ''}</ion-title>
+              <ion-buttons slot="end">
+                <ion-button @click=${() => (this.detail = null)}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
+              </ion-buttons>
+            </ion-toolbar>
+          </ion-header>
+          <ion-content class="ion-padding">
+            ${this.detail
+              ? html`
+                  <div class="detail">
+                    <div class="drow"><span>SKU</span><b>${this.detail.sku}</b></div>
+                    <div class="drow"><span>Precio</span><b>${Number(this.detail.price).toFixed(2)} €</b></div>
+                    <div class="drow"><span>Stock</span><b>${this.detail.stock}</b></div>
+                    <div class="drow"><span>Activo</span><b>${this.detail.is_active ? 'Sí' : 'No'}</b></div>
+                    <div class="barcode">
+                      ${this.renderBarcode(this.detail.sku)}
+                      <div class="bccode">${this.detail.sku}</div>
+                    </div>
+                    <ion-button expand="block" @click=${() => this.detail && this.printBarcode(this.detail)}>
+                      <ion-icon name="print-outline" slot="start"></ion-icon> Imprimir código de barras
+                    </ion-button>
+                  </div>
+                `
+              : nothing}
+          </ion-content>
+        </ion-modal>
       </div>
     `;
   }

@@ -52,10 +52,28 @@
   },
   "navigation": [
     {
-      "id": "inventory",
-      "label": "Inventory",
+      "id": "dashboard",
+      "label": "Dashboard",
+      "icon": "stats-chart",
+      "component": "erp-inventory-dashboard"
+    },
+    {
+      "id": "products",
+      "label": "Products",
       "icon": "cube",
       "component": "erp-inventory-products"
+    },
+    {
+      "id": "categories",
+      "label": "Categories",
+      "icon": "pricetags",
+      "component": "erp-inventory-categories"
+    },
+    {
+      "id": "settings",
+      "label": "Settings",
+      "icon": "settings",
+      "component": "erp-inventory-settings"
     }
   ],
   "migrations": {
@@ -162,9 +180,26 @@
       "ai": {
         "description": "Lists inventory product categories."
       }
+    },
+    "inventory.settings.get": {
+      "permission": "inventory.manage_settings",
+      "sql": "queries/settings_get.sql",
+      "ai": {
+        "description": "Returns inventory module settings (e.g. whether selling without stock is allowed)."
+      }
     }
   },
   "commands": {
+    "inventory.settings.update": {
+      "permission": "inventory.manage_settings",
+      "transaction": true,
+      "sql": [
+        "commands/settings_update.sql"
+      ],
+      "ai": {
+        "description": "Updates inventory module settings (allow selling without stock, low-stock threshold, stock tracking)."
+      }
+    },
     "inventory.products.create": {
       "permission": "inventory.add_product",
       "transaction": true,

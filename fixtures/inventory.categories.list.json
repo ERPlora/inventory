@@ -1,0 +1,8 @@
+[
+  { "id": "c-1", "name": "Bebidas", "slug": "bebidas", "icon": "cafe", "color": "#8a5", "product_count": 14 },
+  { "id": "c-2", "name": "Lácteos", "slug": "lacteos", "icon": "nutrition", "color": "#5ad", "product_count": 6 },
+  { "id": "c-3", "name": "Panadería", "slug": "panaderia", "icon": "pizza", "color": "#d95", "product_count": 9 },
+  { "id": "c-4", "name": "Desechables", "slug": "desechables", "icon": "trash", "color": "#999", "product_count": 11 },
+  { "id": "c-5", "name": "Snacks", "slug": "snacks", "icon": "fast-food", "color": "#e87", "product_count": 7 },
+  { "id": "c-6", "name": "Limpieza", "slug": "limpieza", "icon": "sparkles", "color": "#6c9", "product_count": 4 }
+]

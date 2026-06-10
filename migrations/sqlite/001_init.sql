@@ -1,23 +1,23 @@
--- Inventory · esquema inicial (SQLite). Portado fielmente de modules/m_inventory/models.py.
--- Modelos: InventoryConfig (singleton), Category, Product, ProductVariant + M2M product↔category.
+-- Inventory · esquema inicial (SQLite). Portado de modules/m_inventory/models.py.
+-- Modelos: Settings (singleton), Category, Product, ProductVariant + M2M product↔category.
 -- Contrato de fila estándar de hub (§2.5): hub_id + soft-delete + auditoría.
 
--- Config singleton por hub.
-CREATE TABLE IF NOT EXISTS inventory_config (
-    id                      TEXT PRIMARY KEY,
-    hub_id                  TEXT NOT NULL,
-    allow_negative_stock    INTEGER NOT NULL DEFAULT 0,
-    low_stock_alert_enabled INTEGER NOT NULL DEFAULT 1,
-    auto_generate_sku       INTEGER NOT NULL DEFAULT 1,
-    barcode_enabled         INTEGER NOT NULL DEFAULT 1,
-    is_deleted              INTEGER NOT NULL DEFAULT 0,
-    deleted_at              TEXT,
-    created_by              TEXT,
-    updated_by              TEXT,
-    created_at              TEXT,
-    updated_at              TEXT
+-- Ajustes singleton por hub (esquema canónico decidido en inventory#1:
+-- inventory_settings con allow_sell_without_stock / low_stock_threshold / track_stock).
+CREATE TABLE IF NOT EXISTS inventory_settings (
+    id                       TEXT PRIMARY KEY,
+    hub_id                   TEXT NOT NULL,
+    allow_sell_without_stock INTEGER NOT NULL DEFAULT 0,
+    low_stock_threshold      INTEGER NOT NULL DEFAULT 10,
+    track_stock              INTEGER NOT NULL DEFAULT 1,
+    is_deleted               INTEGER NOT NULL DEFAULT 0,
+    deleted_at               TEXT,
+    created_by               TEXT,
+    updated_by               TEXT,
+    created_at               TEXT,
+    updated_at               TEXT
 );
-CREATE UNIQUE INDEX IF NOT EXISTS uq_inventory_config_hub ON inventory_config (hub_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_inventory_settings_hub ON inventory_settings (hub_id);
 
 -- Categoría.
 CREATE TABLE IF NOT EXISTS inventory_category (
