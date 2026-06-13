@@ -5,7 +5,7 @@
 -- Tipos: subconjunto portable "ERPlora SQL" (ADR-0007):
 --   * ids/refs → TEXT (UUIDs del runtime como texto);
 --   * flags 0/1 → INTEGER (los commands bindean 0/1; Postgres no castea entero→bool);
---   * importes → NUMERIC;
+--   * importes → INTEGER en céntimos (ADR-0007);
 --   * FECHAS → TEXT ISO-8601 (NO TIMESTAMPTZ): el motor de sync (ADR-0031) compara
 --     updated_at como string lexicográfico; timestamptz rompería el LWW entre dialectos.
 
@@ -56,8 +56,8 @@ CREATE TABLE IF NOT EXISTS inventory_product (
     ean13               TEXT,
     description         TEXT NOT NULL DEFAULT '',
     product_type        TEXT NOT NULL DEFAULT 'physical',   -- physical|service
-    price               NUMERIC NOT NULL,
-    cost                NUMERIC NOT NULL DEFAULT 0,
+    price               INTEGER NOT NULL,           -- céntimos (ADR-0007)
+    cost                INTEGER NOT NULL DEFAULT 0,  -- céntimos (ADR-0007)
     stock               INTEGER NOT NULL DEFAULT 0,
     low_stock_threshold INTEGER NOT NULL DEFAULT 10,
     tax_class_id        TEXT,
@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS inventory_product_variant (
     name        TEXT NOT NULL,
     sku         TEXT NOT NULL,
     attributes  TEXT NOT NULL DEFAULT '{}',
-    price       NUMERIC NOT NULL,
+    price       INTEGER NOT NULL,                       -- céntimos (ADR-0007)
     stock       INTEGER NOT NULL DEFAULT 0,
     image       TEXT NOT NULL DEFAULT '',
     is_active   INTEGER NOT NULL DEFAULT 1,

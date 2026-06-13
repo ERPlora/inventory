@@ -51,8 +51,8 @@ CREATE TABLE IF NOT EXISTS inventory_product (
     ean13               TEXT,
     description         TEXT NOT NULL DEFAULT '',
     product_type        TEXT NOT NULL DEFAULT 'physical',   -- physical|service
-    price               NUMERIC NOT NULL,
-    cost                NUMERIC NOT NULL DEFAULT 0,
+    price               INTEGER NOT NULL,           -- céntimos (ADR-0007)
+    cost                INTEGER NOT NULL DEFAULT 0,  -- céntimos (ADR-0007)
     stock               INTEGER NOT NULL DEFAULT 0,
     low_stock_threshold INTEGER NOT NULL DEFAULT 10,
     tax_class_id        TEXT,
@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS inventory_product_variant (
     name        TEXT NOT NULL,
     sku         TEXT NOT NULL,
     attributes  TEXT NOT NULL DEFAULT '{}',
-    price       NUMERIC NOT NULL,
+    price       INTEGER NOT NULL,                       -- céntimos (ADR-0007)
     stock       INTEGER NOT NULL DEFAULT 0,
     image       TEXT NOT NULL DEFAULT '',
     is_active   INTEGER NOT NULL DEFAULT 1,
