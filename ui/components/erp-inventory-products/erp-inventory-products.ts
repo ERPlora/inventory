@@ -9,6 +9,11 @@ import '@erplora/outfitkit/ok-data-table';
 import type { DataTableColumn, DataTableAction } from '@erplora/outfitkit';
 import { createListController } from '@erplora/module-sdk';
 import type { ListController, ListClient, ListParams, ListPage } from '@erplora/module-sdk';
+// Catálogo i18n del módulo (ADR-0055): esbuild inlinea estos JSON en el `dist` del WC. Los textos
+// internos se resuelven con `erplora.t(CATALOG, 'ui.clave')` (idioma activo, fallback locale→en→clave).
+import esLocale from '../../../locales/es.json';
+import enLocale from '../../../locales/en.json';
+const CATALOG: Record<string, unknown> = { es: esLocale, en: enLocale };
 
 // Web Component del módulo `inventory` (Lit). Mini-app: lista de productos paginada server-side
 // (búsqueda + orden + filtro por columna vía el runtime) + alta rápida.
@@ -21,6 +26,9 @@ interface ErploraClientLike extends ListClient {
   queryPage<R = unknown>(name: string, params: ListParams): Promise<ListPage<R>>;
   command<T = unknown>(name: string, payload?: Record<string, unknown>): Promise<T>;
   on(event: string, cb: (payload: unknown) => void): () => void;
+  /** i18n del módulo (ADR-0055): idioma activo + traducción del catálogo `ui`. */
+  locale: string;
+  t(catalog: Record<string, unknown>, key: string, params?: Record<string, unknown>): string;
 }
 
 interface Product {
@@ -68,28 +76,32 @@ export class ErpInventoryProducts extends LitElement {
   private ctrl!: ListController<Product>;
   private unsub?: () => void;
 
-  private columns: DataTableColumn[] = [
-    { key: 'name', header: 'Nombre', sortable: true, filterable: true, filterType: 'text' },
-    { key: 'sku', header: 'SKU', sortable: true, filterable: true, filterType: 'text' },
+  // Getter (no campo): se re-evalúa en cada render, así los textos cambian con el idioma activo
+  // (ADR-0055). `connectedCallback` re-renderiza al recibir `erplora:locale-changed`.
+  private get columns(): DataTableColumn[] {
+    const t = (k: string): string => erplora().t(CATALOG, k);
+    return [
+    { key: 'name', header: t('ui.name'), sortable: true, filterable: true, filterType: 'text' },
+    { key: 'sku', header: t('ui.sku'), sortable: true, filterable: true, filterType: 'text' },
     {
       key: 'price',
-      header: 'Precio',
+      header: t('ui.price'),
       align: 'right',
       sortable: true,
       filterable: true,
       filterType: 'range',
       format: (r) => Number(r.price).toFixed(2),
     },
-    { key: 'stock', header: 'Stock', align: 'right', sortable: true, filterable: true, filterType: 'range' },
+    { key: 'stock', header: t('ui.stock'), align: 'right', sortable: true, filterable: true, filterType: 'range' },
     {
       key: 'is_active',
-      header: 'Activo',
+      header: t('ui.active'),
       align: 'center',
       filterable: true,
       filterType: 'select',
       options: [
-        { value: '1', label: 'Sí' },
-        { value: '0', label: 'No' },
+        { value: '1', label: t('ui.yes') },
+        { value: '0', label: t('ui.no') },
       ],
       // Celda interactiva: ion-toggle (verde = activo). Al cambiar, persiste vía command.
       // El color va por CSS var (--background-checked) y no por `color=`, porque las clases
@@ -102,16 +114,20 @@ export class ErpInventoryProducts extends LitElement {
         ></ion-toggle>
       `,
     },
-  ];
+    ];
+  }
 
   @state() private detail: Product | null = null;
 
-  // Acciones por fila (botones) → la tabla emite `rowAction` con { actionId, row }.
-  private actions: DataTableAction[] = [
-    { id: 'detail', label: 'Detalles', icon: 'eye-outline' },
-    { id: 'edit', label: 'Editar', icon: 'create-outline' },
-    { id: 'delete', label: 'Eliminar', icon: 'trash-outline', color: 'danger' },
-  ];
+  // Acciones por fila (botones) → la tabla emite `rowAction` con { actionId, row }. Getter (i18n).
+  private get actions(): DataTableAction[] {
+    const t = (k: string): string => erplora().t(CATALOG, k);
+    return [
+      { id: 'detail', label: t('ui.actionDetail'), icon: 'eye-outline' },
+      { id: 'edit', label: t('ui.actionEdit'), icon: 'create-outline' },
+      { id: 'delete', label: t('ui.actionDelete'), icon: 'trash-outline', color: 'danger' },
+    ];
+  }
 
   private async onRowAction(ev: CustomEvent<{ actionId: string; row: Record<string, unknown> }>): Promise<void> {
     const { actionId, row } = ev.detail;
@@ -212,6 +228,14 @@ export class ErpInventoryProducts extends LitElement {
   // Init una sola vez tras el primer render (equivalente a `componentWillLoad` de Stencil: el shell
   // crea una instancia nueva del WC en cada montaje de la vista). El re-render lo dispara el
   // controlador vía `requestUpdate()` (sustituye al antiguo `this.tick++`), no un @state.
+  // Re-render al cambiar el idioma del shell (ADR-0055): los getters `columns`/`actions` y el
+  // texto del template se re-evalúan con el nuevo `erplora.locale`.
+  private readonly onLocaleChange = (): void => this.requestUpdate();
+  connectedCallback(): void {
+    super.connectedCallback();
+    window.addEventListener('erplora:locale-changed', this.onLocaleChange);
+  }
+
   async firstUpdated(): Promise<void> {
     this.ctrl = createListController<Product>(
       erplora(),
@@ -235,6 +259,7 @@ export class ErpInventoryProducts extends LitElement {
   }
 
   disconnectedCallback(): void {
+    window.removeEventListener('erplora:locale-changed', this.onLocaleChange);
     super.disconnectedCallback();
     this.unsub?.();
   }

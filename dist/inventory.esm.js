@@ -9,7 +9,7 @@ var __decorateClass = (decorators, target, key, kind) => {
   return result;
 };
 
-// node_modules/.pnpm/@lit-labs+ssr-dom-shim@1.6.0/node_modules/@lit-labs/ssr-dom-shim/lib/element-internals.js
+// node_modules/@lit-labs/ssr-dom-shim/lib/element-internals.js
 var ElementInternalsShim = class ElementInternals {
   get shadowRoot() {
     return this.__host.__shadowRoot;
@@ -88,7 +88,7 @@ var ElementInternalsShim = class ElementInternals {
   }
 };
 
-// node_modules/.pnpm/@lit-labs+ssr-dom-shim@1.6.0/node_modules/@lit-labs/ssr-dom-shim/lib/events.js
+// node_modules/@lit-labs/ssr-dom-shim/lib/events.js
 var __classPrivateFieldSet = function(receiver, state, value, kind, f3) {
   if (kind === "m") throw new TypeError("Private method is not writable");
   if (kind === "a" && !f3) throw new TypeError("Private accessor was defined without a setter");
@@ -246,7 +246,7 @@ Object.defineProperties(CustomEventShim.prototype, {
 var EventShimWithRealType = EventShim;
 var CustomEventShimWithRealType = CustomEventShim;
 
-// node_modules/.pnpm/@lit-labs+ssr-dom-shim@1.6.0/node_modules/@lit-labs/ssr-dom-shim/lib/css.js
+// node_modules/@lit-labs/ssr-dom-shim/lib/css.js
 var _a2;
 var CSSRuleShim = (_a2 = class CSSRule {
   constructor() {
@@ -277,7 +277,7 @@ var CSSRuleShim = (_a2 = class CSSRule {
   }
 }, _a2.STYLE_RULE = 1, _a2.CHARSET_RULE = 2, _a2.IMPORT_RULE = 3, _a2.MEDIA_RULE = 4, _a2.FONT_FACE_RULE = 5, _a2.PAGE_RULE = 6, _a2.NAMESPACE_RULE = 10, _a2.KEYFRAMES_RULE = 7, _a2.KEYFRAME_RULE = 8, _a2.SUPPORTS_RULE = 12, _a2.COUNTER_STYLE_RULE = 11, _a2.FONT_FEATURE_VALUES_RULE = 14, _a2.MARGIN_RULE = 9, _a2);
 
-// node_modules/.pnpm/@lit-labs+ssr-dom-shim@1.6.0/node_modules/@lit-labs/ssr-dom-shim/index.js
+// node_modules/@lit-labs/ssr-dom-shim/index.js
 globalThis.Event ??= EventShimWithRealType;
 globalThis.CustomEvent ??= CustomEventShimWithRealType;
 var constructionToken = Symbol();
@@ -674,7 +674,7 @@ var CustomElementRegistryShimWithRealType = CustomElementRegistry;
 var customElements2 = new CustomElementRegistryShimWithRealType();
 var windowShim = new WindowShim(constructionToken);
 
-// node_modules/.pnpm/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/node/css-tag.js
+// node_modules/@lit/reactive-element/node/css-tag.js
 var t = globalThis;
 var e = t.ShadowRoot && (void 0 === t.ShadyCSS || t.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype;
 var s = Symbol();
@@ -719,7 +719,7 @@ var c = e || void 0 === t.CSSStyleSheet ? (t5) => t5 : (t5) => t5 instanceof CSS
   return r(e5);
 })(t5) : t5;
 
-// node_modules/.pnpm/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/node/reactive-element.js
+// node_modules/@lit/reactive-element/node/reactive-element.js
 var { is: h, defineProperty: r2, getOwnPropertyDescriptor: o2, getOwnPropertyNames: n2, getOwnPropertySymbols: a, getPrototypeOf: c2 } = Object;
 var l = globalThis;
 l.customElements ??= customElements2;
@@ -942,7 +942,7 @@ var g = class extends (globalThis.HTMLElement ?? HTMLElementShimWithRealType) {
 };
 g.elementStyles = [], g.shadowRootOptions = { mode: "open" }, g[f("elementProperties")] = /* @__PURE__ */ new Map(), g[f("finalized")] = /* @__PURE__ */ new Map(), u?.({ ReactiveElement: g }), (l.reactiveElementVersions ??= []).push("2.1.2");
 
-// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/lit-html.js
+// node_modules/lit-html/lit-html.js
 var t2 = globalThis;
 var i2 = (t5) => t5;
 var s2 = t2.trustedTypes;
@@ -1197,7 +1197,7 @@ var D = (t5, i7, s5) => {
   return h4._$AI(t5), h4;
 };
 
-// node_modules/.pnpm/lit-element@4.2.2/node_modules/lit-element/lit-element.js
+// node_modules/lit-element/lit-element.js
 var s3 = globalThis;
 var i3 = class extends g {
   constructor() {
@@ -1226,7 +1226,7 @@ var o4 = s3.litElementPolyfillSupport;
 o4?.({ LitElement: i3 });
 (s3.litElementVersions ??= []).push("4.2.2");
 
-// node_modules/.pnpm/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/node/decorators/property.js
+// node_modules/@lit/reactive-element/node/decorators/property.js
 var o5 = { attribute: true, type: String, converter: b, reflect: false, hasChanged: m };
 var r4 = (t5 = o5, e5, r6) => {
   const { kind: n6, metadata: i7 } = r6;
@@ -1256,19 +1256,19 @@ function n4(t5) {
   })(t5, e5, o7);
 }
 
-// node_modules/.pnpm/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/node/decorators/state.js
+// node_modules/@lit/reactive-element/node/decorators/state.js
 function r5(r6) {
   return n4({ ...r6, state: true, attribute: false });
 }
 
-// node_modules/.pnpm/@outfitkit+core@file+..+outfitkit/node_modules/@outfitkit/core/dist/define.js
+// ../outfitkit/dist/define.js
 function define(tag, ctor) {
   if (typeof customElements !== "undefined" && !customElements.get(tag)) {
     customElements.define(tag, ctor);
   }
 }
 
-// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directive.js
+// node_modules/lit-html/directive.js
 var t3 = { ATTRIBUTE: 1, CHILD: 2, PROPERTY: 3, BOOLEAN_ATTRIBUTE: 4, EVENT: 5, ELEMENT: 6 };
 var e4 = (t5) => (...e5) => ({ _$litDirective$: t5, values: e5 });
 var i4 = class {
@@ -1288,7 +1288,7 @@ var i4 = class {
   }
 };
 
-// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directive-helpers.js
+// node_modules/lit-html/directive-helpers.js
 var { I: t4 } = j;
 var i5 = (o7) => o7;
 var s4 = () => document.createComment("");
@@ -1321,7 +1321,7 @@ var h3 = (o7) => {
   o7._$AR(), o7._$AA.remove();
 };
 
-// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directives/repeat.js
+// node_modules/lit-html/directives/repeat.js
 var u4 = (e5, s5, t5) => {
   const r6 = /* @__PURE__ */ new Map();
   for (let l3 = s5; l3 <= t5; l3++) r6.set(e5[l3], l3);
@@ -1374,7 +1374,7 @@ var c4 = e4(class extends i4 {
   }
 });
 
-// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directives/style-map.js
+// node_modules/lit-html/directives/style-map.js
 var n5 = "important";
 var i6 = " !" + n5;
 var o6 = e4(class extends i4 {
@@ -1403,7 +1403,7 @@ var o6 = e4(class extends i4 {
   }
 });
 
-// node_modules/.pnpm/@outfitkit+core@file+..+outfitkit/node_modules/@outfitkit/core/dist/ok-data-table.js
+// ../outfitkit/dist/ok-data-table.js
 var __defProp2 = Object.defineProperty;
 var __decorateClass2 = (decorators, target, key, kind) => {
   var result = void 0;
@@ -1462,7 +1462,7 @@ var OkDataTable = class extends i3 {
     this.addable = false;
     this.pageSizeOptions = [10, 25, 50, 100];
     this.fill = false;
-    this.columnPicker = false;
+    this.columnPicker = true;
     this.csv = false;
     this.csvName = "export.csv";
     this.serverSide = false;
@@ -1571,22 +1571,34 @@ var OkDataTable = class extends i3 {
 
     /* ── Topbar / cabecera (relieve) ─────────────────────────────────────────────────────── */
     .bar { display: flex; flex-direction: column; gap: 0.6rem; padding: 0.65rem 1rem; border-bottom: 1px solid var(--border-color); background: var(--header-background); }
+    /* Toolbar CONSOLIDADA: TODOS los controles son hijos directos de UNA sola fila flex que
+     * envuelve ELEMENTO A ELEMENTO (no por bloques): caben en una línea → una línea; los que no
+     * caben bajan a la(s) línea(s) que hagan falta. El cluster derecho se empuja al borde con
+     * .tk-spacer (hueco flexible) solo cuando todo cabe en una línea; al envolver, el spacer se
+     * oculta y todo se apila a la izquierda.
+     * ORDEN CANÓNICO (2026-06-22, izquierda→derecha): [buscador] · [filtros en línea] · ‹spacer› ·
+     * [SELECTORES: columnas → filas/página] · [BOTONES: vistas → filtros(funnel) → import → export →
+     * alta → ⋮ → acción primaria]. Es decir: buscador al inicio, filtros en medio, y al final los
+     * selectores (columnas, luego «N por página») seguidos de los botones de acción. */
     .bar-main { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
-    .title-wrap { display: flex; align-items: baseline; gap: 0.5rem; margin-right: auto; }
+    .bar-main > ion-button { --padding-start: 0.5rem; --padding-end: 0.5rem; margin: 0; }
+    /* Spacer que absorbe el hueco libre en pantallas anchas (empuja el cluster derecho al borde).
+     * Se oculta por debajo de 1024px para que, al envolver, los controles se apilen a la izquierda. */
+    .tk-spacer { flex: 1 1 0; min-width: 0; align-self: stretch; }
+    @media (max-width: 1024px) { .tk-spacer { display: none; } }
+    /* Buscador a ancho completo (línea propia) en móvil; el resto envuelve debajo. */
+    @media (max-width: 640px) { .search { flex-basis: 100%; max-width: none; } }
+    .title-wrap { display: flex; align-items: baseline; gap: 0.5rem; }
     .title { font-size: 15px; font-weight: 600; line-height: 1; margin: 0; }
     .title-count { font-size: 12px; font-weight: 500; color: var(--color-muted); }
-    /* flex-wrap: en pantallas estrechas los controles (y el slot "toolbar",
-     * p.ej. selects de filtro del host) saltan de línea en vez de desbordar
-     * recortados por el borde derecho (cloud#551). */
-    .bar-end { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
-    .bar-end ion-button { --padding-start: 0.5rem; --padding-end: 0.5rem; margin: 0; }
 
     /* Botón de herramienta cuadrado (filtros/import/export), look del Hub: 36×36, badge contador. */
     .toolbtn { position: relative; --padding-start: 0; --padding-end: 0; --border-radius: 10px; width: 36px; height: 36px; margin: 0; }
     .toolbtn .badge { position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 999px; background: var(--primary); color: var(--primary-contrast); font-size: 10px; font-weight: 700; line-height: 16px; text-align: center; pointer-events: none; }
 
-    /* Buscador (caja con icono + limpiar), look del Hub */
-    .search { flex: 1 1 12rem; min-width: 10rem; max-width: 22rem; }
+    /* Buscador (caja con icono + limpiar), look del Hub. No crece (el spacer se queda el hueco);
+     * puede encoger hasta min-width y, por debajo, envuelve. */
+    .search { flex: 0 1 22rem; min-width: 12rem; max-width: 24rem; }
     ion-searchbar { --background: var(--background); --border-radius: 10px; padding: 0; min-height: 36px; }
     /* Flat: el buscador quita borde y elevación vía la clase específica de Ionic 'ion-no-border'.
      * (La regla global de Ionic para .ion-no-border no cruza el Shadow DOM, así que la
@@ -2275,9 +2287,22 @@ var OkDataTable = class extends i3 {
               <div class="bar">
                 <div class="bar-main">
                   ${this.title ? b2`<div class="title-wrap"><h2 class="title">${this.title}</h2><span class="title-count">${count}</span></div>` : A}
-                  ${this.hasSearch ? b2`<div class="search">${searchbar}</div>` : this.title ? A : b2`<span style="margin-right:auto"></span>`}
+                  ${this.hasSearch ? b2`<div class="search">${searchbar}</div>` : A}
                   ${this.inlineFilters ? this.renderInlineFilters() : A}
-                  <div class="bar-end">
+                  <span class="tk-spacer"></span>
+                    ${this.effColumnPicker ? b2`
+                          <ion-select
+                            class="tk-cols"
+                            multiple
+                            interface="popover"
+                            aria-label=${this.t.columnsVisible}
+                            .value=${this.visibleColumns.map((c5) => c5.key)}
+                            .selectedText=${this.t.columns}
+                            @ionChange=${(e5) => this.setVisibleColumns(e5.detail.value)}
+                          >
+                            ${this.columns.map((c5) => b2`<ion-select-option value=${c5.key}>${c5.header}</ion-select-option>`)}
+                          </ion-select>
+                        ` : A}
                     ${this.effPageSizes.length ? b2`
                           <ion-select
                             class="tk-psize"
@@ -2294,19 +2319,6 @@ var OkDataTable = class extends i3 {
                             ${this.toolButton("list-outline", this.viewMode === "table", () => this.setViewMode("table"), this.t.viewList)}
                             ${this.toolButton("grid-outline", this.viewMode === "cards", () => this.setViewMode("cards"), this.t.viewCards)}
                           </span>
-                        ` : A}
-                    ${this.effColumnPicker ? b2`
-                          <ion-select
-                            class="tk-cols"
-                            multiple
-                            interface="popover"
-                            aria-label=${this.t.columnsVisible}
-                            .value=${this.visibleColumns.map((c5) => c5.key)}
-                            .selectedText=${this.t.columns}
-                            @ionChange=${(e5) => this.setVisibleColumns(e5.detail.value)}
-                          >
-                            ${this.columns.map((c5) => b2`<ion-select-option value=${c5.key}>${c5.header}</ion-select-option>`)}
-                          </ion-select>
                         ` : A}
                     ${this.hasFilterRow && !this.inlineFilters ? this.toolButton("funnel-outline", this.panel === "filters" || this.activeFilterCount > 0, () => this.toggle("filters"), this.t.filters, this.serverSide ? void 0 : this.activeFilterCount) : A}
                     ${this.effImport ? b2`
@@ -2327,7 +2339,6 @@ var OkDataTable = class extends i3 {
                         ` : A}
                     <!-- El módulo proyecta aquí acciones globales adicionales. -->
                     <slot name="toolbar"></slot>
-                  </div>
                 </div>
                 ${this.selectable && selCount > 0 ? b2`
                       <div class="selbar">
@@ -2564,7 +2575,7 @@ __decorateClass2([
   n4({ type: Boolean, reflect: true })
 ], OkDataTable.prototype, "fill");
 __decorateClass2([
-  n4({ type: Boolean })
+  n4({ type: Boolean, attribute: "column-picker" })
 ], OkDataTable.prototype, "columnPicker");
 __decorateClass2([
   n4({ type: Boolean })
@@ -2603,7 +2614,7 @@ __decorateClass2([
   n4({ type: Boolean })
 ], OkDataTable.prototype, "importable");
 __decorateClass2([
-  n4({ type: Boolean })
+  n4({ type: Boolean, attribute: "column-selector" })
 ], OkDataTable.prototype, "columnSelector");
 __decorateClass2([
   n4({ attribute: false })
@@ -2670,7 +2681,7 @@ __decorateClass2([
 ], OkDataTable.prototype, "menuOpen");
 define("ok-data-table", OkDataTable);
 
-// node_modules/.pnpm/@erplora+module-sdk@file+..+hub+packages+module-sdk/node_modules/@erplora/module-sdk/src/index.ts
+// ../hub/packages/module-sdk/src/index.ts
 function isEmpty(v3) {
   return v3 === null || v3 === void 0 || v3 === "";
 }
@@ -2788,7 +2799,7 @@ function createListController(client, queryName, onChange = () => {
   return new ListController(client, queryName, onChange, opts);
 }
 
-// modules/inventory/ui/components/erp-inventory-categories/erp-inventory-categories.ts
+// ../modules-workspace/modules/inventory/ui/components/erp-inventory-categories/erp-inventory-categories.ts
 function erplora() {
   const c5 = globalThis.erplora;
   if (!c5) throw new Error("erplora SDK no inicializado por el shell");
@@ -2952,7 +2963,7 @@ __decorateClass([
 ], ErpInventoryCategories.prototype, "formError", 2);
 define("erp-inventory-categories", ErpInventoryCategories);
 
-// modules/inventory/ui/components/erp-inventory-dashboard/erp-inventory-dashboard.ts
+// ../modules-workspace/modules/inventory/ui/components/erp-inventory-dashboard/erp-inventory-dashboard.ts
 function erplora2() {
   const c5 = globalThis.erplora;
   if (!c5) throw new Error("erplora SDK no inicializado por el shell");
@@ -3038,7 +3049,7 @@ __decorateClass([
 ], ErpInventoryDashboard.prototype, "stats", 2);
 define("erp-inventory-dashboard", ErpInventoryDashboard);
 
-// modules/inventory/ui/lib/code128.ts
+// ../modules-workspace/modules/inventory/ui/lib/code128.ts
 var PATTERNS = [
   "212222",
   "222122",
@@ -3176,7 +3187,74 @@ function code128b(text, module = 2, height = 70) {
   return { width: x2, height, bars };
 }
 
-// modules/inventory/ui/components/erp-inventory-products/erp-inventory-products.ts
+// ../modules-workspace/modules/inventory/locales/es.json
+var es_default = {
+  name: "Inventario",
+  navigation: {
+    dashboard: { label: "Panel" },
+    products: { label: "Productos" },
+    categories: { label: "Categor\xEDas" },
+    settings: { label: "Ajustes" }
+  },
+  ui: {
+    name: "Nombre",
+    sku: "SKU",
+    price: "Precio",
+    stock: "Stock",
+    active: "Activo",
+    category: "Categor\xEDa",
+    addProduct: "A\xF1adir producto",
+    newProduct: "Nuevo producto",
+    editProduct: "Editar producto",
+    lowStock: "Stock bajo",
+    searchProduct: "Buscar producto\u2026",
+    noProducts: "Sin productos",
+    save: "Guardar",
+    cancel: "Cancelar",
+    delete: "Borrar",
+    yes: "S\xED",
+    no: "No",
+    actionDetail: "Detalles",
+    actionEdit: "Editar",
+    actionDelete: "Eliminar"
+  }
+};
+
+// ../modules-workspace/modules/inventory/locales/en.json
+var en_default = {
+  name: "Inventory",
+  navigation: {
+    dashboard: { label: "Dashboard" },
+    products: { label: "Products" },
+    categories: { label: "Categories" },
+    settings: { label: "Settings" }
+  },
+  ui: {
+    name: "Name",
+    sku: "SKU",
+    price: "Price",
+    stock: "Stock",
+    active: "Active",
+    category: "Category",
+    addProduct: "Add product",
+    newProduct: "New product",
+    editProduct: "Edit product",
+    lowStock: "Low stock",
+    searchProduct: "Search product\u2026",
+    noProducts: "No products",
+    save: "Save",
+    cancel: "Cancel",
+    delete: "Delete",
+    yes: "Yes",
+    no: "No",
+    actionDetail: "Details",
+    actionEdit: "Edit",
+    actionDelete: "Delete"
+  }
+};
+
+// ../modules-workspace/modules/inventory/ui/components/erp-inventory-products/erp-inventory-products.ts
+var CATALOG = { es: es_default, en: en_default };
 function erplora3() {
   const c5 = globalThis.erplora;
   if (!c5) throw new Error("erplora SDK no inicializado por el shell");
@@ -3190,48 +3268,13 @@ var ErpInventoryProducts = class extends i3 {
     this.newPrice = "";
     this.saving = false;
     this.formError = "";
-    this.columns = [
-      { key: "name", header: "Nombre", sortable: true, filterable: true, filterType: "text" },
-      { key: "sku", header: "SKU", sortable: true, filterable: true, filterType: "text" },
-      {
-        key: "price",
-        header: "Precio",
-        align: "right",
-        sortable: true,
-        filterable: true,
-        filterType: "range",
-        format: (r6) => Number(r6.price).toFixed(2)
-      },
-      { key: "stock", header: "Stock", align: "right", sortable: true, filterable: true, filterType: "range" },
-      {
-        key: "is_active",
-        header: "Activo",
-        align: "center",
-        filterable: true,
-        filterType: "select",
-        options: [
-          { value: "1", label: "S\xED" },
-          { value: "0", label: "No" }
-        ],
-        // Celda interactiva: ion-toggle (verde = activo). Al cambiar, persiste vía command.
-        // El color va por CSS var (--background-checked) y no por `color=`, porque las clases
-        // .ion-color-* no penetran el shadow DOM de ok-data-table; las custom props sí heredan.
-        render: (r6) => b2`
-        <ion-toggle
-          style="--track-background-checked: rgba(var(--ion-color-success-rgb, 45,211,111), 0.5); --handle-background-checked: var(--ion-color-success, #2dd36f);"
-          ?checked=${!!r6.is_active}
-          @ionChange=${(e5) => this.toggleActive(r6, e5)}
-        ></ion-toggle>
-      `
-      }
-    ];
     this.detail = null;
-    // Acciones por fila (botones) → la tabla emite `rowAction` con { actionId, row }.
-    this.actions = [
-      { id: "detail", label: "Detalles", icon: "eye-outline" },
-      { id: "edit", label: "Editar", icon: "create-outline" },
-      { id: "delete", label: "Eliminar", icon: "trash-outline", color: "danger" }
-    ];
+    // Init una sola vez tras el primer render (equivalente a `componentWillLoad` de Stencil: el shell
+    // crea una instancia nueva del WC en cada montaje de la vista). El re-render lo dispara el
+    // controlador vía `requestUpdate()` (sustituye al antiguo `this.tick++`), no un @state.
+    // Re-render al cambiar el idioma del shell (ADR-0055): los getters `columns`/`actions` y el
+    // texto del template se re-evalúan con el nuevo `erplora.locale`.
+    this.onLocaleChange = () => this.requestUpdate();
   }
   static {
     this.styles = i`
@@ -3250,6 +3293,55 @@ var ErpInventoryProducts = class extends i3 {
     .barcode .bc { max-width:100%; height:auto; }
     .bccode { font:14px ui-monospace,monospace; margin-top:.4rem; letter-spacing:.08em; }
   `;
+  }
+  // Getter (no campo): se re-evalúa en cada render, así los textos cambian con el idioma activo
+  // (ADR-0055). `connectedCallback` re-renderiza al recibir `erplora:locale-changed`.
+  get columns() {
+    const t5 = (k2) => erplora3().t(CATALOG, k2);
+    return [
+      { key: "name", header: t5("ui.name"), sortable: true, filterable: true, filterType: "text" },
+      { key: "sku", header: t5("ui.sku"), sortable: true, filterable: true, filterType: "text" },
+      {
+        key: "price",
+        header: t5("ui.price"),
+        align: "right",
+        sortable: true,
+        filterable: true,
+        filterType: "range",
+        format: (r6) => Number(r6.price).toFixed(2)
+      },
+      { key: "stock", header: t5("ui.stock"), align: "right", sortable: true, filterable: true, filterType: "range" },
+      {
+        key: "is_active",
+        header: t5("ui.active"),
+        align: "center",
+        filterable: true,
+        filterType: "select",
+        options: [
+          { value: "1", label: t5("ui.yes") },
+          { value: "0", label: t5("ui.no") }
+        ],
+        // Celda interactiva: ion-toggle (verde = activo). Al cambiar, persiste vía command.
+        // El color va por CSS var (--background-checked) y no por `color=`, porque las clases
+        // .ion-color-* no penetran el shadow DOM de ok-data-table; las custom props sí heredan.
+        render: (r6) => b2`
+        <ion-toggle
+          style="--track-background-checked: rgba(var(--ion-color-success-rgb, 45,211,111), 0.5); --handle-background-checked: var(--ion-color-success, #2dd36f);"
+          ?checked=${!!r6.is_active}
+          @ionChange=${(e5) => this.toggleActive(r6, e5)}
+        ></ion-toggle>
+      `
+      }
+    ];
+  }
+  // Acciones por fila (botones) → la tabla emite `rowAction` con { actionId, row }. Getter (i18n).
+  get actions() {
+    const t5 = (k2) => erplora3().t(CATALOG, k2);
+    return [
+      { id: "detail", label: t5("ui.actionDetail"), icon: "eye-outline" },
+      { id: "edit", label: t5("ui.actionEdit"), icon: "create-outline" },
+      { id: "delete", label: t5("ui.actionDelete"), icon: "trash-outline", color: "danger" }
+    ];
   }
   async onRowAction(ev) {
     const { actionId, row } = ev.detail;
@@ -3332,9 +3424,10 @@ var ErpInventoryProducts = class extends i3 {
     );
     win.document.close();
   }
-  // Init una sola vez tras el primer render (equivalente a `componentWillLoad` de Stencil: el shell
-  // crea una instancia nueva del WC en cada montaje de la vista). El re-render lo dispara el
-  // controlador vía `requestUpdate()` (sustituye al antiguo `this.tick++`), no un @state.
+  connectedCallback() {
+    super.connectedCallback();
+    window.addEventListener("erplora:locale-changed", this.onLocaleChange);
+  }
   async firstUpdated() {
     this.ctrl = createListController(
       erplora3(),
@@ -3355,6 +3448,7 @@ var ErpInventoryProducts = class extends i3 {
     }
   }
   disconnectedCallback() {
+    window.removeEventListener("erplora:locale-changed", this.onLocaleChange);
     super.disconnectedCallback();
     this.unsub?.();
   }
@@ -3503,7 +3597,7 @@ __decorateClass([
 ], ErpInventoryProducts.prototype, "detail", 2);
 define("erp-inventory-products", ErpInventoryProducts);
 
-// modules/inventory/ui/components/erp-inventory-settings/erp-inventory-settings.ts
+// ../modules-workspace/modules/inventory/ui/components/erp-inventory-settings/erp-inventory-settings.ts
 function erplora4() {
   const c5 = globalThis.erplora;
   if (!c5) throw new Error("erplora SDK no inicializado por el shell");

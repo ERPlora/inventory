@@ -1,0 +1,31 @@
+{
+  "name": "Inventory",
+  "navigation": {
+    "dashboard": { "label": "Dashboard" },
+    "products": { "label": "Products" },
+    "categories": { "label": "Categories" },
+    "settings": { "label": "Settings" }
+  },
+  "ui": {
+    "name": "Name",
+    "sku": "SKU",
+    "price": "Price",
+    "stock": "Stock",
+    "active": "Active",
+    "category": "Category",
+    "addProduct": "Add product",
+    "newProduct": "New product",
+    "editProduct": "Edit product",
+    "lowStock": "Low stock",
+    "searchProduct": "Search product…",
+    "noProducts": "No products",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "yes": "Yes",
+    "no": "No",
+    "actionDetail": "Details",
+    "actionEdit": "Edit",
+    "actionDelete": "Delete"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "name": "Inventario",
+  "navigation": {
+    "dashboard": { "label": "Panel" },
+    "products": { "label": "Productos" },
+    "categories": { "label": "Categorías" },
+    "settings": { "label": "Ajustes" }
+  },
+  "ui": {
+    "name": "Nombre",
+    "sku": "SKU",
+    "price": "Precio",
+    "stock": "Stock",
+    "active": "Activo",
+    "category": "Categoría",
+    "addProduct": "Añadir producto",
+    "newProduct": "Nuevo producto",
+    "editProduct": "Editar producto",
+    "lowStock": "Stock bajo",
+    "searchProduct": "Buscar producto…",
+    "noProducts": "Sin productos",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Borrar",
+    "yes": "Sí",
+    "no": "No",
+    "actionDetail": "Detalles",
+    "actionEdit": "Editar",
+    "actionDelete": "Eliminar"
+  }
+}
