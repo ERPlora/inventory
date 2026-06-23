@@ -335,21 +335,21 @@ export class ErpInventoryProducts extends LitElement {
             <ion-input
               fill="outline"
               label="Nombre"
-              label-placement="stacked"
+              label-placement="floating"
               .value=${this.newName}
               @ionInput=${(e: Event) => (this.newName = (e.target as HTMLInputElement).value)}
             ></ion-input>
             <ion-input
               fill="outline"
               label="SKU"
-              label-placement="stacked"
+              label-placement="floating"
               .value=${this.newSku}
               @ionInput=${(e: Event) => (this.newSku = (e.target as HTMLInputElement).value)}
             ></ion-input>
             <ion-input
               fill="outline"
               label="Precio"
-              label-placement="stacked"
+              label-placement="floating"
               type="number"
               step="0.01"
               .value=${this.newPrice}
