@@ -29,6 +29,9 @@ interface ErploraClientLike extends ListClient {
   /** i18n del módulo (ADR-0055): idioma activo + traducción del catálogo `ui`. */
   locale: string;
   t(catalog: Record<string, unknown>, key: string, params?: Record<string, unknown>): string;
+  /** Moneda del hub + formateo de dinero (ADR-0059). */
+  currency: string;
+  formatAmount(units: number, opts?: { currency?: string; locale?: string }): string;
 }
 
 interface Product {
@@ -90,7 +93,7 @@ export class ErpInventoryProducts extends LitElement {
       sortable: true,
       filterable: true,
       filterType: 'range',
-      format: (r) => Number(r.price).toFixed(2),
+      format: (r) => erplora().formatAmount(Number(r.price)),
     },
     { key: 'stock', header: t('ui.stock'), align: 'right', sortable: true, filterable: true, filterType: 'range' },
     {
@@ -362,7 +365,7 @@ export class ErpInventoryProducts extends LitElement {
         </ok-data-table>
 
         <ion-modal .isOpen=${!!this.detail} @ionModalDidDismiss=${() => (this.detail = null)}>
-          <ion-header>
+          <ion-header class="ion-no-border">
             <ion-toolbar>
               <ion-title>${this.detail?.name ?? ''}</ion-title>
               <ion-buttons slot="end">
@@ -375,7 +378,7 @@ export class ErpInventoryProducts extends LitElement {
               ? html`
                   <div class="detail">
                     <div class="drow"><span>SKU</span><b>${this.detail.sku}</b></div>
-                    <div class="drow"><span>Precio</span><b>${Number(this.detail.price).toFixed(2)} €</b></div>
+                    <div class="drow"><span>Precio</span><b>${erplora().formatAmount(Number(this.detail.price))}</b></div>
                     <div class="drow"><span>Stock</span><b>${this.detail.stock}</b></div>
                     <div class="drow"><span>Activo</span><b>${this.detail.is_active ? 'Sí' : 'No'}</b></div>
                     <div class="barcode">
