@@ -1,5 +1,6 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { state } from 'lit/decorators.js';
+import { resolveTaxRates, pickTaxValue, normalizeTaxKey } from '../../lib/tax-resolve';
 import { define } from '@erplora/outfitkit/define';
 import '@erplora/outfitkit/ok-data-table';
 import type { DataTableColumn, DataTableAction } from '@erplora/outfitkit';
@@ -21,6 +22,16 @@ interface Category {
   name: string;
   slug: string;
   product_count: number;
+  tax_rate_id: string | null;
+}
+
+// Fila de `taxes.rates.list` (subconjunto que usa el selector del formulario, ADR-0066/0069).
+interface TaxRate {
+  id: string;
+  code: string;
+  name: string;
+  rate_pct: number;
+  tax_type?: string;
 }
 
 function erplora(): ErploraClientLike {
@@ -41,6 +52,8 @@ export class ErpInventoryCategories extends LitElement {
 
   @state() private newName = '';
   @state() private newSlug = '';
+  @state() private newTaxRateId = ''; // '' = tipo por defecto del hub (se envía null)
+  @state() private taxRates: TaxRate[] = [];
   @state() private saving = false;
   @state() private formError = '';
 
@@ -64,6 +77,31 @@ export class ErpInventoryCategories extends LitElement {
       dir: 'asc',
     });
     await this.ctrl.load();
+    void this.loadTaxRates();
+  }
+
+  // Carga los tipos de IVA/impuesto para el selector del formulario (ADR-0066/0069). Best-effort:
+  // si falla (módulo `taxes` no instalado, sin permiso…), el select queda con solo "— (por defecto)"
+  // y el alta sigue funcionando (tax_rate_id = null = tipo por defecto del hub).
+  private async loadTaxRates(): Promise<void> {
+    try {
+      this.taxRates = (await erplora().query<TaxRate[]>('taxes.rates.list', { page_size: 200 })) ?? [];
+    } catch {
+      this.taxRates = [];
+    }
+  }
+
+  // Opciones del ion-select: "— (por defecto)" (valor '') + un tipo por fila.
+  // Etiqueta = "Nombre (21%)"; los grupos añaden " · grupo".
+  private taxOptions() {
+    return html`
+      <ion-select-option value="">— (por defecto)</ion-select-option>
+      ${this.taxRates.map(
+        (r) => html`<ion-select-option .value=${r.id}
+          >${r.name} (${r.rate_pct}%)${r.tax_type === 'group' ? ' · grupo' : ''}</ion-select-option
+        >`,
+      )}
+    `;
   }
 
   private async onRowAction(ev: CustomEvent<{ actionId: string; row: Record<string, unknown> }>): Promise<void> {
@@ -72,6 +110,7 @@ export class ErpInventoryCategories extends LitElement {
     if (actionId === 'edit') {
       this.newName = c.name;
       this.newSlug = c.slug;
+      this.newTaxRateId = c.tax_rate_id ?? ''; // pre-selecciona el tipo de IVA actual
       this.dataTable()?.open('create');
     } else if (actionId === 'delete') {
       try {
@@ -89,17 +128,50 @@ export class ErpInventoryCategories extends LitElement {
       | null;
   }
 
+  // Importa categorías desde CSV (cabeceras = name, slug…). Crea una por fila.
+  // Cada fila resuelve su tipo de IVA por referencia (ADR-0066), igual que el import de productos:
+  // la columna fiscal (tax/iva/vat/…) se matchea contra los tipos existentes de `taxes`, los que
+  // falten (con un % real) se crean en bloque, y la categoría enlaza por `tax_rate_id`. Vacío / sin
+  // columna → null = tipo por defecto del hub. NO se convierten precios.
   private async onCsvImport(ev: CustomEvent<{ rows: Record<string, string>[] }>): Promise<void> {
-    for (const r of ev.detail.rows ?? []) {
+    const rows = ev.detail.rows ?? [];
+
+    // 1) Resolver/crear los tipos de IVA referenciados ANTES del bucle de creación.
+    let map = new Map<string, string>();
+    let createdTaxes = 0;
+    try {
+      const res = await resolveTaxRates(rows, erplora());
+      map = res.map;
+      createdTaxes = res.created;
+      if (res.unresolved.length > 0) {
+        console.warn(
+          '[inventory] Valores fiscales sin % ni coincidencia (categorías sin tipo):',
+          res.unresolved,
+        );
+      }
+    } catch (e) {
+      console.warn('[inventory] No se pudieron resolver los tipos de IVA del CSV:', e);
+    }
+
+    // 2) Crear las categorías enlazando su tax_rate_id (o null = tipo por defecto del hub).
+    let linked = 0;
+    for (const r of rows) {
       if (!r.name) continue;
+      const taxValue = pickTaxValue(r);
+      const taxRateId = taxValue ? (map.get(normalizeTaxKey(taxValue)) ?? null) : null;
+      if (taxRateId) linked++;
       try {
         await erplora().command('inventory.categories.create', {
           name: r.name,
           slug: r.slug || r.name.toLowerCase().replace(/\s+/g, '-'),
+          tax_rate_id: taxRateId,
         });
       } catch {
         /* ignora */
       }
+    }
+    if (createdTaxes > 0 || linked > 0) {
+      console.info(`[inventory] Import CSV: ${createdTaxes} tipos de IVA creados, ${linked} categorías enlazadas.`);
     }
     await this.ctrl.load();
   }
@@ -113,9 +185,11 @@ export class ErpInventoryCategories extends LitElement {
       await erplora().command('inventory.categories.create', {
         name: this.newName.trim(),
         slug: this.newSlug.trim() || this.newName.trim().toLowerCase().replace(/\s+/g, '-'),
+        tax_rate_id: this.newTaxRateId || null,
       });
       this.newName = '';
       this.newSlug = '';
+      this.newTaxRateId = '';
       this.dataTable()?.close();
       await this.ctrl.load();
     } catch (e) {
@@ -175,6 +249,15 @@ export class ErpInventoryCategories extends LitElement {
               .value=${this.newSlug}
               @ionInput=${(e: Event) => (this.newSlug = (e.target as HTMLInputElement).value)}
             ></ion-input>
+            <ion-select
+              fill="outline"
+              label-placement="floating"
+              label="Tipo de IVA / Impuesto"
+              .value=${this.newTaxRateId}
+              @ionChange=${(e: Event) => (this.newTaxRateId = (e.target as HTMLInputElement).value)}
+            >
+              ${this.taxOptions()}
+            </ion-select>
             <ion-button type="submit" ?disabled=${this.saving || !this.newName}>
               ${this.saving ? 'Guardando…' : 'Guardar'}
             </ion-button>

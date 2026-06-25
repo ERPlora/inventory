@@ -1,6 +1,6 @@
 -- Categorías activas con conteo de productos activos. Portado de CategoryService.list_categories
 -- (orden por order, name; product_count = nº de productos activos vinculados vía M2M).
-SELECT c.id, c.name, c.slug, c.icon, c.color, c.image, c."order",
+SELECT c.id, c.name, c.slug, c.icon, c.color, c.image, c."order", c.tax_rate_id,
        (SELECT COUNT(*)
         FROM inventory_product_categories pc
         JOIN inventory_product p ON p.id = pc.product_id

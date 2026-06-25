@@ -24,7 +24,7 @@
           "cost": { "type": "number", "minimum": 0, "default": 0 },
           "stock": { "type": "integer", "minimum": 0, "default": 0 },
           "low_stock_threshold": { "type": "integer", "minimum": 0, "default": 10 },
-          "tax_class_id": { "type": ["string", "null"], "default": null },
+          "tax_rate_id": { "type": ["string", "null"], "default": null },
           "image": { "type": "string", "default": "" }
         }
       }

@@ -1,6 +1,7 @@
 import { LitElement, html, css, nothing, svg } from 'lit';
 import { state } from 'lit/decorators.js';
 import { code128b } from '../../lib/code128';
+import { resolveTaxRates, pickTaxValue, normalizeTaxKey } from '../../lib/tax-resolve';
 // `define` por su subpath ligero: importar el barrel '@erplora/outfitkit' arrastraría (efectos
 // secundarios) el registro de TODOS los ok-* al bundle del módulo. `ok-data-table` se importa por
 // su efecto secundario (se auto-registra). Tipos desde el barrel (se borran en build).
@@ -42,7 +43,17 @@ interface Product {
   cost: number;
   stock: number;
   low_stock_threshold: number;
+  tax_rate_id: string | null;
   is_active: number;
+}
+
+// Fila de `taxes.rates.list` (subconjunto que usa el selector del formulario, ADR-0066/0069).
+interface TaxRate {
+  id: string;
+  code: string;
+  name: string;
+  rate_pct: number;
+  tax_type?: string;
 }
 
 
@@ -73,6 +84,8 @@ export class ErpInventoryProducts extends LitElement {
   @state() private newName = '';
   @state() private newSku = '';
   @state() private newPrice = '';
+  @state() private newTaxRateId = ''; // '' = tipo por defecto del hub (se envía null)
+  @state() private taxRates: TaxRate[] = [];
   @state() private saving = false;
   @state() private formError = '';
 
@@ -141,6 +154,7 @@ export class ErpInventoryProducts extends LitElement {
       this.newName = p.name;
       this.newSku = p.sku;
       this.newPrice = String(p.price ?? '');
+      this.newTaxRateId = p.tax_rate_id ?? ''; // pre-selecciona el tipo de IVA actual
       this.dataTable()?.open('create'); // abre el panel lateral con el form pre-rellenado
     } else if (actionId === 'delete') {
       try {
@@ -163,6 +177,7 @@ export class ErpInventoryProducts extends LitElement {
         price: p.price,
         cost: p.cost ?? 0,
         low_stock_threshold: p.low_stock_threshold ?? 10,
+        tax_rate_id: p.tax_rate_id ?? null,
         is_active: checked ? 1 : 0,
       });
       await this.ctrl.load();
@@ -179,10 +194,37 @@ export class ErpInventoryProducts extends LitElement {
   }
 
   // Importa productos desde CSV (cabeceras = name, sku, price, stock…). Crea uno por fila.
+  // Cada fila resuelve su tipo de IVA por referencia (ADR-0066): la columna fiscal (tax/iva/vat/…)
+  // se matchea contra los tipos existentes de `taxes`, los que falten (con un % real) se crean en
+  // bloque, y el producto enlaza por `tax_rate_id`. Vacío / sin columna → null = tipo por defecto
+  // del hub. NO se convierten precios: "IVA incluido o no" lo gobierna el ajuste del hub/POS.
   private async onCsvImport(ev: CustomEvent<{ rows: Record<string, string>[] }>): Promise<void> {
     const rows = ev.detail.rows ?? [];
+
+    // 1) Resolver/crear los tipos de IVA referenciados ANTES del bucle de creación.
+    let map = new Map<string, string>();
+    let createdTaxes = 0;
+    try {
+      const res = await resolveTaxRates(rows, erplora());
+      map = res.map;
+      createdTaxes = res.created;
+      if (res.unresolved.length > 0) {
+        console.warn(
+          '[inventory] Valores fiscales sin % ni coincidencia (productos sin tipo):',
+          res.unresolved,
+        );
+      }
+    } catch (e) {
+      console.warn('[inventory] No se pudieron resolver los tipos de IVA del CSV:', e);
+    }
+
+    // 2) Crear los productos enlazando su tax_rate_id (o null = tipo por defecto del hub).
+    let linked = 0;
     for (const r of rows) {
       if (!r.name && !r.sku) continue;
+      const taxValue = pickTaxValue(r);
+      const taxRateId = taxValue ? (map.get(normalizeTaxKey(taxValue)) ?? null) : null;
+      if (taxRateId) linked++;
       try {
         await erplora().command('inventory.products.create', {
           name: r.name ?? '',
@@ -194,12 +236,15 @@ export class ErpInventoryProducts extends LitElement {
           product_type: 'physical',
           ean13: r.ean13 || null,
           description: r.description ?? '',
-          tax_class_id: null,
+          tax_rate_id: taxRateId,
           image: '',
         });
       } catch {
         /* ignora filas inválidas */
       }
+    }
+    if (createdTaxes > 0 || linked > 0) {
+      console.info(`[inventory] Import CSV: ${createdTaxes} tipos de IVA creados, ${linked} productos enlazados.`);
     }
     await this.ctrl.load();
   }
@@ -247,6 +292,7 @@ export class ErpInventoryProducts extends LitElement {
       { pageSize: 50, sort: 'name', dir: 'asc' },
     );
     await this.ctrl.load();
+    void this.loadTaxRates();
     // Reactividad: al cambiar stock o crearse un producto, recargamos la página actual.
     try {
       const reload = () => this.ctrl.load();
@@ -267,6 +313,31 @@ export class ErpInventoryProducts extends LitElement {
     this.unsub?.();
   }
 
+  // Carga los tipos de IVA/impuesto para el selector del formulario (ADR-0066/0069). Best-effort:
+  // si falla (módulo `taxes` no instalado, sin permiso…), el select queda con solo "— (por defecto)"
+  // y el alta sigue funcionando (tax_rate_id = null = tipo por defecto del hub).
+  private async loadTaxRates(): Promise<void> {
+    try {
+      this.taxRates = (await erplora().query<TaxRate[]>('taxes.rates.list', { page_size: 200 })) ?? [];
+    } catch {
+      this.taxRates = [];
+    }
+  }
+
+  // Opciones del ion-select: "— (por defecto)" (valor '') + un tipo por fila.
+  // Etiqueta = "Nombre (21%)"; los grupos añaden " · grupo".
+  private taxOptions() {
+    const t = (k: string): string => erplora().t(CATALOG, k);
+    return html`
+      <ion-select-option value="">${t('ui.taxDefault')}</ion-select-option>
+      ${this.taxRates.map(
+        (r) => html`<ion-select-option .value=${r.id}
+          >${r.name} (${r.rate_pct}%)${r.tax_type === 'group' ? ` · ${t('ui.taxGroup')}` : ''}</ion-select-option
+        >`,
+      )}
+    `;
+  }
+
   private async createProduct(ev: Event): Promise<void> {
     ev.preventDefault();
     if (!this.newName.trim() || !this.newSku.trim()) return;
@@ -283,12 +354,13 @@ export class ErpInventoryProducts extends LitElement {
         product_type: 'physical',
         ean13: null,
         description: '',
-        tax_class_id: null,
+        tax_rate_id: this.newTaxRateId || null,
         image: '',
       });
       this.newName = '';
       this.newSku = '';
       this.newPrice = '';
+      this.newTaxRateId = '';
       this.dataTable()?.close(); // cierra el panel lateral tras crear
       await this.ctrl.load(); // refresco inmediato (además del evento)
     } catch (e) {
@@ -358,6 +430,15 @@ export class ErpInventoryProducts extends LitElement {
               .value=${this.newPrice}
               @ionInput=${(e: Event) => (this.newPrice = (e.target as HTMLInputElement).value)}
             ></ion-input>
+            <ion-select
+              fill="outline"
+              label-placement="floating"
+              label=${erplora().t(CATALOG, 'ui.taxRate')}
+              .value=${this.newTaxRateId}
+              @ionChange=${(e: Event) => (this.newTaxRateId = (e.target as HTMLInputElement).value)}
+            >
+              ${this.taxOptions()}
+            </ion-select>
             <ion-button type="submit" ?disabled=${this.saving || !this.newName || !this.newSku}>
               ${this.saving ? 'Guardando…' : 'Guardar'}
             </ion-button>

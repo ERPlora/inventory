@@ -1,7 +1,7 @@
 {
   "id": "inventory",
   "name": "Inventory",
-  "version": "1.0.16",
+  "version": "1.0.21",
   "agent": {
     "description": "Manages stock, warehouses and products: check availability, adjust stock, receive goods, create or remove products and categories.",
     "keywords": [
@@ -14,7 +14,9 @@
       "receive"
     ]
   },
-  "depends_on": [],
+  "depends_on": [
+    "taxes"
+  ],
   "permissions": [
     "inventory.view_product",
     "inventory.add_product",
@@ -78,12 +80,20 @@
   ],
   "migrations": {
     "sqlite": [
-      "migrations/sqlite/001_init.sql"
+      "migrations/sqlite/001_init.sql",
+      "migrations/sqlite/002_tax_rate_id.sql",
+      "migrations/sqlite/003_void_restock.sql"
+    ],
+    "postgres": [
+      "migrations/postgres/001_init.sql",
+      "migrations/postgres/002_tax_rate_id.sql",
+      "migrations/postgres/003_void_restock.sql"
     ]
   },
   "queries": {
     "inventory.product_categories": {
       "permission": "inventory.view_product",
+      "expose_api": true,
       "sql": "queries/product_categories.sql",
       "ai": {
         "description": "Maps each active product to its category ids (M2M), used to filter the POS catalog by category"
@@ -91,6 +101,7 @@
     },
     "inventory.products.list": {
       "permission": "inventory.view_product",
+      "expose_api": true,
       "sql": "queries/products_list.sql",
       "list": {
         "search": [
@@ -128,6 +139,7 @@
     },
     "inventory.products.get": {
       "permission": "inventory.view_product",
+      "expose_api": true,
       "sql": "queries/product_get.sql",
       "ai": {
         "description": "Retrieves the full detail of an inventory product by its identifier."
@@ -149,6 +161,7 @@
     },
     "inventory.categories.list": {
       "permission": "inventory.view_category",
+      "expose_api": true,
       "sql": "queries/categories_list.sql",
       "list": {
         "search": [
@@ -210,6 +223,7 @@
     },
     "inventory.products.create": {
       "permission": "inventory.add_product",
+      "expose_api": true,
       "schema": "schemas/product_create.json",
       "transaction": true,
       "sql": [
@@ -224,6 +238,7 @@
     },
     "inventory.products.update": {
       "permission": "inventory.change_product",
+      "expose_api": true,
       "schema": "schemas/product_update.json",
       "transaction": true,
       "sql": [
@@ -304,6 +319,7 @@
     },
     "inventory.categories.create": {
       "permission": "inventory.add_category",
+      "expose_api": true,
       "schema": "schemas/category_create.json",
       "transaction": true,
       "sql": [
@@ -315,6 +331,7 @@
     },
     "inventory.categories.update": {
       "permission": "inventory.change_category",
+      "expose_api": true,
       "schema": "schemas/category_update.json",
       "transaction": true,
       "sql": [
@@ -357,12 +374,114 @@
       "ai": {
         "description": "Automatically decreases stock of sold products when a sale is completed."
       }
+    },
+    "inventory._restock_on_void": {
+      "permission": "inventory.change_product",
+      "transaction": true,
+      "sql": [
+        "commands/_restock_on_void.sql"
+      ]
+    }
+  },
+  "widgets": {
+    "inventory.low_stock_count": {
+      "title": "Stock bajo",
+      "icon": "alert-circle-outline",
+      "category": "Inventario",
+      "size": "sm",
+      "permission": "inventory.view_product",
+      "sectors": [
+        "retail",
+        "hosteleria"
+      ],
+      "default": true,
+      "kind": "kpi",
+      "query": "inventory.products.stats",
+      "map": {
+        "value": "products_low_stock"
+      },
+      "options": {
+        "label": "Productos en stock bajo",
+        "icon": "alert-circle-outline",
+        "format": "number"
+      }
+    },
+    "inventory.value": {
+      "title": "Valor de inventario",
+      "icon": "cash-outline",
+      "category": "Inventario",
+      "size": "sm",
+      "permission": "inventory.view_product",
+      "sectors": [
+        "retail",
+        "hosteleria"
+      ],
+      "default": true,
+      "kind": "kpi",
+      "query": "inventory.products.stats",
+      "map": {
+        "value": "total_inventory_value"
+      },
+      "options": {
+        "label": "Valor total del stock",
+        "icon": "cash-outline",
+        "format": "currency",
+        "currency": "EUR",
+        "locale": "es-ES"
+      }
+    },
+    "inventory.in_stock": {
+      "title": "Productos en stock",
+      "icon": "cube-outline",
+      "category": "Inventario",
+      "size": "sm",
+      "permission": "inventory.view_product",
+      "sectors": [
+        "retail",
+        "hosteleria"
+      ],
+      "default": false,
+      "kind": "stat",
+      "query": "inventory.products.stats",
+      "map": {
+        "value": "products_in_stock"
+      },
+      "options": {
+        "label": "Productos con existencias",
+        "icon": "cube-outline",
+        "format": "number"
+      }
+    },
+    "inventory.low_stock_products": {
+      "title": "Productos con menos stock",
+      "icon": "trending-down-outline",
+      "category": "Inventario",
+      "size": "md",
+      "permission": "inventory.view_product",
+      "sectors": [
+        "retail",
+        "hosteleria"
+      ],
+      "default": true,
+      "kind": "bar-list",
+      "query": "inventory.products.low_stock",
+      "map": {
+        "label": "name",
+        "value": "stock"
+      },
+      "options": {
+        "valueFormat": "number",
+        "max": 10
+      }
     }
   },
   "events": {
     "listen": {
       "sale.completed": {
         "command": "inventory.stock.decrease_on_sale"
+      },
+      "sale.voided": {
+        "command": "inventory._restock_on_void"
       }
     }
   },

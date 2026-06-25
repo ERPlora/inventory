@@ -1261,6 +1261,105 @@ function r5(r6) {
   return n4({ ...r6, state: true, attribute: false });
 }
 
+// modules/inventory/ui/lib/tax-resolve.ts
+var TAX_HEADERS = ["tax", "iva", "vat", "tax_rate", "taxrate", "impuesto"];
+function pickTaxValue(row) {
+  for (const key of Object.keys(row)) {
+    if (TAX_HEADERS.includes(key.trim().toLowerCase())) {
+      const v3 = (row[key] ?? "").trim();
+      if (v3) return v3;
+    }
+  }
+  return "";
+}
+function normalizeTaxKey(value) {
+  const pct = parsePct(value);
+  if (pct != null) return String(pct);
+  return value.trim().toLowerCase();
+}
+function parsePct(value) {
+  const raw = (value ?? "").trim().replace("%", "").replace(",", ".").trim();
+  if (raw === "") return null;
+  const n6 = Number(raw);
+  return Number.isFinite(n6) ? n6 : null;
+}
+function rateMatches(rate, value) {
+  const pct = parsePct(value);
+  if (pct != null) return Number(rate.rate_pct) === pct;
+  const v3 = value.trim().toLowerCase();
+  return (rate.name ?? "").trim().toLowerCase() === v3 || (rate.code ?? "").trim().toLowerCase() === v3;
+}
+function inferCountryCode(existing) {
+  const counts = /* @__PURE__ */ new Map();
+  for (const r6 of existing) {
+    const cc = (r6.country_code ?? "").trim().toUpperCase();
+    if (cc) counts.set(cc, (counts.get(cc) ?? 0) + 1);
+  }
+  let best = null;
+  let bestN = 0;
+  for (const [cc, n6] of counts) {
+    if (n6 > bestN) {
+      best = cc;
+      bestN = n6;
+    }
+  }
+  return best;
+}
+function buildMap(values, rates) {
+  const map = /* @__PURE__ */ new Map();
+  for (const value of values) {
+    const hit = rates.find((r6) => rateMatches(r6, value));
+    if (hit) map.set(normalizeTaxKey(value), hit.id);
+  }
+  return map;
+}
+async function resolveTaxRates(rows, client) {
+  const byKey = /* @__PURE__ */ new Map();
+  for (const r6 of rows) {
+    const value = pickTaxValue(r6);
+    if (!value) continue;
+    const key = normalizeTaxKey(value);
+    if (!byKey.has(key)) byKey.set(key, value);
+  }
+  if (byKey.size === 0) return { map: /* @__PURE__ */ new Map(), created: 0, unresolved: [] };
+  const existing = await client.query("taxes.rates.list", { limit: 500 }) ?? [];
+  let map = buildMap([...byKey.values()], existing);
+  const country = inferCountryCode(existing) ?? "ES";
+  if (inferCountryCode(existing) == null) {
+    console.warn("[inventory] No hay tipos de IVA existentes; uso ES como pa\xEDs por defecto al crearlos.");
+  }
+  const toCreate = [];
+  const unresolved = [];
+  for (const [key, value] of byKey) {
+    if (map.has(key)) continue;
+    const pct = parsePct(value);
+    if (pct == null) {
+      unresolved.push(value);
+      continue;
+    }
+    const bareNumber = value.replace("%", "").replace(",", ".").trim() === String(pct);
+    toCreate.push({
+      code: `${country.toLowerCase()}-${pct}`,
+      name: bareNumber ? `IVA ${pct}%` : value,
+      country_code: country,
+      rate_pct: pct,
+      tax_type: "vat"
+    });
+  }
+  let created = 0;
+  if (toCreate.length > 0) {
+    try {
+      await client.command("taxes.rates.bulk_create", { rates: toCreate });
+      created = toCreate.length;
+      const refreshed = await client.query("taxes.rates.list", { limit: 500 }) ?? [];
+      map = buildMap([...byKey.values()], refreshed);
+    } catch (e5) {
+      console.warn("[inventory] No se pudieron crear tipos de IVA del CSV:", e5);
+    }
+  }
+  return { map, created, unresolved };
+}
+
 // node_modules/.pnpm/@outfitkit+core@file+..+outfitkit/node_modules/@outfitkit/core/dist/define.js
 function define(tag, ctor) {
   if (typeof customElements !== "undefined" && !customElements.get(tag)) {
@@ -1550,13 +1649,7 @@ var OkDataTable = class extends i3 {
     .fblock { display: flex; flex-direction: column; gap: 0.45rem; }
     .flabel { font-size: 13px; font-weight: 500; color: var(--color); }
     .frange { display: flex; gap: 0.5rem; }
-    /* Filtros cliente: chips multi-select (estilo Hub) + rango de fechas. */
-    .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-    .chip { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.6rem; border: 1px solid var(--border-color); border-radius: 999px; background: var(--background); color: var(--color-muted); font-size: 12px; cursor: pointer; transition: color 0.12s, background 0.12s, border-color 0.12s; }
-    .chip:hover { color: var(--color); }
-    .chip.on { border-color: var(--primary); color: var(--primary); background: color-mix(in srgb, var(--primary) 15%, transparent); }
-    .chip ion-icon { font-size: 12px; }
-    .chip-empty { font-size: 12px; color: var(--color-muted); }
+    /* Filtros cliente: multi-select con ion-select (ventana flotante de Ionic) + rango de fechas. */
     .daterange { display: flex; gap: 0.6rem; }
     .daterange ion-input { flex: 1; }
     /* Pie del drawer de filtros: Limpiar / Aplicar. */
@@ -1568,6 +1661,10 @@ var OkDataTable = class extends i3 {
     :host([fill]) .card { flex: 1 1 auto; min-height: 0; }
     :host([fill]) .bar, :host([fill]) .panel, :host([fill]) .pager { flex: 0 0 auto; }
     :host([fill]) .scroll, :host([fill]) .cards-grid { flex: 1 1 auto; min-height: 0; overflow: auto; }
+    /* Sin filas, renderTable/renderCards devuelven SOLO el bloque .empty (sin .scroll). En modo
+       fill hay que estirarlo para que ocupe el hueco entre toolbar y pager y centre su contenido
+       (icono + mensaje) en vertical; si no, queda pegado arriba con el pager a media altura. */
+    :host([fill]) .empty { flex: 1 1 auto; min-height: 0; }
 
     /* ── Topbar / cabecera (relieve) ─────────────────────────────────────────────────────── */
     .bar { display: flex; flex-direction: column; gap: 0.6rem; padding: 0.65rem 1rem; border-bottom: 1px solid var(--border-color); background: var(--header-background); }
@@ -1672,27 +1769,35 @@ var OkDataTable = class extends i3 {
     .range { display: flex; gap: 0.25rem; }
 
     /* ── Vista tarjetas ──────────────────────────────────────────────────────────────────── */
-    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 0.75rem; padding: 1rem; }
-    /* Flat: sin borde ni elevación — las tarjetas se delimitan por la superficie (no por sombra). */
-    .rcard { display: flex; flex-direction: column; border: 0; border-radius: 12px; overflow: hidden; background: var(--header-background); box-shadow: none; transition: background-color var(--ok-transition, 150ms ease), color var(--ok-transition, 150ms ease), box-shadow var(--ok-transition, 150ms ease), transform 120ms ease; }
-    @media (hover: hover) {
-      .rcard:hover { background: var(--row-hover); }
-    }
-    .rcard:active { transform: scale(0.995); }
+    /* Cada tarjeta mide SU contenido (no se estira al alto de la fila ni del contenedor):
+       - grid-auto-rows: max-content → cada fila implícita = alto de su contenido. CLAVE: sin esto,
+         en modo fill (grid de alto fijo + align-content:start) cuando las tarjetas no caben el
+         navegador encoge los tracks de fila y las tarjetas se solapan.
+       - align-content: start → empaqueta las filas arriba (no reparte el hueco sobrante estirando).
+       - align-items: start → en una fila multi-columna cada tarjeta mide su propio contenido.
+       En modo fill el grid es flex-child con overflow:auto → cuando las tarjetas no caben aparece el
+       scroll DENTRO de la tabla (no crece hacia fuera). */
+    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 0.75rem; padding: 1rem; grid-auto-rows: max-content; align-content: start; align-items: start; }
+    /* Tarjeta = ion-card NATIVO de Ionic: su fondo, radio, elevación y padding son los de Ionic y NO
+       se sobrescriben. Aquí solo se ajusta lo que el contexto de rejilla exige (margin) y los huecos
+       que Ionic no trae (cabecera en fila, filas clave-valor, barra de acciones, resalte de selección). */
+    ion-card.rcard { margin: 0; } /* la rejilla aporta el gap → sin esto el margin por defecto de ion-card lo duplica */
+    ion-card.rcard.selected { outline: 2px solid var(--primary); outline-offset: -2px; }
     @media (prefers-reduced-motion: reduce) {
       .gh.sortable:hover, .gh.sortable:active,
-      .grow-data:hover, .grow-data:active,
-      .rcard:hover, .rcard:active { transform: none; }
+      .grow-data:hover, .grow-data:active { transform: none; }
     }
-    .rcard.selected { background: color-mix(in srgb, var(--primary) 12%, var(--header-background)); }
-    .rcard-head { display: flex; align-items: center; gap: 0.5rem; padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--border-color); background: var(--header-background); }
+    /* Cabecera: ion-card-header en fila (icono + título + checkbox); se conserva su padding Ionic. */
+    ion-card-header.rcard-head { display: flex; align-items: center; gap: 0.5rem; }
     .rcard-head .rc-icon { display: inline-flex; color: var(--primary); }
     .rcard-head .rc-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
-    .rcard-body { flex: 1; padding: 0.6rem 0.85rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    /* Cuerpo: ion-card-content (padding Ionic por defecto) con las filas clave-valor apiladas. */
+    ion-card-content.rcard-body { display: flex; flex-direction: column; gap: 0.4rem; }
     .rrow { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 13px; }
     .rrow .rk { color: var(--color-muted); }
-    .rrow .rv { font-weight: 500; text-align: right; }
-    .ractions { display: flex; justify-content: flex-end; gap: 0.25rem; padding: 0.25rem 0.5rem; border-top: 1px solid var(--border-color-soft); background: var(--header-background); }
+    .rrow .rv { font-weight: 500; text-align: right; color: var(--color); }
+    /* Barra de acciones (Ionic no trae "card actions"): pie alineado a la derecha, fondo transparente. */
+    .ractions { display: flex; justify-content: flex-end; gap: 0.25rem; padding: 0 0.5rem 0.5rem; }
 
     /* ── Estado vacío ────────────────────────────────────────────────────────────────────── */
     .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; padding: 3.5rem 1rem; text-align: center; color: var(--color-muted); }
@@ -1866,12 +1971,12 @@ var OkDataTable = class extends i3 {
     }
     return out;
   }
-  toggleFilterValue(key, value) {
+  // Fija el conjunto de valores seleccionados de una columna (multi-select del drawer = ion-select).
+  setFilterValues(key, values) {
     const next = this.cloneFilters(this.filterDraft);
-    const values = new Set(next[key]?.values ?? []);
-    if (values.has(value)) values.delete(value);
-    else values.add(value);
-    next[key] = { ...next[key], values };
+    const clean = (values ?? []).filter((v3) => v3 != null && v3 !== "");
+    if (clean.length) next[key] = { ...next[key], values: new Set(clean) };
+    else next[key] = { ...next[key], values: void 0 };
     this.filterDraft = next;
   }
   setFilterRange(key, edge, value) {
@@ -2066,6 +2171,13 @@ var OkDataTable = class extends i3 {
     this.menuEv = ev;
     this.menuOpen = true;
   }
+  // Aplica la vista inicial declarada (`default-view`) una sola vez, tras el primer render. Es la
+  // forma robusta de arrancar en tarjetas sin depender de fijar `viewMode` por referencia (que
+  // falla si la tabla monta detrás de un `v-if`/loading y el ref aún es null).
+  firstUpdated() {
+    if (this.defaultView === "cards" && this.cardViewEnabled) this.viewMode = "cards";
+    else if (this.defaultView === "table") this.viewMode = "table";
+  }
   setViewMode(mode) {
     if (this.viewMode === mode) return;
     this.viewMode = mode;
@@ -2082,13 +2194,14 @@ var OkDataTable = class extends i3 {
         <ion-select
           label=${col.header}
           label-placement="stacked"
+          fill="outline"
           ?multiple=${multi}
           interface="modal"
           .interfaceOptions=${{ cssClass: "ok-overlay" }}
-          placeholder=${col.header}
+          placeholder=${this.t.select}
           @ionChange=${(e5) => this.onFilterSelect(col, e5.detail.value, multi)}
         >
-          ${multi ? A : b2`<ion-select-option value="">${col.header}</ion-select-option>`}
+          ${multi ? A : b2`<ion-select-option value="">${this.t.select}</ion-select-option>`}
           ${opts.map((o7) => b2`<ion-select-option value=${o7.value}>${o7.label}</ion-select-option>`)}
         </ion-select>
       `;
@@ -2420,21 +2533,23 @@ var OkDataTable = class extends i3 {
         </div>
       `;
     }
-    const distinct = this.distinctValues(col);
-    const selected = this.filterDraft[col.key]?.values ?? /* @__PURE__ */ new Set();
+    const opts = col.options ?? this.distinctValues(col).map((v3) => ({ value: v3, label: v3 }));
+    const selected = [...this.filterDraft[col.key]?.values ?? /* @__PURE__ */ new Set()];
     return b2`
       <div class="fblock">
-        <span class="flabel">${label}</span>
-        <div class="chips">
-          ${distinct.length === 0 ? b2`<span class="chip-empty">${this.t.noValues}</span>` : distinct.map((v3) => {
-      const on = selected.has(v3);
-      return b2`
-                  <button class=${`chip${on ? " on" : ""}`} @click=${() => this.toggleFilterValue(col.key, v3)}>
-                    ${on ? b2`<ion-icon name="checkmark-outline"></ion-icon>` : A}${v3}
-                  </button>
-                `;
-    })}
-        </div>
+        <ion-select
+          label=${label}
+          label-placement="stacked"
+          fill="outline"
+          multiple
+          interface="modal"
+          .interfaceOptions=${{ cssClass: "ok-overlay" }}
+          placeholder=${this.t.select}
+          .value=${selected}
+          @ionChange=${(e5) => this.setFilterValues(col.key, e5.detail.value ?? [])}
+        >
+          ${opts.length === 0 ? b2`<ion-select-option .disabled=${true} value="">${this.t.noValues}</ion-select-option>` : opts.map((o7) => b2`<ion-select-option value=${o7.value}>${o7.label}</ion-select-option>`)}
+        </ion-select>
       </div>
     `;
   }
@@ -2513,21 +2628,21 @@ var OkDataTable = class extends i3 {
         const selected = this.selectable && this.selection.has(key);
         const icon = this.cardIcon?.(row);
         return b2`
-              <div class=${`rcard${selected ? " selected" : ""}`}>
+              <ion-card class=${`rcard${selected ? " selected" : ""}`}>
                 ${hasHead ? b2`
-                      <header class="rcard-head">
+                      <ion-card-header class="rcard-head">
                         ${icon != null && icon !== "" ? b2`<span class="rc-icon">${typeof icon === "string" ? b2`<ion-icon name=${icon}></ion-icon>` : icon}</span>` : A}
                         <span class="rc-title">${this.cardTitle ? this.cardTitle(row) : A}</span>
                         ${this.selectable ? b2`<ion-checkbox .checked=${selected} aria-label=${this.t.select} @ionChange=${() => this.toggleRow(key)}></ion-checkbox>` : A}
-                      </header>
+                      </ion-card-header>
                     ` : A}
-                <div class="rcard-body">
+                <ion-card-content class="rcard-body">
                   ${this.renderCard ? this.renderCard(row) : this.visibleColumns.map(
           (c5) => b2`<div class="rrow"><span class="rk">${c5.header}</span><span class="rv">${c5.render ? c5.render(row) : this.cell(c5, row)}</span></div>`
         )}
-                </div>
+                </ion-card-content>
                 ${this.actions.length ? b2`<div class="ractions">${this.actionButtons(row)}</div>` : A}
-              </div>
+              </ion-card>
             `;
       }
     )}
@@ -2607,6 +2722,9 @@ __decorateClass2([
 __decorateClass2([
   n4({ attribute: false })
 ], OkDataTable.prototype, "views");
+__decorateClass2([
+  n4({ attribute: "default-view" })
+], OkDataTable.prototype, "defaultView");
 __decorateClass2([
   n4({ type: Boolean })
 ], OkDataTable.prototype, "exportable");
@@ -2810,6 +2928,8 @@ var ErpInventoryCategories = class extends i3 {
     super(...arguments);
     this.newName = "";
     this.newSlug = "";
+    this.newTaxRateId = "";
+    this.taxRates = [];
     this.saving = false;
     this.formError = "";
     this.columns = [
@@ -2839,6 +2959,29 @@ var ErpInventoryCategories = class extends i3 {
       dir: "asc"
     });
     await this.ctrl.load();
+    void this.loadTaxRates();
+  }
+  // Carga los tipos de IVA/impuesto para el selector del formulario (ADR-0066/0069). Best-effort:
+  // si falla (módulo `taxes` no instalado, sin permiso…), el select queda con solo "— (por defecto)"
+  // y el alta sigue funcionando (tax_rate_id = null = tipo por defecto del hub).
+  async loadTaxRates() {
+    try {
+      this.taxRates = await erplora().query("taxes.rates.list", { page_size: 200 }) ?? [];
+    } catch {
+      this.taxRates = [];
+    }
+  }
+  // Opciones del ion-select: "— (por defecto)" (valor '') + un tipo por fila.
+  // Etiqueta = "Nombre (21%)"; los grupos añaden " · grupo".
+  taxOptions() {
+    return b2`
+      <ion-select-option value="">— (por defecto)</ion-select-option>
+      ${this.taxRates.map(
+      (r6) => b2`<ion-select-option .value=${r6.id}
+          >${r6.name} (${r6.rate_pct}%)${r6.tax_type === "group" ? " \xB7 grupo" : ""}</ion-select-option
+        >`
+    )}
+    `;
   }
   async onRowAction(ev) {
     const { actionId, row } = ev.detail;
@@ -2846,6 +2989,7 @@ var ErpInventoryCategories = class extends i3 {
     if (actionId === "edit") {
       this.newName = c5.name;
       this.newSlug = c5.slug;
+      this.newTaxRateId = c5.tax_rate_id ?? "";
       this.dataTable()?.open("create");
     } else if (actionId === "delete") {
       try {
@@ -2859,16 +3003,45 @@ var ErpInventoryCategories = class extends i3 {
   dataTable() {
     return this.renderRoot.querySelector("ok-data-table");
   }
+  // Importa categorías desde CSV (cabeceras = name, slug…). Crea una por fila.
+  // Cada fila resuelve su tipo de IVA por referencia (ADR-0066), igual que el import de productos:
+  // la columna fiscal (tax/iva/vat/…) se matchea contra los tipos existentes de `taxes`, los que
+  // falten (con un % real) se crean en bloque, y la categoría enlaza por `tax_rate_id`. Vacío / sin
+  // columna → null = tipo por defecto del hub. NO se convierten precios.
   async onCsvImport(ev) {
-    for (const r6 of ev.detail.rows ?? []) {
+    const rows = ev.detail.rows ?? [];
+    let map = /* @__PURE__ */ new Map();
+    let createdTaxes = 0;
+    try {
+      const res = await resolveTaxRates(rows, erplora());
+      map = res.map;
+      createdTaxes = res.created;
+      if (res.unresolved.length > 0) {
+        console.warn(
+          "[inventory] Valores fiscales sin % ni coincidencia (categor\xEDas sin tipo):",
+          res.unresolved
+        );
+      }
+    } catch (e5) {
+      console.warn("[inventory] No se pudieron resolver los tipos de IVA del CSV:", e5);
+    }
+    let linked = 0;
+    for (const r6 of rows) {
       if (!r6.name) continue;
+      const taxValue = pickTaxValue(r6);
+      const taxRateId = taxValue ? map.get(normalizeTaxKey(taxValue)) ?? null : null;
+      if (taxRateId) linked++;
       try {
         await erplora().command("inventory.categories.create", {
           name: r6.name,
-          slug: r6.slug || r6.name.toLowerCase().replace(/\s+/g, "-")
+          slug: r6.slug || r6.name.toLowerCase().replace(/\s+/g, "-"),
+          tax_rate_id: taxRateId
         });
       } catch {
       }
+    }
+    if (createdTaxes > 0 || linked > 0) {
+      console.info(`[inventory] Import CSV: ${createdTaxes} tipos de IVA creados, ${linked} categor\xEDas enlazadas.`);
     }
     await this.ctrl.load();
   }
@@ -2880,10 +3053,12 @@ var ErpInventoryCategories = class extends i3 {
     try {
       await erplora().command("inventory.categories.create", {
         name: this.newName.trim(),
-        slug: this.newSlug.trim() || this.newName.trim().toLowerCase().replace(/\s+/g, "-")
+        slug: this.newSlug.trim() || this.newName.trim().toLowerCase().replace(/\s+/g, "-"),
+        tax_rate_id: this.newTaxRateId || null
       });
       this.newName = "";
       this.newSlug = "";
+      this.newTaxRateId = "";
       this.dataTable()?.close();
       await this.ctrl.load();
     } catch (e5) {
@@ -2940,6 +3115,15 @@ var ErpInventoryCategories = class extends i3 {
               .value=${this.newSlug}
               @ionInput=${(e5) => this.newSlug = e5.target.value}
             ></ion-input>
+            <ion-select
+              fill="outline"
+              label-placement="floating"
+              label="Tipo de IVA / Impuesto"
+              .value=${this.newTaxRateId}
+              @ionChange=${(e5) => this.newTaxRateId = e5.target.value}
+            >
+              ${this.taxOptions()}
+            </ion-select>
             <ion-button type="submit" ?disabled=${this.saving || !this.newName}>
               ${this.saving ? "Guardando\u2026" : "Guardar"}
             </ion-button>
@@ -2955,6 +3139,12 @@ __decorateClass([
 __decorateClass([
   r5()
 ], ErpInventoryCategories.prototype, "newSlug", 2);
+__decorateClass([
+  r5()
+], ErpInventoryCategories.prototype, "newTaxRateId", 2);
+__decorateClass([
+  r5()
+], ErpInventoryCategories.prototype, "taxRates", 2);
 __decorateClass([
   r5()
 ], ErpInventoryCategories.prototype, "saving", 2);
@@ -3021,7 +3211,7 @@ var ErpInventoryDashboard = class extends i3 {
           </div>
           <div class="kpi">
             <div class="label">Valor inventario</div>
-            <div class="value">${this.stats.total_value != null ? `${Number(this.stats.total_value).toFixed(2)} \u20AC` : "\u2014"}</div>
+            <div class="value">${this.stats.total_value != null ? erplora2().formatAmount(Number(this.stats.total_value)) : "\u2014"}</div>
           </div>
         </div>
 
@@ -3209,6 +3399,9 @@ var es_default = {
     lowStock: "Stock bajo",
     searchProduct: "Buscar producto\u2026",
     noProducts: "Sin productos",
+    taxRate: "Tipo de IVA / Impuesto",
+    taxDefault: "\u2014 (por defecto)",
+    taxGroup: "grupo",
     save: "Guardar",
     cancel: "Cancelar",
     delete: "Borrar",
@@ -3242,6 +3435,9 @@ var en_default = {
     lowStock: "Low stock",
     searchProduct: "Search product\u2026",
     noProducts: "No products",
+    taxRate: "Tax rate",
+    taxDefault: "\u2014 (default)",
+    taxGroup: "group",
     save: "Save",
     cancel: "Cancel",
     delete: "Delete",
@@ -3266,6 +3462,8 @@ var ErpInventoryProducts = class extends i3 {
     this.newName = "";
     this.newSku = "";
     this.newPrice = "";
+    this.newTaxRateId = "";
+    this.taxRates = [];
     this.saving = false;
     this.formError = "";
     this.detail = null;
@@ -3308,7 +3506,7 @@ var ErpInventoryProducts = class extends i3 {
         sortable: true,
         filterable: true,
         filterType: "range",
-        format: (r6) => Number(r6.price).toFixed(2)
+        format: (r6) => erplora3().formatAmount(Number(r6.price))
       },
       { key: "stock", header: t5("ui.stock"), align: "right", sortable: true, filterable: true, filterType: "range" },
       {
@@ -3352,6 +3550,7 @@ var ErpInventoryProducts = class extends i3 {
       this.newName = p4.name;
       this.newSku = p4.sku;
       this.newPrice = String(p4.price ?? "");
+      this.newTaxRateId = p4.tax_rate_id ?? "";
       this.dataTable()?.open("create");
     } else if (actionId === "delete") {
       try {
@@ -3371,6 +3570,7 @@ var ErpInventoryProducts = class extends i3 {
         price: p4.price,
         cost: p4.cost ?? 0,
         low_stock_threshold: p4.low_stock_threshold ?? 10,
+        tax_rate_id: p4.tax_rate_id ?? null,
         is_active: checked ? 1 : 0
       });
       await this.ctrl.load();
@@ -3383,10 +3583,33 @@ var ErpInventoryProducts = class extends i3 {
     return this.renderRoot.querySelector("ok-data-table");
   }
   // Importa productos desde CSV (cabeceras = name, sku, price, stock…). Crea uno por fila.
+  // Cada fila resuelve su tipo de IVA por referencia (ADR-0066): la columna fiscal (tax/iva/vat/…)
+  // se matchea contra los tipos existentes de `taxes`, los que falten (con un % real) se crean en
+  // bloque, y el producto enlaza por `tax_rate_id`. Vacío / sin columna → null = tipo por defecto
+  // del hub. NO se convierten precios: "IVA incluido o no" lo gobierna el ajuste del hub/POS.
   async onCsvImport(ev) {
     const rows = ev.detail.rows ?? [];
+    let map = /* @__PURE__ */ new Map();
+    let createdTaxes = 0;
+    try {
+      const res = await resolveTaxRates(rows, erplora3());
+      map = res.map;
+      createdTaxes = res.created;
+      if (res.unresolved.length > 0) {
+        console.warn(
+          "[inventory] Valores fiscales sin % ni coincidencia (productos sin tipo):",
+          res.unresolved
+        );
+      }
+    } catch (e5) {
+      console.warn("[inventory] No se pudieron resolver los tipos de IVA del CSV:", e5);
+    }
+    let linked = 0;
     for (const r6 of rows) {
       if (!r6.name && !r6.sku) continue;
+      const taxValue = pickTaxValue(r6);
+      const taxRateId = taxValue ? map.get(normalizeTaxKey(taxValue)) ?? null : null;
+      if (taxRateId) linked++;
       try {
         await erplora3().command("inventory.products.create", {
           name: r6.name ?? "",
@@ -3398,11 +3621,14 @@ var ErpInventoryProducts = class extends i3 {
           product_type: "physical",
           ean13: r6.ean13 || null,
           description: r6.description ?? "",
-          tax_class_id: null,
+          tax_rate_id: taxRateId,
           image: ""
         });
       } catch {
       }
+    }
+    if (createdTaxes > 0 || linked > 0) {
+      console.info(`[inventory] Import CSV: ${createdTaxes} tipos de IVA creados, ${linked} productos enlazados.`);
     }
     await this.ctrl.load();
   }
@@ -3436,6 +3662,7 @@ var ErpInventoryProducts = class extends i3 {
       { pageSize: 50, sort: "name", dir: "asc" }
     );
     await this.ctrl.load();
+    void this.loadTaxRates();
     try {
       const reload = () => this.ctrl.load();
       const off1 = erplora3().on("inventory.stock_changed", reload);
@@ -3451,6 +3678,29 @@ var ErpInventoryProducts = class extends i3 {
     window.removeEventListener("erplora:locale-changed", this.onLocaleChange);
     super.disconnectedCallback();
     this.unsub?.();
+  }
+  // Carga los tipos de IVA/impuesto para el selector del formulario (ADR-0066/0069). Best-effort:
+  // si falla (módulo `taxes` no instalado, sin permiso…), el select queda con solo "— (por defecto)"
+  // y el alta sigue funcionando (tax_rate_id = null = tipo por defecto del hub).
+  async loadTaxRates() {
+    try {
+      this.taxRates = await erplora3().query("taxes.rates.list", { page_size: 200 }) ?? [];
+    } catch {
+      this.taxRates = [];
+    }
+  }
+  // Opciones del ion-select: "— (por defecto)" (valor '') + un tipo por fila.
+  // Etiqueta = "Nombre (21%)"; los grupos añaden " · grupo".
+  taxOptions() {
+    const t5 = (k2) => erplora3().t(CATALOG, k2);
+    return b2`
+      <ion-select-option value="">${t5("ui.taxDefault")}</ion-select-option>
+      ${this.taxRates.map(
+      (r6) => b2`<ion-select-option .value=${r6.id}
+          >${r6.name} (${r6.rate_pct}%)${r6.tax_type === "group" ? ` \xB7 ${t5("ui.taxGroup")}` : ""}</ion-select-option
+        >`
+    )}
+    `;
   }
   async createProduct(ev) {
     ev.preventDefault();
@@ -3468,12 +3718,13 @@ var ErpInventoryProducts = class extends i3 {
         product_type: "physical",
         ean13: null,
         description: "",
-        tax_class_id: null,
+        tax_rate_id: this.newTaxRateId || null,
         image: ""
       });
       this.newName = "";
       this.newSku = "";
       this.newPrice = "";
+      this.newTaxRateId = "";
       this.dataTable()?.close();
       await this.ctrl.load();
     } catch (e5) {
@@ -3540,6 +3791,15 @@ var ErpInventoryProducts = class extends i3 {
               .value=${this.newPrice}
               @ionInput=${(e5) => this.newPrice = e5.target.value}
             ></ion-input>
+            <ion-select
+              fill="outline"
+              label-placement="floating"
+              label=${erplora3().t(CATALOG, "ui.taxRate")}
+              .value=${this.newTaxRateId}
+              @ionChange=${(e5) => this.newTaxRateId = e5.target.value}
+            >
+              ${this.taxOptions()}
+            </ion-select>
             <ion-button type="submit" ?disabled=${this.saving || !this.newName || !this.newSku}>
               ${this.saving ? "Guardando\u2026" : "Guardar"}
             </ion-button>
@@ -3547,7 +3807,7 @@ var ErpInventoryProducts = class extends i3 {
         </ok-data-table>
 
         <ion-modal .isOpen=${!!this.detail} @ionModalDidDismiss=${() => this.detail = null}>
-          <ion-header>
+          <ion-header class="ion-no-border">
             <ion-toolbar>
               <ion-title>${this.detail?.name ?? ""}</ion-title>
               <ion-buttons slot="end">
@@ -3559,7 +3819,7 @@ var ErpInventoryProducts = class extends i3 {
             ${this.detail ? b2`
                   <div class="detail">
                     <div class="drow"><span>SKU</span><b>${this.detail.sku}</b></div>
-                    <div class="drow"><span>Precio</span><b>${Number(this.detail.price).toFixed(2)} €</b></div>
+                    <div class="drow"><span>Precio</span><b>${erplora3().formatAmount(Number(this.detail.price))}</b></div>
                     <div class="drow"><span>Stock</span><b>${this.detail.stock}</b></div>
                     <div class="drow"><span>Activo</span><b>${this.detail.is_active ? "S\xED" : "No"}</b></div>
                     <div class="barcode">
@@ -3586,6 +3846,12 @@ __decorateClass([
 __decorateClass([
   r5()
 ], ErpInventoryProducts.prototype, "newPrice", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "newTaxRateId", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "taxRates", 2);
 __decorateClass([
   r5()
 ], ErpInventoryProducts.prototype, "saving", 2);
