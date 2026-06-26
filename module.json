@@ -70,14 +70,15 @@
       "label": "Categories",
       "icon": "pricetags",
       "component": "erp-inventory-categories"
-    },
-    {
-      "id": "settings",
-      "label": "Settings",
-      "icon": "settings",
-      "component": "erp-inventory-settings"
     }
   ],
+  "settings": {
+    "title": "Inventario",
+    "icon": "cube-outline",
+    "schema": "schemas/settings_update.json",
+    "get": "inventory.settings.get",
+    "set": "inventory.settings.update"
+  },
   "migrations": {
     "sqlite": [
       "migrations/sqlite/001_init.sql",
