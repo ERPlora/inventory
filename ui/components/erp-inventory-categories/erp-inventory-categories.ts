@@ -25,13 +25,12 @@ interface Category {
   tax_category_key: string | null;
 }
 
-// Fila de `taxes.rates.list` (subconjunto que usa el selector del formulario, ADR-0066/0069).
-interface TaxRate {
+// Fila de `taxes.categories.list` (la CATEGORÍA fiscal es lo enlazable, ADR-0085).
+interface TaxCategory {
   id: string;
-  code: string;
+  key: string;
   name: string;
-  rate_pct: number;
-  tax_type?: string;
+  is_system?: number;
 }
 
 function erplora(): ErploraClientLike {
@@ -53,7 +52,7 @@ export class ErpInventoryCategories extends LitElement {
   @state() private newName = '';
   @state() private newSlug = '';
   @state() private newTaxRateId = ''; // '' = tipo por defecto del hub (se envía null)
-  @state() private taxRates: TaxRate[] = [];
+  @state() private taxRates: TaxCategory[] = [];
   @state() private saving = false;
   @state() private formError = '';
 
@@ -85,21 +84,18 @@ export class ErpInventoryCategories extends LitElement {
   // y el alta sigue funcionando (tax_category_key = null = tipo por defecto del hub).
   private async loadTaxRates(): Promise<void> {
     try {
-      this.taxRates = (await erplora().query<TaxRate[]>('taxes.rates.list', { page_size: 200 })) ?? [];
+      this.taxRates = (await erplora().query<TaxCategory[]>('taxes.categories.list', { page_size: 200 })) ?? [];
     } catch {
       this.taxRates = [];
     }
   }
 
-  // Opciones del ion-select: "— (por defecto)" (valor '') + un tipo por fila.
-  // Etiqueta = "Nombre (21%)"; los grupos añaden " · grupo".
+  // Opciones del ion-select: "— (sin categoría)" (valor '') + una categoría por fila (value = key).
   private taxOptions() {
     return html`
-      <ion-select-option value="">— (por defecto)</ion-select-option>
+      <ion-select-option value="">— (sin categoría)</ion-select-option>
       ${this.taxRates.map(
-        (r) => html`<ion-select-option .value=${r.id}
-          >${r.name} (${r.rate_pct}%)${r.tax_type === 'group' ? ' · grupo' : ''}</ion-select-option
-        >`,
+        (c) => html`<ion-select-option .value=${c.key}>${c.name} (${c.key})</ion-select-option>`,
       )}
     `;
   }

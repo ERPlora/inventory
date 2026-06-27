@@ -2942,20 +2942,17 @@ var ErpInventoryCategories = class extends i3 {
   // y el alta sigue funcionando (tax_category_key = null = tipo por defecto del hub).
   async loadTaxRates() {
     try {
-      this.taxRates = await erplora().query("taxes.rates.list", { page_size: 200 }) ?? [];
+      this.taxRates = await erplora().query("taxes.categories.list", { page_size: 200 }) ?? [];
     } catch {
       this.taxRates = [];
     }
   }
-  // Opciones del ion-select: "— (por defecto)" (valor '') + un tipo por fila.
-  // Etiqueta = "Nombre (21%)"; los grupos añaden " · grupo".
+  // Opciones del ion-select: "— (sin categoría)" (valor '') + una categoría por fila (value = key).
   taxOptions() {
     return b2`
-      <ion-select-option value="">— (por defecto)</ion-select-option>
+      <ion-select-option value="">— (sin categoría)</ion-select-option>
       ${this.taxRates.map(
-      (r6) => b2`<ion-select-option .value=${r6.id}
-          >${r6.name} (${r6.rate_pct}%)${r6.tax_type === "group" ? " \xB7 grupo" : ""}</ion-select-option
-        >`
+      (c5) => b2`<ion-select-option .value=${c5.key}>${c5.name} (${c5.key})</ion-select-option>`
     )}
     `;
   }
