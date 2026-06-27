@@ -9,7 +9,7 @@ var __decorateClass = (decorators, target, key, kind) => {
   return result;
 };
 
-// node_modules/@lit-labs/ssr-dom-shim/lib/element-internals.js
+// ../../../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/element-internals.js
 var ElementInternalsShim = class ElementInternals {
   get shadowRoot() {
     return this.__host.__shadowRoot;
@@ -88,7 +88,7 @@ var ElementInternalsShim = class ElementInternals {
   }
 };
 
-// node_modules/@lit-labs/ssr-dom-shim/lib/events.js
+// ../../../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/events.js
 var __classPrivateFieldSet = function(receiver, state, value, kind, f3) {
   if (kind === "m") throw new TypeError("Private method is not writable");
   if (kind === "a" && !f3) throw new TypeError("Private accessor was defined without a setter");
@@ -246,7 +246,7 @@ Object.defineProperties(CustomEventShim.prototype, {
 var EventShimWithRealType = EventShim;
 var CustomEventShimWithRealType = CustomEventShim;
 
-// node_modules/@lit-labs/ssr-dom-shim/lib/css.js
+// ../../../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/css.js
 var _a2;
 var CSSRuleShim = (_a2 = class CSSRule {
   constructor() {
@@ -277,7 +277,7 @@ var CSSRuleShim = (_a2 = class CSSRule {
   }
 }, _a2.STYLE_RULE = 1, _a2.CHARSET_RULE = 2, _a2.IMPORT_RULE = 3, _a2.MEDIA_RULE = 4, _a2.FONT_FACE_RULE = 5, _a2.PAGE_RULE = 6, _a2.NAMESPACE_RULE = 10, _a2.KEYFRAMES_RULE = 7, _a2.KEYFRAME_RULE = 8, _a2.SUPPORTS_RULE = 12, _a2.COUNTER_STYLE_RULE = 11, _a2.FONT_FEATURE_VALUES_RULE = 14, _a2.MARGIN_RULE = 9, _a2);
 
-// node_modules/@lit-labs/ssr-dom-shim/index.js
+// ../../../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/index.js
 globalThis.Event ??= EventShimWithRealType;
 globalThis.CustomEvent ??= CustomEventShimWithRealType;
 var constructionToken = Symbol();
@@ -674,7 +674,7 @@ var CustomElementRegistryShimWithRealType = CustomElementRegistry;
 var customElements2 = new CustomElementRegistryShimWithRealType();
 var windowShim = new WindowShim(constructionToken);
 
-// node_modules/@lit/reactive-element/node/css-tag.js
+// ../../../module-toolkit/node_modules/@lit/reactive-element/node/css-tag.js
 var t = globalThis;
 var e = t.ShadowRoot && (void 0 === t.ShadyCSS || t.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype;
 var s = Symbol();
@@ -719,7 +719,7 @@ var c = e || void 0 === t.CSSStyleSheet ? (t5) => t5 : (t5) => t5 instanceof CSS
   return r(e5);
 })(t5) : t5;
 
-// node_modules/@lit/reactive-element/node/reactive-element.js
+// ../../../module-toolkit/node_modules/@lit/reactive-element/node/reactive-element.js
 var { is: h, defineProperty: r2, getOwnPropertyDescriptor: o2, getOwnPropertyNames: n2, getOwnPropertySymbols: a, getPrototypeOf: c2 } = Object;
 var l = globalThis;
 l.customElements ??= customElements2;
@@ -942,7 +942,7 @@ var g = class extends (globalThis.HTMLElement ?? HTMLElementShimWithRealType) {
 };
 g.elementStyles = [], g.shadowRootOptions = { mode: "open" }, g[f("elementProperties")] = /* @__PURE__ */ new Map(), g[f("finalized")] = /* @__PURE__ */ new Map(), u?.({ ReactiveElement: g }), (l.reactiveElementVersions ??= []).push("2.1.2");
 
-// node_modules/lit-html/lit-html.js
+// ../../../module-toolkit/node_modules/lit-html/lit-html.js
 var t2 = globalThis;
 var i2 = (t5) => t5;
 var s2 = t2.trustedTypes;
@@ -1197,7 +1197,7 @@ var D = (t5, i7, s5) => {
   return h4._$AI(t5), h4;
 };
 
-// node_modules/lit-element/lit-element.js
+// ../../../module-toolkit/node_modules/lit-element/lit-element.js
 var s3 = globalThis;
 var i3 = class extends g {
   constructor() {
@@ -1226,7 +1226,7 @@ var o4 = s3.litElementPolyfillSupport;
 o4?.({ LitElement: i3 });
 (s3.litElementVersions ??= []).push("4.2.2");
 
-// node_modules/@lit/reactive-element/node/decorators/property.js
+// ../../../module-toolkit/node_modules/@lit/reactive-element/node/decorators/property.js
 var o5 = { attribute: true, type: String, converter: b, reflect: false, hasChanged: m };
 var r4 = (t5 = o5, e5, r6) => {
   const { kind: n6, metadata: i7 } = r6;
@@ -1256,13 +1256,23 @@ function n4(t5) {
   })(t5, e5, o7);
 }
 
-// node_modules/@lit/reactive-element/node/decorators/state.js
+// ../../../module-toolkit/node_modules/@lit/reactive-element/node/decorators/state.js
 function r5(r6) {
   return n4({ ...r6, state: true, attribute: false });
 }
 
-// ../modules-workspace/modules/inventory/ui/lib/tax-resolve.ts
-var TAX_HEADERS = ["tax", "iva", "vat", "tax_rate", "taxrate", "impuesto"];
+// ui/lib/tax-resolve.ts
+var TAX_HEADERS = [
+  "tax_category",
+  "tax_category_key",
+  "category_tax",
+  "fiscal_category",
+  "tax",
+  "iva",
+  "vat",
+  "impuesto",
+  "tax_class"
+];
 function pickTaxValue(row) {
   for (const key of Object.keys(row)) {
     if (TAX_HEADERS.includes(key.trim().toLowerCase())) {
@@ -1272,102 +1282,58 @@ function pickTaxValue(row) {
   }
   return "";
 }
-function normalizeTaxKey(value) {
-  const pct = parsePct(value);
-  if (pct != null) return String(pct);
-  return value.trim().toLowerCase();
+function normalizeAlias(value) {
+  return (value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
 }
-function parsePct(value) {
-  const raw = (value ?? "").trim().replace("%", "").replace(",", ".").trim();
-  if (raw === "") return null;
-  const n6 = Number(raw);
-  return Number.isFinite(n6) ? n6 : null;
+function categoryMatches(cat, value) {
+  const v3 = normalizeAlias(value);
+  if ((cat.key ?? "").toLowerCase() === v3) return cat.key;
+  if (normalizeAlias(cat.name ?? "") === v3) return cat.key;
+  return null;
 }
-function rateMatches(rate, value) {
-  const pct = parsePct(value);
-  if (pct != null) return Number(rate.rate_pct) === pct;
-  const v3 = value.trim().toLowerCase();
-  return (rate.name ?? "").trim().toLowerCase() === v3 || (rate.code ?? "").trim().toLowerCase() === v3;
-}
-function inferCountryCode(existing) {
-  const counts = /* @__PURE__ */ new Map();
-  for (const r6 of existing) {
-    const cc = (r6.country_code ?? "").trim().toUpperCase();
-    if (cc) counts.set(cc, (counts.get(cc) ?? 0) + 1);
-  }
-  let best = null;
-  let bestN = 0;
-  for (const [cc, n6] of counts) {
-    if (n6 > bestN) {
-      best = cc;
-      bestN = n6;
-    }
-  }
-  return best;
-}
-function buildMap(values, rates) {
-  const map = /* @__PURE__ */ new Map();
-  for (const value of values) {
-    const hit = rates.find((r6) => rateMatches(r6, value));
-    if (hit) map.set(normalizeTaxKey(value), hit.id);
-  }
-  return map;
-}
-async function resolveTaxRates(rows, client) {
+async function resolveTaxCategories(rows, client) {
   const byKey = /* @__PURE__ */ new Map();
   for (const r6 of rows) {
     const value = pickTaxValue(r6);
     if (!value) continue;
-    const key = normalizeTaxKey(value);
-    if (!byKey.has(key)) byKey.set(key, value);
+    const norm = normalizeAlias(value);
+    if (norm && !byKey.has(norm)) byKey.set(norm, value);
   }
-  if (byKey.size === 0) return { map: /* @__PURE__ */ new Map(), created: 0, unresolved: [] };
-  const existing = await client.query("taxes.rates.list", { limit: 500 }) ?? [];
-  let map = buildMap([...byKey.values()], existing);
-  const country = inferCountryCode(existing) ?? "ES";
-  if (inferCountryCode(existing) == null) {
-    console.warn("[inventory] No hay tipos de IVA existentes; uso ES como pa\xEDs por defecto al crearlos.");
-  }
-  const toCreate = [];
+  if (byKey.size === 0) return { map: /* @__PURE__ */ new Map(), unresolved: [] };
+  const categories = await client.query("taxes.categories.list", { limit: 500 }) ?? [];
+  const map = /* @__PURE__ */ new Map();
   const unresolved = [];
-  for (const [key, value] of byKey) {
-    if (map.has(key)) continue;
-    const pct = parsePct(value);
-    if (pct == null) {
-      unresolved.push(value);
-      continue;
+  for (const [norm, original] of byKey) {
+    let key = null;
+    for (const c5 of categories) {
+      const m4 = categoryMatches(c5, original);
+      if (m4) {
+        key = m4;
+        break;
+      }
     }
-    const bareNumber = value.replace("%", "").replace(",", ".").trim() === String(pct);
-    toCreate.push({
-      code: `${country.toLowerCase()}-${pct}`,
-      name: bareNumber ? `IVA ${pct}%` : value,
-      country_code: country,
-      rate_pct: pct,
-      tax_type: "vat"
-    });
-  }
-  let created = 0;
-  if (toCreate.length > 0) {
-    try {
-      await client.command("taxes.rates.bulk_create", { rates: toCreate });
-      created = toCreate.length;
-      const refreshed = await client.query("taxes.rates.list", { limit: 500 }) ?? [];
-      map = buildMap([...byKey.values()], refreshed);
-    } catch (e5) {
-      console.warn("[inventory] No se pudieron crear tipos de IVA del CSV:", e5);
+    if (!key) {
+      try {
+        const rows2 = await client.query("taxes.aliases.resolve", { alias: norm }) ?? [];
+        const hit = rows2[0]?.tax_category_key;
+        if (hit) key = hit;
+      } catch {
+      }
     }
+    if (key) map.set(norm, key);
+    else unresolved.push(original);
   }
-  return { map, created, unresolved };
+  return { map, unresolved };
 }
 
-// ../outfitkit/dist/define.js
+// ../../../outfitkit/dist/define.js
 function define(tag, ctor) {
   if (typeof customElements !== "undefined" && !customElements.get(tag)) {
     customElements.define(tag, ctor);
   }
 }
 
-// node_modules/lit-html/directive.js
+// ../../../module-toolkit/node_modules/lit-html/directive.js
 var t3 = { ATTRIBUTE: 1, CHILD: 2, PROPERTY: 3, BOOLEAN_ATTRIBUTE: 4, EVENT: 5, ELEMENT: 6 };
 var e4 = (t5) => (...e5) => ({ _$litDirective$: t5, values: e5 });
 var i4 = class {
@@ -1387,7 +1353,7 @@ var i4 = class {
   }
 };
 
-// node_modules/lit-html/directive-helpers.js
+// ../../../module-toolkit/node_modules/lit-html/directive-helpers.js
 var { I: t4 } = j;
 var i5 = (o7) => o7;
 var s4 = () => document.createComment("");
@@ -1420,7 +1386,7 @@ var h3 = (o7) => {
   o7._$AR(), o7._$AA.remove();
 };
 
-// node_modules/lit-html/directives/repeat.js
+// ../../../module-toolkit/node_modules/lit-html/directives/repeat.js
 var u4 = (e5, s5, t5) => {
   const r6 = /* @__PURE__ */ new Map();
   for (let l3 = s5; l3 <= t5; l3++) r6.set(e5[l3], l3);
@@ -1473,7 +1439,7 @@ var c4 = e4(class extends i4 {
   }
 });
 
-// node_modules/lit-html/directives/style-map.js
+// ../../../module-toolkit/node_modules/lit-html/directives/style-map.js
 var n5 = "important";
 var i6 = " !" + n5;
 var o6 = e4(class extends i4 {
@@ -1502,7 +1468,7 @@ var o6 = e4(class extends i4 {
   }
 });
 
-// ../outfitkit/dist/ok-data-table.js
+// ../../../outfitkit/dist/ok-data-table.js
 var __defProp2 = Object.defineProperty;
 var __decorateClass2 = (decorators, target, key, kind) => {
   var result = void 0;
@@ -2799,7 +2765,7 @@ __decorateClass2([
 ], OkDataTable.prototype, "menuOpen");
 define("ok-data-table", OkDataTable);
 
-// ../hub/packages/module-sdk/src/index.ts
+// ../../../hub/packages/module-sdk/src/index.ts
 function isEmpty(v3) {
   return v3 === null || v3 === void 0 || v3 === "";
 }
@@ -2917,7 +2883,7 @@ function createListController(client, queryName, onChange = () => {
   return new ListController(client, queryName, onChange, opts);
 }
 
-// ../modules-workspace/modules/inventory/ui/components/erp-inventory-categories/erp-inventory-categories.ts
+// ui/components/erp-inventory-categories/erp-inventory-categories.ts
 function erplora() {
   const c5 = globalThis.erplora;
   if (!c5) throw new Error("erplora SDK no inicializado por el shell");
@@ -2963,7 +2929,7 @@ var ErpInventoryCategories = class extends i3 {
   }
   // Carga los tipos de IVA/impuesto para el selector del formulario (ADR-0066/0069). Best-effort:
   // si falla (módulo `taxes` no instalado, sin permiso…), el select queda con solo "— (por defecto)"
-  // y el alta sigue funcionando (tax_rate_id = null = tipo por defecto del hub).
+  // y el alta sigue funcionando (tax_category_key = null = tipo por defecto del hub).
   async loadTaxRates() {
     try {
       this.taxRates = await erplora().query("taxes.rates.list", { page_size: 200 }) ?? [];
@@ -2989,7 +2955,7 @@ var ErpInventoryCategories = class extends i3 {
     if (actionId === "edit") {
       this.newName = c5.name;
       this.newSlug = c5.slug;
-      this.newTaxRateId = c5.tax_rate_id ?? "";
+      this.newTaxRateId = c5.tax_category_key ?? "";
       this.dataTable()?.open("create");
     } else if (actionId === "delete") {
       try {
@@ -3006,42 +2972,39 @@ var ErpInventoryCategories = class extends i3 {
   // Importa categorías desde CSV (cabeceras = name, slug…). Crea una por fila.
   // Cada fila resuelve su tipo de IVA por referencia (ADR-0066), igual que el import de productos:
   // la columna fiscal (tax/iva/vat/…) se matchea contra los tipos existentes de `taxes`, los que
-  // falten (con un % real) se crean en bloque, y la categoría enlaza por `tax_rate_id`. Vacío / sin
+  // falten (con un % real) se crean en bloque, y la categoría enlaza por `tax_category_key`. Vacío / sin
   // columna → null = tipo por defecto del hub. NO se convierten precios.
   async onCsvImport(ev) {
     const rows = ev.detail.rows ?? [];
     let map = /* @__PURE__ */ new Map();
-    let createdTaxes = 0;
+    let unresolved = [];
     try {
-      const res = await resolveTaxRates(rows, erplora());
+      const res = await resolveTaxCategories(rows, erplora());
       map = res.map;
-      createdTaxes = res.created;
-      if (res.unresolved.length > 0) {
-        console.warn(
-          "[inventory] Valores fiscales sin % ni coincidencia (categor\xEDas sin tipo):",
-          res.unresolved
-        );
+      unresolved = res.unresolved;
+      if (unresolved.length > 0) {
+        console.warn("[inventory] Categor\xEDas fiscales sin resolver (categor\xEDas sin categor\xEDa fiscal):", unresolved);
       }
     } catch (e5) {
-      console.warn("[inventory] No se pudieron resolver los tipos de IVA del CSV:", e5);
+      console.warn("[inventory] No se pudieron resolver las categor\xEDas fiscales del CSV:", e5);
     }
     let linked = 0;
     for (const r6 of rows) {
       if (!r6.name) continue;
       const taxValue = pickTaxValue(r6);
-      const taxRateId = taxValue ? map.get(normalizeTaxKey(taxValue)) ?? null : null;
+      const taxRateId = taxValue ? map.get(normalizeAlias(taxValue)) ?? null : null;
       if (taxRateId) linked++;
       try {
         await erplora().command("inventory.categories.create", {
           name: r6.name,
           slug: r6.slug || r6.name.toLowerCase().replace(/\s+/g, "-"),
-          tax_rate_id: taxRateId
+          tax_category_key: taxRateId
         });
       } catch {
       }
     }
-    if (createdTaxes > 0 || linked > 0) {
-      console.info(`[inventory] Import CSV: ${createdTaxes} tipos de IVA creados, ${linked} categor\xEDas enlazadas.`);
+    if (linked > 0 || unresolved.length > 0) {
+      console.info(`[inventory] Import CSV: ${linked} categor\xEDas enlazadas por categor\xEDa fiscal, ${unresolved.length} sin resolver.`);
     }
     await this.ctrl.load();
   }
@@ -3054,7 +3017,7 @@ var ErpInventoryCategories = class extends i3 {
       await erplora().command("inventory.categories.create", {
         name: this.newName.trim(),
         slug: this.newSlug.trim() || this.newName.trim().toLowerCase().replace(/\s+/g, "-"),
-        tax_rate_id: this.newTaxRateId || null
+        tax_category_key: this.newTaxRateId || null
       });
       this.newName = "";
       this.newSlug = "";
@@ -3153,7 +3116,7 @@ __decorateClass([
 ], ErpInventoryCategories.prototype, "formError", 2);
 define("erp-inventory-categories", ErpInventoryCategories);
 
-// ../modules-workspace/modules/inventory/ui/components/erp-inventory-dashboard/erp-inventory-dashboard.ts
+// ui/components/erp-inventory-dashboard/erp-inventory-dashboard.ts
 function erplora2() {
   const c5 = globalThis.erplora;
   if (!c5) throw new Error("erplora SDK no inicializado por el shell");
@@ -3239,7 +3202,7 @@ __decorateClass([
 ], ErpInventoryDashboard.prototype, "stats", 2);
 define("erp-inventory-dashboard", ErpInventoryDashboard);
 
-// ../modules-workspace/modules/inventory/ui/lib/code128.ts
+// ui/lib/code128.ts
 var PATTERNS = [
   "212222",
   "222122",
@@ -3377,7 +3340,7 @@ function code128b(text, module = 2, height = 70) {
   return { width: x2, height, bars };
 }
 
-// ../modules-workspace/modules/inventory/locales/es.json
+// locales/es.json
 var es_default = {
   name: "Inventario",
   navigation: {
@@ -3413,7 +3376,7 @@ var es_default = {
   }
 };
 
-// ../modules-workspace/modules/inventory/locales/en.json
+// locales/en.json
 var en_default = {
   name: "Inventory",
   navigation: {
@@ -3449,7 +3412,7 @@ var en_default = {
   }
 };
 
-// ../modules-workspace/modules/inventory/ui/components/erp-inventory-products/erp-inventory-products.ts
+// ui/components/erp-inventory-products/erp-inventory-products.ts
 var CATALOG = { es: es_default, en: en_default };
 function erplora3() {
   const c5 = globalThis.erplora;
@@ -3550,7 +3513,7 @@ var ErpInventoryProducts = class extends i3 {
       this.newName = p4.name;
       this.newSku = p4.sku;
       this.newPrice = String(p4.price ?? "");
-      this.newTaxRateId = p4.tax_rate_id ?? "";
+      this.newTaxRateId = p4.tax_category_key ?? "";
       this.dataTable()?.open("create");
     } else if (actionId === "delete") {
       try {
@@ -3570,7 +3533,7 @@ var ErpInventoryProducts = class extends i3 {
         price: p4.price,
         cost: p4.cost ?? 0,
         low_stock_threshold: p4.low_stock_threshold ?? 10,
-        tax_rate_id: p4.tax_rate_id ?? null,
+        tax_category_key: p4.tax_category_key ?? null,
         is_active: checked ? 1 : 0
       });
       await this.ctrl.load();
@@ -3585,30 +3548,27 @@ var ErpInventoryProducts = class extends i3 {
   // Importa productos desde CSV (cabeceras = name, sku, price, stock…). Crea uno por fila.
   // Cada fila resuelve su tipo de IVA por referencia (ADR-0066): la columna fiscal (tax/iva/vat/…)
   // se matchea contra los tipos existentes de `taxes`, los que falten (con un % real) se crean en
-  // bloque, y el producto enlaza por `tax_rate_id`. Vacío / sin columna → null = tipo por defecto
+  // bloque, y el producto enlaza por `tax_category_key`. Vacío / sin columna → null = tipo por defecto
   // del hub. NO se convierten precios: "IVA incluido o no" lo gobierna el ajuste del hub/POS.
   async onCsvImport(ev) {
     const rows = ev.detail.rows ?? [];
     let map = /* @__PURE__ */ new Map();
-    let createdTaxes = 0;
+    let unresolved = [];
     try {
-      const res = await resolveTaxRates(rows, erplora3());
+      const res = await resolveTaxCategories(rows, erplora3());
       map = res.map;
-      createdTaxes = res.created;
-      if (res.unresolved.length > 0) {
-        console.warn(
-          "[inventory] Valores fiscales sin % ni coincidencia (productos sin tipo):",
-          res.unresolved
-        );
+      unresolved = res.unresolved;
+      if (unresolved.length > 0) {
+        console.warn("[inventory] Categor\xEDas fiscales sin resolver (productos sin categor\xEDa):", unresolved);
       }
     } catch (e5) {
-      console.warn("[inventory] No se pudieron resolver los tipos de IVA del CSV:", e5);
+      console.warn("[inventory] No se pudieron resolver las categor\xEDas fiscales del CSV:", e5);
     }
     let linked = 0;
     for (const r6 of rows) {
       if (!r6.name && !r6.sku) continue;
       const taxValue = pickTaxValue(r6);
-      const taxRateId = taxValue ? map.get(normalizeTaxKey(taxValue)) ?? null : null;
+      const taxRateId = taxValue ? map.get(normalizeAlias(taxValue)) ?? null : null;
       if (taxRateId) linked++;
       try {
         await erplora3().command("inventory.products.create", {
@@ -3621,14 +3581,14 @@ var ErpInventoryProducts = class extends i3 {
           product_type: "physical",
           ean13: r6.ean13 || null,
           description: r6.description ?? "",
-          tax_rate_id: taxRateId,
+          tax_category_key: taxRateId,
           image: ""
         });
       } catch {
       }
     }
-    if (createdTaxes > 0 || linked > 0) {
-      console.info(`[inventory] Import CSV: ${createdTaxes} tipos de IVA creados, ${linked} productos enlazados.`);
+    if (linked > 0 || unresolved.length > 0) {
+      console.info(`[inventory] Import CSV: ${linked} productos enlazados por categor\xEDa, ${unresolved.length} sin resolver.`);
     }
     await this.ctrl.load();
   }
@@ -3681,7 +3641,7 @@ var ErpInventoryProducts = class extends i3 {
   }
   // Carga los tipos de IVA/impuesto para el selector del formulario (ADR-0066/0069). Best-effort:
   // si falla (módulo `taxes` no instalado, sin permiso…), el select queda con solo "— (por defecto)"
-  // y el alta sigue funcionando (tax_rate_id = null = tipo por defecto del hub).
+  // y el alta sigue funcionando (tax_category_key = null = tipo por defecto del hub).
   async loadTaxRates() {
     try {
       this.taxRates = await erplora3().query("taxes.rates.list", { page_size: 200 }) ?? [];
@@ -3718,7 +3678,7 @@ var ErpInventoryProducts = class extends i3 {
         product_type: "physical",
         ean13: null,
         description: "",
-        tax_rate_id: this.newTaxRateId || null,
+        tax_category_key: this.newTaxRateId || null,
         image: ""
       });
       this.newName = "";

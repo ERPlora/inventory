@@ -1,6 +1,6 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { state } from 'lit/decorators.js';
-import { resolveTaxRates, pickTaxValue, normalizeTaxKey } from '../../lib/tax-resolve';
+import { resolveTaxCategories, pickTaxValue, normalizeAlias } from '../../lib/tax-resolve';
 import { define } from '@erplora/outfitkit/define';
 import '@erplora/outfitkit/ok-data-table';
 import type { DataTableColumn, DataTableAction } from '@erplora/outfitkit';
@@ -136,21 +136,19 @@ export class ErpInventoryCategories extends LitElement {
   private async onCsvImport(ev: CustomEvent<{ rows: Record<string, string>[] }>): Promise<void> {
     const rows = ev.detail.rows ?? [];
 
-    // 1) Resolver/crear los tipos de IVA referenciados ANTES del bucle de creación.
+    // 1) Resolver la CATEGORÍA fiscal de cada fila (ADR-0085) ANTES del bucle de creación.
     let map = new Map<string, string>();
-    let createdTaxes = 0;
+    let unresolved: string[] = [];
     try {
-      const res = await resolveTaxRates(rows, erplora());
+      const res = await resolveTaxCategories(rows, erplora());
       map = res.map;
-      createdTaxes = res.created;
-      if (res.unresolved.length > 0) {
-        console.warn(
-          '[inventory] Valores fiscales sin % ni coincidencia (categorías sin tipo):',
-          res.unresolved,
-        );
+      unresolved = res.unresolved;
+      if (unresolved.length > 0) {
+        // TODO(UI ADR-0085): preguntar (elegir/crear) + persistir alias (learnAlias). De momento avisa.
+        console.warn('[inventory] Categorías fiscales sin resolver (categorías sin categoría fiscal):', unresolved);
       }
     } catch (e) {
-      console.warn('[inventory] No se pudieron resolver los tipos de IVA del CSV:', e);
+      console.warn('[inventory] No se pudieron resolver las categorías fiscales del CSV:', e);
     }
 
     // 2) Crear las categorías enlazando su tax_category_key (o null = tipo por defecto del hub).
@@ -158,7 +156,7 @@ export class ErpInventoryCategories extends LitElement {
     for (const r of rows) {
       if (!r.name) continue;
       const taxValue = pickTaxValue(r);
-      const taxRateId = taxValue ? (map.get(normalizeTaxKey(taxValue)) ?? null) : null;
+      const taxRateId = taxValue ? (map.get(normalizeAlias(taxValue)) ?? null) : null;
       if (taxRateId) linked++;
       try {
         await erplora().command('inventory.categories.create', {
@@ -170,8 +168,8 @@ export class ErpInventoryCategories extends LitElement {
         /* ignora */
       }
     }
-    if (createdTaxes > 0 || linked > 0) {
-      console.info(`[inventory] Import CSV: ${createdTaxes} tipos de IVA creados, ${linked} categorías enlazadas.`);
+    if (linked > 0 || unresolved.length > 0) {
+      console.info(`[inventory] Import CSV: ${linked} categorías enlazadas por categoría fiscal, ${unresolved.length} sin resolver.`);
     }
     await this.ctrl.load();
   }

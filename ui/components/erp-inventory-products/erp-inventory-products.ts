@@ -1,7 +1,7 @@
 import { LitElement, html, css, nothing, svg } from 'lit';
 import { state } from 'lit/decorators.js';
 import { code128b } from '../../lib/code128';
-import { resolveTaxRates, pickTaxValue, normalizeTaxKey } from '../../lib/tax-resolve';
+import { resolveTaxCategories, pickTaxValue, normalizeAlias } from '../../lib/tax-resolve';
 // `define` por su subpath ligero: importar el barrel '@erplora/outfitkit' arrastraría (efectos
 // secundarios) el registro de TODOS los ok-* al bundle del módulo. `ok-data-table` se importa por
 // su efecto secundario (se auto-registra). Tipos desde el barrel (se borran en build).
@@ -201,21 +201,22 @@ export class ErpInventoryProducts extends LitElement {
   private async onCsvImport(ev: CustomEvent<{ rows: Record<string, string>[] }>): Promise<void> {
     const rows = ev.detail.rows ?? [];
 
-    // 1) Resolver/crear los tipos de IVA referenciados ANTES del bucle de creación.
+    // 1) Resolver la CATEGORÍA fiscal de cada fila (ADR-0085) ANTES del bucle de creación: el CSV
+    // trae texto de categoría (food/pizza/…), se resuelve a la clave canónica vía alias/categoría.
     let map = new Map<string, string>();
-    let createdTaxes = 0;
+    let unresolved: string[] = [];
     try {
-      const res = await resolveTaxRates(rows, erplora());
+      const res = await resolveTaxCategories(rows, erplora());
       map = res.map;
-      createdTaxes = res.created;
-      if (res.unresolved.length > 0) {
-        console.warn(
-          '[inventory] Valores fiscales sin % ni coincidencia (productos sin tipo):',
-          res.unresolved,
-        );
+      unresolved = res.unresolved;
+      if (unresolved.length > 0) {
+        // TODO(UI ADR-0085): preguntar al usuario (elegir categoría existente / crear nueva) y
+        // persistir el alias con learnAlias/createCategoryWithAlias. De momento se avisa y la fila
+        // queda sin categoría (tipo por defecto del hub).
+        console.warn('[inventory] Categorías fiscales sin resolver (productos sin categoría):', unresolved);
       }
     } catch (e) {
-      console.warn('[inventory] No se pudieron resolver los tipos de IVA del CSV:', e);
+      console.warn('[inventory] No se pudieron resolver las categorías fiscales del CSV:', e);
     }
 
     // 2) Crear los productos enlazando su tax_category_key (o null = tipo por defecto del hub).
@@ -223,7 +224,7 @@ export class ErpInventoryProducts extends LitElement {
     for (const r of rows) {
       if (!r.name && !r.sku) continue;
       const taxValue = pickTaxValue(r);
-      const taxRateId = taxValue ? (map.get(normalizeTaxKey(taxValue)) ?? null) : null;
+      const taxRateId = taxValue ? (map.get(normalizeAlias(taxValue)) ?? null) : null;
       if (taxRateId) linked++;
       try {
         await erplora().command('inventory.products.create', {
@@ -243,8 +244,8 @@ export class ErpInventoryProducts extends LitElement {
         /* ignora filas inválidas */
       }
     }
-    if (createdTaxes > 0 || linked > 0) {
-      console.info(`[inventory] Import CSV: ${createdTaxes} tipos de IVA creados, ${linked} productos enlazados.`);
+    if (linked > 0 || unresolved.length > 0) {
+      console.info(`[inventory] Import CSV: ${linked} productos enlazados por categoría, ${unresolved.length} sin resolver.`);
     }
     await this.ctrl.load();
   }
