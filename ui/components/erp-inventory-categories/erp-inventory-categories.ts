@@ -22,7 +22,7 @@ interface Category {
   name: string;
   slug: string;
   product_count: number;
-  tax_rate_id: string | null;
+  tax_category_key: string | null;
 }
 
 // Fila de `taxes.rates.list` (subconjunto que usa el selector del formulario, ADR-0066/0069).
@@ -82,7 +82,7 @@ export class ErpInventoryCategories extends LitElement {
 
   // Carga los tipos de IVA/impuesto para el selector del formulario (ADR-0066/0069). Best-effort:
   // si falla (módulo `taxes` no instalado, sin permiso…), el select queda con solo "— (por defecto)"
-  // y el alta sigue funcionando (tax_rate_id = null = tipo por defecto del hub).
+  // y el alta sigue funcionando (tax_category_key = null = tipo por defecto del hub).
   private async loadTaxRates(): Promise<void> {
     try {
       this.taxRates = (await erplora().query<TaxRate[]>('taxes.rates.list', { page_size: 200 })) ?? [];
@@ -110,7 +110,7 @@ export class ErpInventoryCategories extends LitElement {
     if (actionId === 'edit') {
       this.newName = c.name;
       this.newSlug = c.slug;
-      this.newTaxRateId = c.tax_rate_id ?? ''; // pre-selecciona el tipo de IVA actual
+      this.newTaxRateId = c.tax_category_key ?? ''; // pre-selecciona el tipo de IVA actual
       this.dataTable()?.open('create');
     } else if (actionId === 'delete') {
       try {
@@ -131,7 +131,7 @@ export class ErpInventoryCategories extends LitElement {
   // Importa categorías desde CSV (cabeceras = name, slug…). Crea una por fila.
   // Cada fila resuelve su tipo de IVA por referencia (ADR-0066), igual que el import de productos:
   // la columna fiscal (tax/iva/vat/…) se matchea contra los tipos existentes de `taxes`, los que
-  // falten (con un % real) se crean en bloque, y la categoría enlaza por `tax_rate_id`. Vacío / sin
+  // falten (con un % real) se crean en bloque, y la categoría enlaza por `tax_category_key`. Vacío / sin
   // columna → null = tipo por defecto del hub. NO se convierten precios.
   private async onCsvImport(ev: CustomEvent<{ rows: Record<string, string>[] }>): Promise<void> {
     const rows = ev.detail.rows ?? [];
@@ -153,7 +153,7 @@ export class ErpInventoryCategories extends LitElement {
       console.warn('[inventory] No se pudieron resolver los tipos de IVA del CSV:', e);
     }
 
-    // 2) Crear las categorías enlazando su tax_rate_id (o null = tipo por defecto del hub).
+    // 2) Crear las categorías enlazando su tax_category_key (o null = tipo por defecto del hub).
     let linked = 0;
     for (const r of rows) {
       if (!r.name) continue;
@@ -164,7 +164,7 @@ export class ErpInventoryCategories extends LitElement {
         await erplora().command('inventory.categories.create', {
           name: r.name,
           slug: r.slug || r.name.toLowerCase().replace(/\s+/g, '-'),
-          tax_rate_id: taxRateId,
+          tax_category_key: taxRateId,
         });
       } catch {
         /* ignora */
@@ -185,7 +185,7 @@ export class ErpInventoryCategories extends LitElement {
       await erplora().command('inventory.categories.create', {
         name: this.newName.trim(),
         slug: this.newSlug.trim() || this.newName.trim().toLowerCase().replace(/\s+/g, '-'),
-        tax_rate_id: this.newTaxRateId || null,
+        tax_category_key: this.newTaxRateId || null,
       });
       this.newName = '';
       this.newSlug = '';

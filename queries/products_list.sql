@@ -2,6 +2,6 @@
 -- Es una query de LISTA: el runtime compone búsqueda/filtro/orden/paginación a partir del
 -- bloque `list` de module.json. NO lleva ORDER BY / LIMIT / `;` aquí (los añade el runtime).
 -- Toda columna que se quiera ordenar o filtrar debe estar proyectada.
-SELECT id, name, sku, price, cost, stock, low_stock_threshold, tax_rate_id, is_active, product_type, image, created_at
+SELECT id, name, sku, price, cost, stock, low_stock_threshold, tax_category_key, is_active, product_type, image, created_at
 FROM inventory_product
 WHERE hub_id = :hub_id AND is_deleted = 0

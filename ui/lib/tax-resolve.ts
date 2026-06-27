@@ -1,12 +1,12 @@
 // Resolución de tipos de IVA para el import CSV (ADR-0066). Helper puro, sin Lit ni DOM, para
 // poder reutilizarlo (productos + categorías) y testearlo aislado.
 //
-// El producto/categoría enlaza el IVA por **referencia** (`tax_rate_id` → `taxes_rate.id`); el %
+// El producto/categoría enlaza el IVA por **referencia** (`tax_category_key` → `taxes_rate.id`); el %
 // vive en `taxes`, no en el producto. Por eso el import:
 //   1. lee la columna fiscal de cada fila (varias cabeceras posibles, %, nombre o código),
 //   2. matchea contra los tipos ya existentes (por % si es número, o por nombre/código si es texto),
 //   3. crea en `taxes` (vía `taxes.rates.bulk_create`) los que falten que traigan un % real,
-//   4. devuelve un `Map<valorNormalizado, tax_rate_id>` para enlazar en el bucle de creación.
+//   4. devuelve un `Map<valorNormalizado, tax_category_key>` para enlazar en el bucle de creación.
 //
 // Solo dependemos de la interfaz `query`/`command` (inyectada): cero acoplamiento al componente.
 
@@ -32,7 +32,7 @@ const TAX_HEADERS = ['tax', 'iva', 'vat', 'tax_rate', 'taxrate', 'impuesto'] as 
 
 /** Resultado de la resolución: el mapa para enlazar + un resumen para avisar al usuario. */
 export interface TaxResolution {
-  /** valorNormalizado (ver `normalizeTaxKey`) → `tax_rate_id`. `''` nunca se mapea. */
+  /** valorNormalizado (ver `normalizeTaxKey`) → `tax_category_key`. `''` nunca se mapea. */
   map: Map<string, string>;
   /** Nº de tipos creados en `taxes` en esta importación. */
   created: number;

@@ -11,7 +11,7 @@
     "price": { "type": "number", "minimum": 0 },
     "cost": { "type": "number", "minimum": 0 },
     "low_stock_threshold": { "type": "integer", "minimum": 0 },
-    "tax_rate_id": { "type": ["string", "null"], "default": null },
+    "tax_category_key": { "type": ["string", "null"], "default": null },
     "is_active": { "type": "integer", "enum": [0, 1] }
   }
 }

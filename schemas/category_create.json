@@ -11,6 +11,6 @@
     "color": { "type": "string", "default": "#3880ff", "maxLength": 20 },
     "description": { "type": "string", "default": "" },
     "order": { "type": "integer", "minimum": 0, "default": 0 },
-    "tax_rate_id": { "type": ["string", "null"], "default": null }
+    "tax_category_key": { "type": ["string", "null"], "default": null }
   }
 }
