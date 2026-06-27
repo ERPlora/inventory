@@ -1,10 +1,18 @@
 {
   "name": "Inventario",
   "navigation": {
-    "dashboard": { "label": "Panel" },
-    "products": { "label": "Productos" },
-    "categories": { "label": "Categorías" },
-    "settings": { "label": "Ajustes" }
+    "dashboard": {
+      "label": "Panel"
+    },
+    "products": {
+      "label": "Productos"
+    },
+    "categories": {
+      "label": "Categorías"
+    },
+    "settings": {
+      "label": "Ajustes"
+    }
   },
   "ui": {
     "name": "Nombre",
@@ -29,6 +37,16 @@
     "no": "No",
     "actionDetail": "Detalles",
     "actionEdit": "Editar",
-    "actionDelete": "Eliminar"
+    "actionDelete": "Eliminar",
+    "importTaxTitle": "Categorías fiscales del CSV",
+    "importTaxHint": "Algunos textos de categoría del CSV no se reconocen. Elige una categoría existente o crea una nueva; se recordará para futuras importaciones.",
+    "importPick": "Elegir",
+    "importCreate": "Crear",
+    "importSkip": "Omitir",
+    "importConfirm": "Confirmar e importar",
+    "btnCancel": "Cancelar",
+    "colCategory": "Categoría",
+    "colKey": "Clave",
+    "colName": "Nombre"
   }
 }

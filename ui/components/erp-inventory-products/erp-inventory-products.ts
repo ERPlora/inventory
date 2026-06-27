@@ -1,7 +1,7 @@
 import { LitElement, html, css, nothing, svg } from 'lit';
 import { state } from 'lit/decorators.js';
 import { code128b } from '../../lib/code128';
-import { resolveTaxCategories, pickTaxValue, normalizeAlias } from '../../lib/tax-resolve';
+import { resolveTaxCategories, pickTaxValue, normalizeAlias, learnAlias, createCategoryWithAlias } from '../../lib/tax-resolve';
 // `define` por su subpath ligero: importar el barrel '@erplora/outfitkit' arrastraría (efectos
 // secundarios) el registro de TODOS los ok-* al bundle del módulo. `ok-data-table` se importa por
 // su efecto secundario (se auto-registra). Tipos desde el barrel (se borran en build).
@@ -47,13 +47,13 @@ interface Product {
   is_active: number;
 }
 
-// Fila de `taxes.rates.list` (subconjunto que usa el selector del formulario, ADR-0066/0069).
-interface TaxRate {
+// Fila de `taxes.categories.list` (la CATEGORÍA fiscal es lo enlazable, ADR-0085). El selector del
+// formulario y el modal del importador eligen una `key` canónica; el % lo resuelve `taxes` por país.
+interface TaxCategory {
   id: string;
-  code: string;
+  key: string;
   name: string;
-  rate_pct: number;
-  tax_type?: string;
+  is_system?: number;
 }
 
 
@@ -84,10 +84,22 @@ export class ErpInventoryProducts extends LitElement {
   @state() private newName = '';
   @state() private newSku = '';
   @state() private newPrice = '';
-  @state() private newTaxRateId = ''; // '' = tipo por defecto del hub (se envía null)
-  @state() private taxRates: TaxRate[] = [];
+  @state() private newTaxCategoryKey = ''; // '' = sin categoría (se envía null)
+  @state() private taxCategories: TaxCategory[] = [];
   @state() private saving = false;
   @state() private formError = '';
+
+  // ── Importador CSV: resolución interactiva de categorías no reconocidas (ADR-0085) ──
+  // Cuando el CSV trae un texto de categoría que no resuelve por alias/categoría, en vez de dejar
+  // la fila sin categoría, se abre un modal para que el usuario decida (elegir existente / crear
+  // nueva); la decisión se persiste como alias (`taxes.aliases.create` / `taxes.categories.create`)
+  // para que la próxima importación resuelva sola.
+  @state() private importOpen = false;
+  @state() private importRows: Record<string, string>[] = []; // filas pendientes de crear
+  @state() private importMap: Map<string, string> = new Map(); // textoNormalizado → key (ya resuelto)
+  @state() private importUnresolved: string[] = []; // textos a decidir
+  // Decisión por texto: 'skip' (sin categoría), 'pick' (key existente), 'create' (nueva key+name).
+  @state() private importChoice: Record<string, { mode: 'skip' | 'pick' | 'create'; key: string; newKey: string; newName: string }> = {};
 
   private ctrl!: ListController<Product>;
   private unsub?: () => void;
@@ -154,7 +166,7 @@ export class ErpInventoryProducts extends LitElement {
       this.newName = p.name;
       this.newSku = p.sku;
       this.newPrice = String(p.price ?? '');
-      this.newTaxRateId = p.tax_category_key ?? ''; // pre-selecciona el tipo de IVA actual
+      this.newTaxCategoryKey = p.tax_category_key ?? ''; // pre-selecciona el tipo de IVA actual
       this.dataTable()?.open('create'); // abre el panel lateral con el form pre-rellenado
     } else if (actionId === 'delete') {
       try {
@@ -201,31 +213,69 @@ export class ErpInventoryProducts extends LitElement {
   private async onCsvImport(ev: CustomEvent<{ rows: Record<string, string>[] }>): Promise<void> {
     const rows = ev.detail.rows ?? [];
 
-    // 1) Resolver la CATEGORÍA fiscal de cada fila (ADR-0085) ANTES del bucle de creación: el CSV
-    // trae texto de categoría (food/pizza/…), se resuelve a la clave canónica vía alias/categoría.
+    // 1) Resolver la CATEGORÍA fiscal de cada fila (ADR-0085): el CSV trae texto de categoría
+    // (food/pizza/…), se resuelve a la clave canónica vía alias/categoría existente.
     let map = new Map<string, string>();
     let unresolved: string[] = [];
     try {
       const res = await resolveTaxCategories(rows, erplora());
       map = res.map;
       unresolved = res.unresolved;
-      if (unresolved.length > 0) {
-        // TODO(UI ADR-0085): preguntar al usuario (elegir categoría existente / crear nueva) y
-        // persistir el alias con learnAlias/createCategoryWithAlias. De momento se avisa y la fila
-        // queda sin categoría (tipo por defecto del hub).
-        console.warn('[inventory] Categorías fiscales sin resolver (productos sin categoría):', unresolved);
-      }
     } catch (e) {
       console.warn('[inventory] No se pudieron resolver las categorías fiscales del CSV:', e);
     }
 
-    // 2) Crear los productos enlazando su tax_category_key (o null = tipo por defecto del hub).
+    // 2) Si hay textos sin resolver → abrir el modal para que el usuario decida (elegir/crear);
+    // la creación se aplaza hasta confirmar. Si no hay → crear directamente.
+    if (unresolved.length > 0) {
+      this.importRows = rows;
+      this.importMap = map;
+      this.importUnresolved = unresolved;
+      const choice: typeof this.importChoice = {};
+      for (const u of unresolved) choice[u] = { mode: 'pick', key: '', newKey: '', newName: u };
+      this.importChoice = choice;
+      // Asegura tener las categorías para el selector del modal.
+      if (this.taxCategories.length === 0) await this.loadTaxCategories();
+      this.importOpen = true;
+      return;
+    }
+    await this.finalizeImport(rows, map);
+  }
+
+  // Aplica las decisiones del modal: por cada texto sin resolver, persiste el alias hacia una
+  // categoría existente (learnAlias) o crea una categoría nueva + alias (createCategoryWithAlias),
+  // actualiza el mapa y procede con la creación de productos (ADR-0085).
+  private async confirmImportResolution(): Promise<void> {
+    const map = new Map(this.importMap);
+    for (const text of this.importUnresolved) {
+      const c = this.importChoice[text];
+      try {
+        if (c?.mode === 'pick' && c.key) {
+          await learnAlias(erplora(), text, c.key);
+          map.set(normalizeAlias(text), c.key);
+        } else if (c?.mode === 'create' && c.newKey.trim()) {
+          const key = c.newKey.trim();
+          await createCategoryWithAlias(erplora(), key, (c.newName || key).trim(), text);
+          map.set(normalizeAlias(text), key);
+        }
+        // mode 'skip' (o pick sin key) → la fila queda sin categoría (null).
+      } catch (e) {
+        console.warn(`[inventory] No se pudo resolver la categoría "${text}":`, e);
+      }
+    }
+    this.importOpen = false;
+    await this.loadTaxCategories(); // refresca el selector con las categorías nuevas
+    await this.finalizeImport(this.importRows, map);
+  }
+
+  // Crea un producto por fila enlazando su tax_category_key resuelto (o null = sin categoría).
+  private async finalizeImport(rows: Record<string, string>[], map: Map<string, string>): Promise<void> {
     let linked = 0;
     for (const r of rows) {
       if (!r.name && !r.sku) continue;
       const taxValue = pickTaxValue(r);
-      const taxRateId = taxValue ? (map.get(normalizeAlias(taxValue)) ?? null) : null;
-      if (taxRateId) linked++;
+      const taxCategoryKey = taxValue ? (map.get(normalizeAlias(taxValue)) ?? null) : null;
+      if (taxCategoryKey) linked++;
       try {
         await erplora().command('inventory.products.create', {
           name: r.name ?? '',
@@ -237,17 +287,64 @@ export class ErpInventoryProducts extends LitElement {
           product_type: 'physical',
           ean13: r.ean13 || null,
           description: r.description ?? '',
-          tax_category_key: taxRateId,
+          tax_category_key: taxCategoryKey,
           image: '',
         });
       } catch {
-        /* ignora filas inválidas */
+        /* ignora filas inválidas (incl. categoría inválida rechazada por el runtime) */
       }
     }
-    if (linked > 0 || unresolved.length > 0) {
-      console.info(`[inventory] Import CSV: ${linked} productos enlazados por categoría, ${unresolved.length} sin resolver.`);
-    }
+    console.info(`[inventory] Import CSV: ${linked} productos enlazados por categoría.`);
+    this.importRows = [];
+    this.importUnresolved = [];
     await this.ctrl.load();
+  }
+
+  // Modal de resolución de categorías del importador (ADR-0085): una fila por texto sin resolver,
+  // con elegir categoría existente / crear nueva / omitir; al confirmar persiste el alias.
+  private renderImportModal() {
+    const t = (k: string): string => erplora().t(CATALOG, k);
+    const setChoice = (text: string, patch: Partial<(typeof this.importChoice)[string]>) => {
+      this.importChoice = { ...this.importChoice, [text]: { ...this.importChoice[text], ...patch } };
+    };
+    return html`
+      <ion-modal .isOpen=${this.importOpen} @ionModalDidDismiss=${() => (this.importOpen = false)}>
+        <ion-header>
+          <ion-toolbar>
+            <ion-title>${t('ui.importTaxTitle')}</ion-title>
+            <ion-buttons slot="end">
+              <ion-button @click=${() => (this.importOpen = false)}>${t('ui.btnCancel')}</ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content class="ion-padding">
+          <p>${t('ui.importTaxHint')}</p>
+          ${this.importUnresolved.map((text) => {
+            const c = this.importChoice[text] ?? { mode: 'pick', key: '', newKey: '', newName: text };
+            return html`<div style="border:1px solid var(--ion-border-color,#e6e2d8);border-radius:10px;padding:.6rem .8rem;margin-bottom:.7rem;">
+              <strong>"${text}"</strong>
+              <ion-segment .value=${c.mode} @ionChange=${(e: any) => setChoice(text, { mode: e.detail.value })} style="margin:.5rem 0;">
+                <ion-segment-button value="pick"><ion-label>${t('ui.importPick')}</ion-label></ion-segment-button>
+                <ion-segment-button value="create"><ion-label>${t('ui.importCreate')}</ion-label></ion-segment-button>
+                <ion-segment-button value="skip"><ion-label>${t('ui.importSkip')}</ion-label></ion-segment-button>
+              </ion-segment>
+              ${c.mode === 'pick'
+                ? html`<ion-select fill="outline" label-placement="floating" label=${t('ui.colCategory')} .value=${c.key} @ionChange=${(e: any) => setChoice(text, { key: e.detail.value })}>
+                    ${this.taxCategories.map((cat) => html`<ion-select-option .value=${cat.key}>${cat.name} (${cat.key})</ion-select-option>`)}
+                  </ion-select>`
+                : nothing}
+              ${c.mode === 'create'
+                ? html`<div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+                    <ion-input fill="outline" label-placement="floating" label=${t('ui.colKey')} placeholder="restaurant.food" .value=${c.newKey} @ionInput=${(e: any) => setChoice(text, { newKey: e.target.value })}></ion-input>
+                    <ion-input fill="outline" label-placement="floating" label=${t('ui.colName')} .value=${c.newName} @ionInput=${(e: any) => setChoice(text, { newName: e.target.value })}></ion-input>
+                  </div>`
+                : nothing}
+            </div>`;
+          })}
+          <ion-button expand="block" @click=${() => this.confirmImportResolution()}>${t('ui.importConfirm')}</ion-button>
+        </ion-content>
+      </ion-modal>
+    `;
   }
 
   // Código de barras Code128 (SVG) del SKU.
@@ -293,7 +390,7 @@ export class ErpInventoryProducts extends LitElement {
       { pageSize: 50, sort: 'name', dir: 'asc' },
     );
     await this.ctrl.load();
-    void this.loadTaxRates();
+    void this.loadTaxCategories();
     // Reactividad: al cambiar stock o crearse un producto, recargamos la página actual.
     try {
       const reload = () => this.ctrl.load();
@@ -314,27 +411,25 @@ export class ErpInventoryProducts extends LitElement {
     this.unsub?.();
   }
 
-  // Carga los tipos de IVA/impuesto para el selector del formulario (ADR-0066/0069). Best-effort:
-  // si falla (módulo `taxes` no instalado, sin permiso…), el select queda con solo "— (por defecto)"
-  // y el alta sigue funcionando (tax_category_key = null = tipo por defecto del hub).
-  private async loadTaxRates(): Promise<void> {
+  // Carga las CATEGORÍAS fiscales para el selector del formulario (ADR-0085). Best-effort: si falla
+  // (módulo `taxes` no instalado, sin permiso…), el select queda con solo "— (sin categoría)" y el
+  // alta sigue funcionando (tax_category_key = null). El % lo resuelve `taxes` por país+categoría.
+  private async loadTaxCategories(): Promise<void> {
     try {
-      this.taxRates = (await erplora().query<TaxRate[]>('taxes.rates.list', { page_size: 200 })) ?? [];
+      this.taxCategories = (await erplora().query<TaxCategory[]>('taxes.categories.list', { page_size: 200 })) ?? [];
     } catch {
-      this.taxRates = [];
+      this.taxCategories = [];
     }
   }
 
-  // Opciones del ion-select: "— (por defecto)" (valor '') + un tipo por fila.
-  // Etiqueta = "Nombre (21%)"; los grupos añaden " · grupo".
+  // Opciones del ion-select: "— (sin categoría)" (valor '') + una categoría por fila.
+  // Etiqueta = "Nombre (key)".
   private taxOptions() {
     const t = (k: string): string => erplora().t(CATALOG, k);
     return html`
       <ion-select-option value="">${t('ui.taxDefault')}</ion-select-option>
-      ${this.taxRates.map(
-        (r) => html`<ion-select-option .value=${r.id}
-          >${r.name} (${r.rate_pct}%)${r.tax_type === 'group' ? ` · ${t('ui.taxGroup')}` : ''}</ion-select-option
-        >`,
+      ${this.taxCategories.map(
+        (c) => html`<ion-select-option .value=${c.key}>${c.name} (${c.key})</ion-select-option>`,
       )}
     `;
   }
@@ -355,13 +450,13 @@ export class ErpInventoryProducts extends LitElement {
         product_type: 'physical',
         ean13: null,
         description: '',
-        tax_category_key: this.newTaxRateId || null,
+        tax_category_key: this.newTaxCategoryKey || null,
         image: '',
       });
       this.newName = '';
       this.newSku = '';
       this.newPrice = '';
-      this.newTaxRateId = '';
+      this.newTaxCategoryKey = '';
       this.dataTable()?.close(); // cierra el panel lateral tras crear
       await this.ctrl.load(); // refresco inmediato (además del evento)
     } catch (e) {
@@ -435,8 +530,8 @@ export class ErpInventoryProducts extends LitElement {
               fill="outline"
               label-placement="floating"
               label=${erplora().t(CATALOG, 'ui.taxRate')}
-              .value=${this.newTaxRateId}
-              @ionChange=${(e: Event) => (this.newTaxRateId = (e.target as HTMLInputElement).value)}
+              .value=${this.newTaxCategoryKey}
+              @ionChange=${(e: Event) => (this.newTaxCategoryKey = (e.target as HTMLInputElement).value)}
             >
               ${this.taxOptions()}
             </ion-select>
@@ -475,6 +570,7 @@ export class ErpInventoryProducts extends LitElement {
               : nothing}
           </ion-content>
         </ion-modal>
+        ${this.renderImportModal()}
       </div>
     `;
   }

@@ -1325,6 +1325,16 @@ async function resolveTaxCategories(rows, client) {
   }
   return { map, unresolved };
 }
+async function learnAlias(client, aliasText, taxCategoryKey) {
+  const alias = normalizeAlias(aliasText);
+  if (!alias) return;
+  await client.command("taxes.aliases.create", { alias, tax_category_key: taxCategoryKey, source: "learned" });
+}
+async function createCategoryWithAlias(client, key, name, aliasText) {
+  await client.command("taxes.categories.create", { key, name });
+  await learnAlias(client, aliasText, key);
+  return key;
+}
 
 // ../../../outfitkit/dist/define.js
 function define(tag, ctor) {
@@ -3344,10 +3354,18 @@ function code128b(text, module = 2, height = 70) {
 var es_default = {
   name: "Inventario",
   navigation: {
-    dashboard: { label: "Panel" },
-    products: { label: "Productos" },
-    categories: { label: "Categor\xEDas" },
-    settings: { label: "Ajustes" }
+    dashboard: {
+      label: "Panel"
+    },
+    products: {
+      label: "Productos"
+    },
+    categories: {
+      label: "Categor\xEDas"
+    },
+    settings: {
+      label: "Ajustes"
+    }
   },
   ui: {
     name: "Nombre",
@@ -3372,7 +3390,17 @@ var es_default = {
     no: "No",
     actionDetail: "Detalles",
     actionEdit: "Editar",
-    actionDelete: "Eliminar"
+    actionDelete: "Eliminar",
+    importTaxTitle: "Categor\xEDas fiscales del CSV",
+    importTaxHint: "Algunos textos de categor\xEDa del CSV no se reconocen. Elige una categor\xEDa existente o crea una nueva; se recordar\xE1 para futuras importaciones.",
+    importPick: "Elegir",
+    importCreate: "Crear",
+    importSkip: "Omitir",
+    importConfirm: "Confirmar e importar",
+    btnCancel: "Cancelar",
+    colCategory: "Categor\xEDa",
+    colKey: "Clave",
+    colName: "Nombre"
   }
 };
 
@@ -3380,10 +3408,18 @@ var es_default = {
 var en_default = {
   name: "Inventory",
   navigation: {
-    dashboard: { label: "Dashboard" },
-    products: { label: "Products" },
-    categories: { label: "Categories" },
-    settings: { label: "Settings" }
+    dashboard: {
+      label: "Dashboard"
+    },
+    products: {
+      label: "Products"
+    },
+    categories: {
+      label: "Categories"
+    },
+    settings: {
+      label: "Settings"
+    }
   },
   ui: {
     name: "Name",
@@ -3408,7 +3444,17 @@ var en_default = {
     no: "No",
     actionDetail: "Details",
     actionEdit: "Edit",
-    actionDelete: "Delete"
+    actionDelete: "Delete",
+    importTaxTitle: "CSV tax categories",
+    importTaxHint: "Some category texts in the CSV aren't recognized. Pick an existing category or create a new one; it will be remembered for future imports.",
+    importPick: "Pick",
+    importCreate: "Create",
+    importSkip: "Skip",
+    importConfirm: "Confirm & import",
+    btnCancel: "Cancel",
+    colCategory: "Category",
+    colKey: "Key",
+    colName: "Name"
   }
 };
 
@@ -3425,10 +3471,15 @@ var ErpInventoryProducts = class extends i3 {
     this.newName = "";
     this.newSku = "";
     this.newPrice = "";
-    this.newTaxRateId = "";
-    this.taxRates = [];
+    this.newTaxCategoryKey = "";
+    this.taxCategories = [];
     this.saving = false;
     this.formError = "";
+    this.importOpen = false;
+    this.importRows = [];
+    this.importMap = /* @__PURE__ */ new Map();
+    this.importUnresolved = [];
+    this.importChoice = {};
     this.detail = null;
     // Init una sola vez tras el primer render (equivalente a `componentWillLoad` de Stencil: el shell
     // crea una instancia nueva del WC en cada montaje de la vista). El re-render lo dispara el
@@ -3513,7 +3564,7 @@ var ErpInventoryProducts = class extends i3 {
       this.newName = p4.name;
       this.newSku = p4.sku;
       this.newPrice = String(p4.price ?? "");
-      this.newTaxRateId = p4.tax_category_key ?? "";
+      this.newTaxCategoryKey = p4.tax_category_key ?? "";
       this.dataTable()?.open("create");
     } else if (actionId === "delete") {
       try {
@@ -3558,18 +3609,54 @@ var ErpInventoryProducts = class extends i3 {
       const res = await resolveTaxCategories(rows, erplora3());
       map = res.map;
       unresolved = res.unresolved;
-      if (unresolved.length > 0) {
-        console.warn("[inventory] Categor\xEDas fiscales sin resolver (productos sin categor\xEDa):", unresolved);
-      }
     } catch (e5) {
       console.warn("[inventory] No se pudieron resolver las categor\xEDas fiscales del CSV:", e5);
     }
+    if (unresolved.length > 0) {
+      this.importRows = rows;
+      this.importMap = map;
+      this.importUnresolved = unresolved;
+      const choice = {};
+      for (const u5 of unresolved) choice[u5] = { mode: "pick", key: "", newKey: "", newName: u5 };
+      this.importChoice = choice;
+      if (this.taxCategories.length === 0) await this.loadTaxCategories();
+      this.importOpen = true;
+      return;
+    }
+    await this.finalizeImport(rows, map);
+  }
+  // Aplica las decisiones del modal: por cada texto sin resolver, persiste el alias hacia una
+  // categoría existente (learnAlias) o crea una categoría nueva + alias (createCategoryWithAlias),
+  // actualiza el mapa y procede con la creación de productos (ADR-0085).
+  async confirmImportResolution() {
+    const map = new Map(this.importMap);
+    for (const text of this.importUnresolved) {
+      const c5 = this.importChoice[text];
+      try {
+        if (c5?.mode === "pick" && c5.key) {
+          await learnAlias(erplora3(), text, c5.key);
+          map.set(normalizeAlias(text), c5.key);
+        } else if (c5?.mode === "create" && c5.newKey.trim()) {
+          const key = c5.newKey.trim();
+          await createCategoryWithAlias(erplora3(), key, (c5.newName || key).trim(), text);
+          map.set(normalizeAlias(text), key);
+        }
+      } catch (e5) {
+        console.warn(`[inventory] No se pudo resolver la categor\xEDa "${text}":`, e5);
+      }
+    }
+    this.importOpen = false;
+    await this.loadTaxCategories();
+    await this.finalizeImport(this.importRows, map);
+  }
+  // Crea un producto por fila enlazando su tax_category_key resuelto (o null = sin categoría).
+  async finalizeImport(rows, map) {
     let linked = 0;
     for (const r6 of rows) {
       if (!r6.name && !r6.sku) continue;
       const taxValue = pickTaxValue(r6);
-      const taxRateId = taxValue ? map.get(normalizeAlias(taxValue)) ?? null : null;
-      if (taxRateId) linked++;
+      const taxCategoryKey = taxValue ? map.get(normalizeAlias(taxValue)) ?? null : null;
+      if (taxCategoryKey) linked++;
       try {
         await erplora3().command("inventory.products.create", {
           name: r6.name ?? "",
@@ -3581,16 +3668,58 @@ var ErpInventoryProducts = class extends i3 {
           product_type: "physical",
           ean13: r6.ean13 || null,
           description: r6.description ?? "",
-          tax_category_key: taxRateId,
+          tax_category_key: taxCategoryKey,
           image: ""
         });
       } catch {
       }
     }
-    if (linked > 0 || unresolved.length > 0) {
-      console.info(`[inventory] Import CSV: ${linked} productos enlazados por categor\xEDa, ${unresolved.length} sin resolver.`);
-    }
+    console.info(`[inventory] Import CSV: ${linked} productos enlazados por categor\xEDa.`);
+    this.importRows = [];
+    this.importUnresolved = [];
     await this.ctrl.load();
+  }
+  // Modal de resolución de categorías del importador (ADR-0085): una fila por texto sin resolver,
+  // con elegir categoría existente / crear nueva / omitir; al confirmar persiste el alias.
+  renderImportModal() {
+    const t5 = (k2) => erplora3().t(CATALOG, k2);
+    const setChoice = (text, patch) => {
+      this.importChoice = { ...this.importChoice, [text]: { ...this.importChoice[text], ...patch } };
+    };
+    return b2`
+      <ion-modal .isOpen=${this.importOpen} @ionModalDidDismiss=${() => this.importOpen = false}>
+        <ion-header>
+          <ion-toolbar>
+            <ion-title>${t5("ui.importTaxTitle")}</ion-title>
+            <ion-buttons slot="end">
+              <ion-button @click=${() => this.importOpen = false}>${t5("ui.btnCancel")}</ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content class="ion-padding">
+          <p>${t5("ui.importTaxHint")}</p>
+          ${this.importUnresolved.map((text) => {
+      const c5 = this.importChoice[text] ?? { mode: "pick", key: "", newKey: "", newName: text };
+      return b2`<div style="border:1px solid var(--ion-border-color,#e6e2d8);border-radius:10px;padding:.6rem .8rem;margin-bottom:.7rem;">
+              <strong>"${text}"</strong>
+              <ion-segment .value=${c5.mode} @ionChange=${(e5) => setChoice(text, { mode: e5.detail.value })} style="margin:.5rem 0;">
+                <ion-segment-button value="pick"><ion-label>${t5("ui.importPick")}</ion-label></ion-segment-button>
+                <ion-segment-button value="create"><ion-label>${t5("ui.importCreate")}</ion-label></ion-segment-button>
+                <ion-segment-button value="skip"><ion-label>${t5("ui.importSkip")}</ion-label></ion-segment-button>
+              </ion-segment>
+              ${c5.mode === "pick" ? b2`<ion-select fill="outline" label-placement="floating" label=${t5("ui.colCategory")} .value=${c5.key} @ionChange=${(e5) => setChoice(text, { key: e5.detail.value })}>
+                    ${this.taxCategories.map((cat) => b2`<ion-select-option .value=${cat.key}>${cat.name} (${cat.key})</ion-select-option>`)}
+                  </ion-select>` : A}
+              ${c5.mode === "create" ? b2`<div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+                    <ion-input fill="outline" label-placement="floating" label=${t5("ui.colKey")} placeholder="restaurant.food" .value=${c5.newKey} @ionInput=${(e5) => setChoice(text, { newKey: e5.target.value })}></ion-input>
+                    <ion-input fill="outline" label-placement="floating" label=${t5("ui.colName")} .value=${c5.newName} @ionInput=${(e5) => setChoice(text, { newName: e5.target.value })}></ion-input>
+                  </div>` : A}
+            </div>`;
+    })}
+          <ion-button expand="block" @click=${() => this.confirmImportResolution()}>${t5("ui.importConfirm")}</ion-button>
+        </ion-content>
+      </ion-modal>
+    `;
   }
   // Código de barras Code128 (SVG) del SKU.
   renderBarcode(text) {
@@ -3622,7 +3751,7 @@ var ErpInventoryProducts = class extends i3 {
       { pageSize: 50, sort: "name", dir: "asc" }
     );
     await this.ctrl.load();
-    void this.loadTaxRates();
+    void this.loadTaxCategories();
     try {
       const reload = () => this.ctrl.load();
       const off1 = erplora3().on("inventory.stock_changed", reload);
@@ -3639,26 +3768,24 @@ var ErpInventoryProducts = class extends i3 {
     super.disconnectedCallback();
     this.unsub?.();
   }
-  // Carga los tipos de IVA/impuesto para el selector del formulario (ADR-0066/0069). Best-effort:
-  // si falla (módulo `taxes` no instalado, sin permiso…), el select queda con solo "— (por defecto)"
-  // y el alta sigue funcionando (tax_category_key = null = tipo por defecto del hub).
-  async loadTaxRates() {
+  // Carga las CATEGORÍAS fiscales para el selector del formulario (ADR-0085). Best-effort: si falla
+  // (módulo `taxes` no instalado, sin permiso…), el select queda con solo "— (sin categoría)" y el
+  // alta sigue funcionando (tax_category_key = null). El % lo resuelve `taxes` por país+categoría.
+  async loadTaxCategories() {
     try {
-      this.taxRates = await erplora3().query("taxes.rates.list", { page_size: 200 }) ?? [];
+      this.taxCategories = await erplora3().query("taxes.categories.list", { page_size: 200 }) ?? [];
     } catch {
-      this.taxRates = [];
+      this.taxCategories = [];
     }
   }
-  // Opciones del ion-select: "— (por defecto)" (valor '') + un tipo por fila.
-  // Etiqueta = "Nombre (21%)"; los grupos añaden " · grupo".
+  // Opciones del ion-select: "— (sin categoría)" (valor '') + una categoría por fila.
+  // Etiqueta = "Nombre (key)".
   taxOptions() {
     const t5 = (k2) => erplora3().t(CATALOG, k2);
     return b2`
       <ion-select-option value="">${t5("ui.taxDefault")}</ion-select-option>
-      ${this.taxRates.map(
-      (r6) => b2`<ion-select-option .value=${r6.id}
-          >${r6.name} (${r6.rate_pct}%)${r6.tax_type === "group" ? ` \xB7 ${t5("ui.taxGroup")}` : ""}</ion-select-option
-        >`
+      ${this.taxCategories.map(
+      (c5) => b2`<ion-select-option .value=${c5.key}>${c5.name} (${c5.key})</ion-select-option>`
     )}
     `;
   }
@@ -3678,13 +3805,13 @@ var ErpInventoryProducts = class extends i3 {
         product_type: "physical",
         ean13: null,
         description: "",
-        tax_category_key: this.newTaxRateId || null,
+        tax_category_key: this.newTaxCategoryKey || null,
         image: ""
       });
       this.newName = "";
       this.newSku = "";
       this.newPrice = "";
-      this.newTaxRateId = "";
+      this.newTaxCategoryKey = "";
       this.dataTable()?.close();
       await this.ctrl.load();
     } catch (e5) {
@@ -3755,8 +3882,8 @@ var ErpInventoryProducts = class extends i3 {
               fill="outline"
               label-placement="floating"
               label=${erplora3().t(CATALOG, "ui.taxRate")}
-              .value=${this.newTaxRateId}
-              @ionChange=${(e5) => this.newTaxRateId = e5.target.value}
+              .value=${this.newTaxCategoryKey}
+              @ionChange=${(e5) => this.newTaxCategoryKey = e5.target.value}
             >
               ${this.taxOptions()}
             </ion-select>
@@ -3793,6 +3920,7 @@ var ErpInventoryProducts = class extends i3 {
                 ` : A}
           </ion-content>
         </ion-modal>
+        ${this.renderImportModal()}
       </div>
     `;
   }
@@ -3808,16 +3936,31 @@ __decorateClass([
 ], ErpInventoryProducts.prototype, "newPrice", 2);
 __decorateClass([
   r5()
-], ErpInventoryProducts.prototype, "newTaxRateId", 2);
+], ErpInventoryProducts.prototype, "newTaxCategoryKey", 2);
 __decorateClass([
   r5()
-], ErpInventoryProducts.prototype, "taxRates", 2);
+], ErpInventoryProducts.prototype, "taxCategories", 2);
 __decorateClass([
   r5()
 ], ErpInventoryProducts.prototype, "saving", 2);
 __decorateClass([
   r5()
 ], ErpInventoryProducts.prototype, "formError", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "importOpen", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "importRows", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "importMap", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "importUnresolved", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "importChoice", 2);
 __decorateClass([
   r5()
 ], ErpInventoryProducts.prototype, "detail", 2);
