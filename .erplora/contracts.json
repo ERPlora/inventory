@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "module": "inventory",
+  "consumes": {
+    "queries": [
+      "inventory.categories.list",
+      "inventory.products.list",
+      "inventory.products.low_stock",
+      "inventory.products.stats",
+      "taxes.aliases.resolve",
+      "taxes.categories.list"
+    ],
+    "optional_queries": [],
+    "commands": [
+      "inventory.categories.create",
+      "inventory.categories.delete",
+      "inventory.products.create",
+      "inventory.products.delete",
+      "inventory.products.update",
+      "taxes.aliases.create",
+      "taxes.categories.create"
+    ],
+    "events": [
+      "inventory.product.created",
+      "inventory.stock_changed"
+    ],
+    "slots": []
+  }
+}
