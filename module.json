@@ -1,7 +1,7 @@
 {
   "id": "inventory",
   "name": "Inventory",
-  "version": "1.0.18",
+  "version": "1.0.19",
   "agent": {
     "description": "Manages stock, warehouses and products: check availability, adjust stock, receive goods, create or remove products and categories.",
     "keywords": [
