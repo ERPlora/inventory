@@ -387,6 +387,34 @@
         "description": "Deletes a product category from the inventory (destructive)."
       }
     },
+    "inventory.products.add_category": {
+      "permission": "inventory.add_category",
+      "transaction": true,
+      "schema": "schemas/product_add_category.json",
+      "sql": [
+        "commands/product_add_category.sql"
+      ],
+      "emit": [
+        "inventory.product.categorized"
+      ],
+      "ai": {
+        "description": "Links a product to a category so the POS can group it in the menu."
+      }
+    },
+    "inventory.products.remove_category": {
+      "permission": "inventory.add_category",
+      "transaction": true,
+      "schema": "schemas/product_remove_category.json",
+      "sql": [
+        "commands/product_remove_category.sql"
+      ],
+      "emit": [
+        "inventory.product.uncategorized"
+      ],
+      "ai": {
+        "description": "Unlinks a product from a category."
+      }
+    },
     "inventory._insert_product": {
       "permission": "inventory.add_product",
       "sql": [

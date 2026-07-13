@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "inventory.products.add_category",
+  "description": "Links a product to a category (M2M). Scalar: one call per category.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "product_id",
+    "category_id"
+  ],
+  "properties": {
+    "product_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "category_id": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
