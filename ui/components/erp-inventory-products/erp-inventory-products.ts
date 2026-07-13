@@ -7,7 +7,10 @@ import { code128b } from '../../lib/code128';
 import { define } from '@erplora/outfitkit/define';
 import '@erplora/outfitkit/ok-data-table';
 import type { DataTableColumn, DataTableAction } from '@erplora/outfitkit';
-import { createListController } from '@erplora/module-sdk';
+// La frontera EUROS ↔ CÉNTIMOS vive en el SDK (ADR-0123), no copiada en cada WC: tenerla copiada es
+// lo que hizo que el import CSV se olvidara del ×100 y guardara un café de 2,20 € como un producto
+// de 2 CÉNTIMOS. Su gemelo Rust es `guest_sdk::money::euros_to_cents`.
+import { createListController, eurosToCents, centsToEuros } from '@erplora/module-sdk';
 import type { ListController, ListClient, ListParams, ListPage } from '@erplora/module-sdk';
 // Catálogo i18n del módulo (ADR-0055): esbuild inlinea estos JSON en el `dist` del WC. Los textos
 // internos se resuelven con `erplora.t(CATALOG, 'ui.clave')` (idioma activo, fallback locale→en→clave).
@@ -93,7 +96,9 @@ export class ErpInventoryProducts extends LitElement {
       sortable: true,
       filterable: true,
       filterType: 'range',
-      format: (r) => erplora().formatAmount(Number(r.price)),
+      // El precio está en CÉNTIMOS → `formatMoney` (divide). `formatAmount` NO divide: con él,
+      // un café de 220 céntimos se pintaba «220,00 €».
+      format: (r) => erplora().formatMoney(Number(r.price)),
     },
     { key: 'stock', header: t('ui.stock'), align: 'right', sortable: true, filterable: true, filterType: 'range' },
     {
@@ -140,7 +145,7 @@ export class ErpInventoryProducts extends LitElement {
     } else if (actionId === 'edit') {
       this.newName = p.name;
       this.newSku = p.sku;
-      this.newPrice = String(p.price ?? '');
+      this.newPrice = centsToEuros(p.price); // la fila viene en céntimos; el form edita EUROS
       this.dataTable()?.open('create'); // abre el panel lateral con el form pre-rellenado
     } else if (actionId === 'delete') {
       try {
@@ -187,9 +192,9 @@ export class ErpInventoryProducts extends LitElement {
         await erplora().command('inventory.products.create', {
           name: r.name ?? '',
           sku: r.sku ?? '',
-          price: Number(r.price) || 0,
+          price: eurosToCents(r.price),
           stock: Number(r.stock) || 0,
-          cost: Number(r.cost) || 0,
+          cost: eurosToCents(r.cost),
           low_stock_threshold: Number(r.low_stock_threshold) || 10,
           product_type: 'physical',
           ean13: r.ean13 || null,
@@ -276,7 +281,9 @@ export class ErpInventoryProducts extends LitElement {
       await erplora().command('inventory.products.create', {
         name: this.newName.trim(),
         sku: this.newSku.trim(),
-        price: Number(this.newPrice) || 0,
+        // El input es EUROS (`step="0.01"`); la columna es INTEGER de céntimos (ADR-0007).
+        // Sin esta frontera, teclear «2,20» guardaba 2 céntimos.
+        price: eurosToCents(this.newPrice),
         cost: 0,
         stock: 0,
         low_stock_threshold: 10,
