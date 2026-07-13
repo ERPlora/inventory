@@ -1,5 +1,6 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { state } from 'lit/decorators.js';
+import { resolveTaxCategories, pickTaxValue, normalizeAlias } from '../../lib/tax-resolve';
 import { define } from '@erplora/outfitkit/define';
 import '@erplora/outfitkit/ok-data-table';
 import type { DataTableColumn, DataTableAction } from '@erplora/outfitkit';
@@ -21,6 +22,15 @@ interface Category {
   name: string;
   slug: string;
   product_count: number;
+  tax_category_key: string | null;
+}
+
+// Fila de `taxes.categories.list` (la CATEGORÍA fiscal es lo enlazable, ADR-0085).
+interface TaxCategory {
+  id: string;
+  key: string;
+  name: string;
+  is_system?: number;
 }
 
 function erplora(): ErploraClientLike {
@@ -41,6 +51,8 @@ export class ErpInventoryCategories extends LitElement {
 
   @state() private newName = '';
   @state() private newSlug = '';
+  @state() private newTaxRateId = ''; // '' = tipo por defecto del hub (se envía null)
+  @state() private taxRates: TaxCategory[] = [];
   @state() private saving = false;
   @state() private formError = '';
 
@@ -64,6 +76,28 @@ export class ErpInventoryCategories extends LitElement {
       dir: 'asc',
     });
     await this.ctrl.load();
+    void this.loadTaxRates();
+  }
+
+  // Carga los tipos de IVA/impuesto para el selector del formulario (ADR-0066/0069). Best-effort:
+  // si falla (módulo `taxes` no instalado, sin permiso…), el select queda con solo "— (por defecto)"
+  // y el alta sigue funcionando (tax_category_key = null = tipo por defecto del hub).
+  private async loadTaxRates(): Promise<void> {
+    try {
+      this.taxRates = (await erplora().query<TaxCategory[]>('taxes.categories.list', { page_size: 200 })) ?? [];
+    } catch {
+      this.taxRates = [];
+    }
+  }
+
+  // Opciones del ion-select: "— (sin categoría)" (valor '') + una categoría por fila (value = key).
+  private taxOptions() {
+    return html`
+      <ion-select-option value="">— (sin categoría)</ion-select-option>
+      ${this.taxRates.map(
+        (c) => html`<ion-select-option .value=${c.key}>${c.name} (${c.key})</ion-select-option>`,
+      )}
+    `;
   }
 
   private async onRowAction(ev: CustomEvent<{ actionId: string; row: Record<string, unknown> }>): Promise<void> {
@@ -72,6 +106,7 @@ export class ErpInventoryCategories extends LitElement {
     if (actionId === 'edit') {
       this.newName = c.name;
       this.newSlug = c.slug;
+      this.newTaxRateId = c.tax_category_key ?? ''; // pre-selecciona el tipo de IVA actual
       this.dataTable()?.open('create');
     } else if (actionId === 'delete') {
       try {
@@ -89,17 +124,48 @@ export class ErpInventoryCategories extends LitElement {
       | null;
   }
 
+  // Importa categorías desde CSV (cabeceras = name, slug…). Crea una por fila.
+  // Cada fila resuelve su tipo de IVA por referencia (ADR-0066), igual que el import de productos:
+  // la columna fiscal (tax/iva/vat/…) se matchea contra los tipos existentes de `taxes`, los que
+  // falten (con un % real) se crean en bloque, y la categoría enlaza por `tax_category_key`. Vacío / sin
+  // columna → null = tipo por defecto del hub. NO se convierten precios.
   private async onCsvImport(ev: CustomEvent<{ rows: Record<string, string>[] }>): Promise<void> {
-    for (const r of ev.detail.rows ?? []) {
+    const rows = ev.detail.rows ?? [];
+
+    // 1) Resolver la CATEGORÍA fiscal de cada fila (ADR-0085) ANTES del bucle de creación.
+    let map = new Map<string, string>();
+    let unresolved: string[] = [];
+    try {
+      const res = await resolveTaxCategories(rows, erplora());
+      map = res.map;
+      unresolved = res.unresolved;
+      if (unresolved.length > 0) {
+        // TODO(UI ADR-0085): preguntar (elegir/crear) + persistir alias (learnAlias). De momento avisa.
+        console.warn('[inventory] Categorías fiscales sin resolver (categorías sin categoría fiscal):', unresolved);
+      }
+    } catch (e) {
+      console.warn('[inventory] No se pudieron resolver las categorías fiscales del CSV:', e);
+    }
+
+    // 2) Crear las categorías enlazando su tax_category_key (o null = tipo por defecto del hub).
+    let linked = 0;
+    for (const r of rows) {
       if (!r.name) continue;
+      const taxValue = pickTaxValue(r);
+      const taxRateId = taxValue ? (map.get(normalizeAlias(taxValue)) ?? null) : null;
+      if (taxRateId) linked++;
       try {
         await erplora().command('inventory.categories.create', {
           name: r.name,
           slug: r.slug || r.name.toLowerCase().replace(/\s+/g, '-'),
+          tax_category_key: taxRateId,
         });
       } catch {
         /* ignora */
       }
+    }
+    if (linked > 0 || unresolved.length > 0) {
+      console.info(`[inventory] Import CSV: ${linked} categorías enlazadas por categoría fiscal, ${unresolved.length} sin resolver.`);
     }
     await this.ctrl.load();
   }
@@ -113,9 +179,11 @@ export class ErpInventoryCategories extends LitElement {
       await erplora().command('inventory.categories.create', {
         name: this.newName.trim(),
         slug: this.newSlug.trim() || this.newName.trim().toLowerCase().replace(/\s+/g, '-'),
+        tax_category_key: this.newTaxRateId || null,
       });
       this.newName = '';
       this.newSlug = '';
+      this.newTaxRateId = '';
       this.dataTable()?.close();
       await this.ctrl.load();
     } catch (e) {
@@ -175,6 +243,15 @@ export class ErpInventoryCategories extends LitElement {
               .value=${this.newSlug}
               @ionInput=${(e: Event) => (this.newSlug = (e.target as HTMLInputElement).value)}
             ></ion-input>
+            <ion-select
+              fill="outline"
+              label-placement="floating"
+              label="Tipo de IVA / Impuesto"
+              .value=${this.newTaxRateId}
+              @ionChange=${(e: Event) => (this.newTaxRateId = (e.target as HTMLInputElement).value)}
+            >
+              ${this.taxOptions()}
+            </ion-select>
             <ion-button type="submit" ?disabled=${this.saving || !this.newName}>
               ${this.saving ? 'Guardando…' : 'Guardar'}
             </ion-button>

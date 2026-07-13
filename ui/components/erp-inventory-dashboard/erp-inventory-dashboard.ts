@@ -12,6 +12,9 @@ import type { ListController, ListClient, ListParams, ListPage } from '@erplora/
 interface ErploraClientLike extends ListClient {
   query<T = unknown>(name: string, params?: Record<string, unknown>): Promise<T>;
   queryPage<R = unknown>(name: string, params: ListParams): Promise<ListPage<R>>;
+  /** Moneda del hub + formateo de dinero (ADR-0059). */
+  currency: string;
+  formatAmount(units: number, opts?: { currency?: string; locale?: string }): string;
 }
 
 interface Stats {
@@ -87,7 +90,7 @@ export class ErpInventoryDashboard extends LitElement {
           </div>
           <div class="kpi">
             <div class="label">Valor inventario</div>
-            <div class="value">${this.stats.total_value != null ? `${Number(this.stats.total_value).toFixed(2)} €` : '—'}</div>
+            <div class="value">${this.stats.total_value != null ? erplora().formatAmount(Number(this.stats.total_value)) : '—'}</div>
           </div>
         </div>
 

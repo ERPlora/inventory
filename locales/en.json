@@ -1,10 +1,18 @@
 {
   "name": "Inventory",
   "navigation": {
-    "dashboard": { "label": "Dashboard" },
-    "products": { "label": "Products" },
-    "categories": { "label": "Categories" },
-    "settings": { "label": "Settings" }
+    "dashboard": {
+      "label": "Dashboard"
+    },
+    "products": {
+      "label": "Products"
+    },
+    "categories": {
+      "label": "Categories"
+    },
+    "settings": {
+      "label": "Settings"
+    }
   },
   "ui": {
     "name": "Name",
@@ -19,6 +27,9 @@
     "lowStock": "Low stock",
     "searchProduct": "Search product…",
     "noProducts": "No products",
+    "taxRate": "Tax rate",
+    "taxDefault": "— (default)",
+    "taxGroup": "group",
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
@@ -26,6 +37,16 @@
     "no": "No",
     "actionDetail": "Details",
     "actionEdit": "Edit",
-    "actionDelete": "Delete"
+    "actionDelete": "Delete",
+    "importTaxTitle": "CSV tax categories",
+    "importTaxHint": "Some category texts in the CSV aren't recognized. Pick an existing category or create a new one; it will be remembered for future imports.",
+    "importPick": "Pick",
+    "importCreate": "Create",
+    "importSkip": "Skip",
+    "importConfirm": "Confirm & import",
+    "btnCancel": "Cancel",
+    "colCategory": "Category",
+    "colKey": "Key",
+    "colName": "Name"
   }
 }

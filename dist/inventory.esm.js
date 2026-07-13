@@ -9,7 +9,7 @@ var __decorateClass = (decorators, target, key, kind) => {
   return result;
 };
 
-// ../../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/element-internals.js
+// node_modules/.pnpm/@lit-labs+ssr-dom-shim@1.6.0/node_modules/@lit-labs/ssr-dom-shim/lib/element-internals.js
 var ElementInternalsShim = class ElementInternals {
   get shadowRoot() {
     return this.__host.__shadowRoot;
@@ -88,7 +88,7 @@ var ElementInternalsShim = class ElementInternals {
   }
 };
 
-// ../../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/events.js
+// node_modules/.pnpm/@lit-labs+ssr-dom-shim@1.6.0/node_modules/@lit-labs/ssr-dom-shim/lib/events.js
 var __classPrivateFieldSet = function(receiver, state, value, kind, f3) {
   if (kind === "m") throw new TypeError("Private method is not writable");
   if (kind === "a" && !f3) throw new TypeError("Private accessor was defined without a setter");
@@ -246,7 +246,7 @@ Object.defineProperties(CustomEventShim.prototype, {
 var EventShimWithRealType = EventShim;
 var CustomEventShimWithRealType = CustomEventShim;
 
-// ../../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/css.js
+// node_modules/.pnpm/@lit-labs+ssr-dom-shim@1.6.0/node_modules/@lit-labs/ssr-dom-shim/lib/css.js
 var _a2;
 var CSSRuleShim = (_a2 = class CSSRule {
   constructor() {
@@ -277,7 +277,7 @@ var CSSRuleShim = (_a2 = class CSSRule {
   }
 }, _a2.STYLE_RULE = 1, _a2.CHARSET_RULE = 2, _a2.IMPORT_RULE = 3, _a2.MEDIA_RULE = 4, _a2.FONT_FACE_RULE = 5, _a2.PAGE_RULE = 6, _a2.NAMESPACE_RULE = 10, _a2.KEYFRAMES_RULE = 7, _a2.KEYFRAME_RULE = 8, _a2.SUPPORTS_RULE = 12, _a2.COUNTER_STYLE_RULE = 11, _a2.FONT_FEATURE_VALUES_RULE = 14, _a2.MARGIN_RULE = 9, _a2);
 
-// ../../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/index.js
+// node_modules/.pnpm/@lit-labs+ssr-dom-shim@1.6.0/node_modules/@lit-labs/ssr-dom-shim/index.js
 globalThis.Event ??= EventShimWithRealType;
 globalThis.CustomEvent ??= CustomEventShimWithRealType;
 var constructionToken = Symbol();
@@ -674,7 +674,7 @@ var CustomElementRegistryShimWithRealType = CustomElementRegistry;
 var customElements2 = new CustomElementRegistryShimWithRealType();
 var windowShim = new WindowShim(constructionToken);
 
-// ../../module-toolkit/node_modules/@lit/reactive-element/node/css-tag.js
+// node_modules/.pnpm/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/node/css-tag.js
 var t = globalThis;
 var e = t.ShadowRoot && (void 0 === t.ShadyCSS || t.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype;
 var s = Symbol();
@@ -719,7 +719,7 @@ var c = e || void 0 === t.CSSStyleSheet ? (t5) => t5 : (t5) => t5 instanceof CSS
   return r(e5);
 })(t5) : t5;
 
-// ../../module-toolkit/node_modules/@lit/reactive-element/node/reactive-element.js
+// node_modules/.pnpm/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/node/reactive-element.js
 var { is: h, defineProperty: r2, getOwnPropertyDescriptor: o2, getOwnPropertyNames: n2, getOwnPropertySymbols: a, getPrototypeOf: c2 } = Object;
 var l = globalThis;
 l.customElements ??= customElements2;
@@ -942,7 +942,7 @@ var g = class extends (globalThis.HTMLElement ?? HTMLElementShimWithRealType) {
 };
 g.elementStyles = [], g.shadowRootOptions = { mode: "open" }, g[f("elementProperties")] = /* @__PURE__ */ new Map(), g[f("finalized")] = /* @__PURE__ */ new Map(), u?.({ ReactiveElement: g }), (l.reactiveElementVersions ??= []).push("2.1.2");
 
-// ../../module-toolkit/node_modules/lit-html/lit-html.js
+// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/lit-html.js
 var t2 = globalThis;
 var i2 = (t5) => t5;
 var s2 = t2.trustedTypes;
@@ -1197,7 +1197,7 @@ var D = (t5, i7, s5) => {
   return h4._$AI(t5), h4;
 };
 
-// ../../module-toolkit/node_modules/lit-element/lit-element.js
+// node_modules/.pnpm/lit-element@4.2.2/node_modules/lit-element/lit-element.js
 var s3 = globalThis;
 var i3 = class extends g {
   constructor() {
@@ -1226,7 +1226,7 @@ var o4 = s3.litElementPolyfillSupport;
 o4?.({ LitElement: i3 });
 (s3.litElementVersions ??= []).push("4.2.2");
 
-// ../../module-toolkit/node_modules/@lit/reactive-element/node/decorators/property.js
+// node_modules/.pnpm/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/node/decorators/property.js
 var o5 = { attribute: true, type: String, converter: b, reflect: false, hasChanged: m };
 var r4 = (t5 = o5, e5, r6) => {
   const { kind: n6, metadata: i7 } = r6;
@@ -1256,19 +1256,94 @@ function n4(t5) {
   })(t5, e5, o7);
 }
 
-// ../../module-toolkit/node_modules/@lit/reactive-element/node/decorators/state.js
+// node_modules/.pnpm/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/node/decorators/state.js
 function r5(r6) {
   return n4({ ...r6, state: true, attribute: false });
 }
 
-// ../../outfitkit/dist/define.js
+// modules/inventory/ui/lib/tax-resolve.ts
+var TAX_HEADERS = [
+  "tax_category",
+  "tax_category_key",
+  "category_tax",
+  "fiscal_category",
+  "tax",
+  "iva",
+  "vat",
+  "impuesto",
+  "tax_class"
+];
+function pickTaxValue(row) {
+  for (const key of Object.keys(row)) {
+    if (TAX_HEADERS.includes(key.trim().toLowerCase())) {
+      const v3 = (row[key] ?? "").trim();
+      if (v3) return v3;
+    }
+  }
+  return "";
+}
+function normalizeAlias(value) {
+  return (value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+function categoryMatches(cat, value) {
+  const v3 = normalizeAlias(value);
+  if ((cat.key ?? "").toLowerCase() === v3) return cat.key;
+  if (normalizeAlias(cat.name ?? "") === v3) return cat.key;
+  return null;
+}
+async function resolveTaxCategories(rows, client) {
+  const byKey = /* @__PURE__ */ new Map();
+  for (const r6 of rows) {
+    const value = pickTaxValue(r6);
+    if (!value) continue;
+    const norm = normalizeAlias(value);
+    if (norm && !byKey.has(norm)) byKey.set(norm, value);
+  }
+  if (byKey.size === 0) return { map: /* @__PURE__ */ new Map(), unresolved: [] };
+  const categories = await client.query("taxes.categories.list", { limit: 500 }) ?? [];
+  const map = /* @__PURE__ */ new Map();
+  const unresolved = [];
+  for (const [norm, original] of byKey) {
+    let key = null;
+    for (const c5 of categories) {
+      const m4 = categoryMatches(c5, original);
+      if (m4) {
+        key = m4;
+        break;
+      }
+    }
+    if (!key) {
+      try {
+        const rows2 = await client.query("taxes.aliases.resolve", { alias: norm }) ?? [];
+        const hit = rows2[0]?.tax_category_key;
+        if (hit) key = hit;
+      } catch {
+      }
+    }
+    if (key) map.set(norm, key);
+    else unresolved.push(original);
+  }
+  return { map, unresolved };
+}
+async function learnAlias(client, aliasText, taxCategoryKey) {
+  const alias = normalizeAlias(aliasText);
+  if (!alias) return;
+  await client.command("taxes.aliases.create", { alias, tax_category_key: taxCategoryKey, source: "learned" });
+}
+async function createCategoryWithAlias(client, key, name, aliasText) {
+  await client.command("taxes.categories.create", { key, name });
+  await learnAlias(client, aliasText, key);
+  return key;
+}
+
+// node_modules/.pnpm/@erplora+outfitkit@file+..+outfitkit/node_modules/@erplora/outfitkit/dist/define.js
 function define(tag, ctor) {
   if (typeof customElements !== "undefined" && !customElements.get(tag)) {
     customElements.define(tag, ctor);
   }
 }
 
-// ../../module-toolkit/node_modules/lit-html/directive.js
+// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directive.js
 var t3 = { ATTRIBUTE: 1, CHILD: 2, PROPERTY: 3, BOOLEAN_ATTRIBUTE: 4, EVENT: 5, ELEMENT: 6 };
 var e4 = (t5) => (...e5) => ({ _$litDirective$: t5, values: e5 });
 var i4 = class {
@@ -1288,7 +1363,7 @@ var i4 = class {
   }
 };
 
-// ../../module-toolkit/node_modules/lit-html/directive-helpers.js
+// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directive-helpers.js
 var { I: t4 } = j;
 var i5 = (o7) => o7;
 var s4 = () => document.createComment("");
@@ -1321,7 +1396,7 @@ var h3 = (o7) => {
   o7._$AR(), o7._$AA.remove();
 };
 
-// ../../module-toolkit/node_modules/lit-html/directives/repeat.js
+// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directives/repeat.js
 var u4 = (e5, s5, t5) => {
   const r6 = /* @__PURE__ */ new Map();
   for (let l3 = s5; l3 <= t5; l3++) r6.set(e5[l3], l3);
@@ -1374,7 +1449,7 @@ var c4 = e4(class extends i4 {
   }
 });
 
-// ../../module-toolkit/node_modules/lit-html/directives/style-map.js
+// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directives/style-map.js
 var n5 = "important";
 var i6 = " !" + n5;
 var o6 = e4(class extends i4 {
@@ -1403,7 +1478,7 @@ var o6 = e4(class extends i4 {
   }
 });
 
-// ../../outfitkit/dist/shared/icons.js
+// node_modules/.pnpm/@erplora+outfitkit@file+..+outfitkit/node_modules/@erplora/outfitkit/dist/shared/icons.js
 var rawAdd = '<svg viewBox="0 0 512 512" width="1.2em" height="1.2em" ><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M256 112v288m144-144H112"/></svg>';
 var rawAlertCircle = '<svg viewBox="0 0 512 512" width="1.2em" height="1.2em" ><path fill="currentColor" d="M256 48C141.31 48 48 141.31 48 256s93.31 208 208 208s208-93.31 208-208S370.69 48 256 48m0 319.91a20 20 0 1 1 20-20a20 20 0 0 1-20 20m21.72-201.15l-5.74 122a16 16 0 0 1-32 0l-5.74-121.94v-.05a21.74 21.74 0 1 1 43.44 0Z"/></svg>';
 var rawAlertCircleOutline = '<svg viewBox="0 0 512 512" width="1.2em" height="1.2em" ><path fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" d="M448 256c0-106-86-192-192-192S64 150 64 256s86 192 192 192s192-86 192-192Z"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M250.26 166.05L256 288l5.73-121.95a5.74 5.74 0 0 0-5.79-6h0a5.74 5.74 0 0 0-5.68 6"/><path fill="currentColor" d="M256 367.91a20 20 0 1 1 20-20a20 20 0 0 1-20 20"/></svg>';
@@ -1551,7 +1626,7 @@ function okIcon(value) {
   return BY_NAME[value] ?? value;
 }
 
-// ../../outfitkit/dist/ok-data-table.js
+// node_modules/.pnpm/@erplora+outfitkit@file+..+outfitkit/node_modules/@erplora/outfitkit/dist/ok-data-table.js
 var __defProp2 = Object.defineProperty;
 var __decorateClass2 = (decorators, target, key, kind) => {
   var result = void 0;
@@ -2858,7 +2933,7 @@ __decorateClass2([
 ], OkDataTable.prototype, "menuOpen");
 define("ok-data-table", OkDataTable);
 
-// ../../hub/packages/module-sdk/src/index.ts
+// node_modules/.pnpm/@erplora+module-sdk@file+..+hub+packages+module-sdk/node_modules/@erplora/module-sdk/src/index.ts
 function isEmpty(v3) {
   return v3 === null || v3 === void 0 || v3 === "";
 }
@@ -2975,8 +3050,18 @@ function createListController(client, queryName, onChange = () => {
 }, opts = {}) {
   return new ListController(client, queryName, onChange, opts);
 }
+function majorToMinor(amount, decimals) {
+  const n6 = Number(amount);
+  return Number.isFinite(n6) ? Math.round(n6 * 10 ** decimals) : 0;
+}
+function eurosToCents(euros) {
+  return majorToMinor(euros, 2);
+}
+function centsToEuros(cents) {
+  return cents == null ? "" : (cents / 100).toFixed(2);
+}
 
-// inventory/ui/components/erp-inventory-categories/erp-inventory-categories.ts
+// modules/inventory/ui/components/erp-inventory-categories/erp-inventory-categories.ts
 function erplora() {
   const c5 = globalThis.erplora;
   if (!c5) throw new Error("erplora SDK no inicializado por el shell");
@@ -2987,6 +3072,8 @@ var ErpInventoryCategories = class extends i3 {
     super(...arguments);
     this.newName = "";
     this.newSlug = "";
+    this.newTaxRateId = "";
+    this.taxRates = [];
     this.saving = false;
     this.formError = "";
     this.columns = [
@@ -3016,6 +3103,26 @@ var ErpInventoryCategories = class extends i3 {
       dir: "asc"
     });
     await this.ctrl.load();
+    void this.loadTaxRates();
+  }
+  // Carga los tipos de IVA/impuesto para el selector del formulario (ADR-0066/0069). Best-effort:
+  // si falla (módulo `taxes` no instalado, sin permiso…), el select queda con solo "— (por defecto)"
+  // y el alta sigue funcionando (tax_category_key = null = tipo por defecto del hub).
+  async loadTaxRates() {
+    try {
+      this.taxRates = await erplora().query("taxes.categories.list", { page_size: 200 }) ?? [];
+    } catch {
+      this.taxRates = [];
+    }
+  }
+  // Opciones del ion-select: "— (sin categoría)" (valor '') + una categoría por fila (value = key).
+  taxOptions() {
+    return b2`
+      <ion-select-option value="">— (sin categoría)</ion-select-option>
+      ${this.taxRates.map(
+      (c5) => b2`<ion-select-option .value=${c5.key}>${c5.name} (${c5.key})</ion-select-option>`
+    )}
+    `;
   }
   async onRowAction(ev) {
     const { actionId, row } = ev.detail;
@@ -3023,6 +3130,7 @@ var ErpInventoryCategories = class extends i3 {
     if (actionId === "edit") {
       this.newName = c5.name;
       this.newSlug = c5.slug;
+      this.newTaxRateId = c5.tax_category_key ?? "";
       this.dataTable()?.open("create");
     } else if (actionId === "delete") {
       try {
@@ -3036,16 +3144,42 @@ var ErpInventoryCategories = class extends i3 {
   dataTable() {
     return this.renderRoot.querySelector("ok-data-table");
   }
+  // Importa categorías desde CSV (cabeceras = name, slug…). Crea una por fila.
+  // Cada fila resuelve su tipo de IVA por referencia (ADR-0066), igual que el import de productos:
+  // la columna fiscal (tax/iva/vat/…) se matchea contra los tipos existentes de `taxes`, los que
+  // falten (con un % real) se crean en bloque, y la categoría enlaza por `tax_category_key`. Vacío / sin
+  // columna → null = tipo por defecto del hub. NO se convierten precios.
   async onCsvImport(ev) {
-    for (const r6 of ev.detail.rows ?? []) {
+    const rows = ev.detail.rows ?? [];
+    let map = /* @__PURE__ */ new Map();
+    let unresolved = [];
+    try {
+      const res = await resolveTaxCategories(rows, erplora());
+      map = res.map;
+      unresolved = res.unresolved;
+      if (unresolved.length > 0) {
+        console.warn("[inventory] Categor\xEDas fiscales sin resolver (categor\xEDas sin categor\xEDa fiscal):", unresolved);
+      }
+    } catch (e5) {
+      console.warn("[inventory] No se pudieron resolver las categor\xEDas fiscales del CSV:", e5);
+    }
+    let linked = 0;
+    for (const r6 of rows) {
       if (!r6.name) continue;
+      const taxValue = pickTaxValue(r6);
+      const taxRateId = taxValue ? map.get(normalizeAlias(taxValue)) ?? null : null;
+      if (taxRateId) linked++;
       try {
         await erplora().command("inventory.categories.create", {
           name: r6.name,
-          slug: r6.slug || r6.name.toLowerCase().replace(/\s+/g, "-")
+          slug: r6.slug || r6.name.toLowerCase().replace(/\s+/g, "-"),
+          tax_category_key: taxRateId
         });
       } catch {
       }
+    }
+    if (linked > 0 || unresolved.length > 0) {
+      console.info(`[inventory] Import CSV: ${linked} categor\xEDas enlazadas por categor\xEDa fiscal, ${unresolved.length} sin resolver.`);
     }
     await this.ctrl.load();
   }
@@ -3057,10 +3191,12 @@ var ErpInventoryCategories = class extends i3 {
     try {
       await erplora().command("inventory.categories.create", {
         name: this.newName.trim(),
-        slug: this.newSlug.trim() || this.newName.trim().toLowerCase().replace(/\s+/g, "-")
+        slug: this.newSlug.trim() || this.newName.trim().toLowerCase().replace(/\s+/g, "-"),
+        tax_category_key: this.newTaxRateId || null
       });
       this.newName = "";
       this.newSlug = "";
+      this.newTaxRateId = "";
       this.dataTable()?.close();
       await this.ctrl.load();
     } catch (e5) {
@@ -3117,6 +3253,15 @@ var ErpInventoryCategories = class extends i3 {
               .value=${this.newSlug}
               @ionInput=${(e5) => this.newSlug = e5.target.value}
             ></ion-input>
+            <ion-select
+              fill="outline"
+              label-placement="floating"
+              label="Tipo de IVA / Impuesto"
+              .value=${this.newTaxRateId}
+              @ionChange=${(e5) => this.newTaxRateId = e5.target.value}
+            >
+              ${this.taxOptions()}
+            </ion-select>
             <ion-button type="submit" ?disabled=${this.saving || !this.newName}>
               ${this.saving ? "Guardando\u2026" : "Guardar"}
             </ion-button>
@@ -3134,13 +3279,19 @@ __decorateClass([
 ], ErpInventoryCategories.prototype, "newSlug", 2);
 __decorateClass([
   r5()
+], ErpInventoryCategories.prototype, "newTaxRateId", 2);
+__decorateClass([
+  r5()
+], ErpInventoryCategories.prototype, "taxRates", 2);
+__decorateClass([
+  r5()
 ], ErpInventoryCategories.prototype, "saving", 2);
 __decorateClass([
   r5()
 ], ErpInventoryCategories.prototype, "formError", 2);
 define("erp-inventory-categories", ErpInventoryCategories);
 
-// inventory/ui/components/erp-inventory-dashboard/erp-inventory-dashboard.ts
+// modules/inventory/ui/components/erp-inventory-dashboard/erp-inventory-dashboard.ts
 function erplora2() {
   const c5 = globalThis.erplora;
   if (!c5) throw new Error("erplora SDK no inicializado por el shell");
@@ -3198,7 +3349,7 @@ var ErpInventoryDashboard = class extends i3 {
           </div>
           <div class="kpi">
             <div class="label">Valor inventario</div>
-            <div class="value">${this.stats.total_value != null ? `${Number(this.stats.total_value).toFixed(2)} \u20AC` : "\u2014"}</div>
+            <div class="value">${this.stats.total_value != null ? erplora2().formatAmount(Number(this.stats.total_value)) : "\u2014"}</div>
           </div>
         </div>
 
@@ -3226,7 +3377,7 @@ __decorateClass([
 ], ErpInventoryDashboard.prototype, "stats", 2);
 define("erp-inventory-dashboard", ErpInventoryDashboard);
 
-// inventory/ui/lib/code128.ts
+// modules/inventory/ui/lib/code128.ts
 var PATTERNS = [
   "212222",
   "222122",
@@ -3364,14 +3515,22 @@ function code128b(text, module = 2, height = 70) {
   return { width: x2, height, bars };
 }
 
-// inventory/locales/es.json
+// modules/inventory/locales/es.json
 var es_default = {
   name: "Inventario",
   navigation: {
-    dashboard: { label: "Panel" },
-    products: { label: "Productos" },
-    categories: { label: "Categor\xEDas" },
-    settings: { label: "Ajustes" }
+    dashboard: {
+      label: "Panel"
+    },
+    products: {
+      label: "Productos"
+    },
+    categories: {
+      label: "Categor\xEDas"
+    },
+    settings: {
+      label: "Ajustes"
+    }
   },
   ui: {
     name: "Nombre",
@@ -3386,6 +3545,9 @@ var es_default = {
     lowStock: "Stock bajo",
     searchProduct: "Buscar producto\u2026",
     noProducts: "Sin productos",
+    taxRate: "Tipo de IVA / Impuesto",
+    taxDefault: "\u2014 (por defecto)",
+    taxGroup: "grupo",
     save: "Guardar",
     cancel: "Cancelar",
     delete: "Borrar",
@@ -3393,18 +3555,36 @@ var es_default = {
     no: "No",
     actionDetail: "Detalles",
     actionEdit: "Editar",
-    actionDelete: "Eliminar"
+    actionDelete: "Eliminar",
+    importTaxTitle: "Categor\xEDas fiscales del CSV",
+    importTaxHint: "Algunos textos de categor\xEDa del CSV no se reconocen. Elige una categor\xEDa existente o crea una nueva; se recordar\xE1 para futuras importaciones.",
+    importPick: "Elegir",
+    importCreate: "Crear",
+    importSkip: "Omitir",
+    importConfirm: "Confirmar e importar",
+    btnCancel: "Cancelar",
+    colCategory: "Categor\xEDa",
+    colKey: "Clave",
+    colName: "Nombre"
   }
 };
 
-// inventory/locales/en.json
+// modules/inventory/locales/en.json
 var en_default = {
   name: "Inventory",
   navigation: {
-    dashboard: { label: "Dashboard" },
-    products: { label: "Products" },
-    categories: { label: "Categories" },
-    settings: { label: "Settings" }
+    dashboard: {
+      label: "Dashboard"
+    },
+    products: {
+      label: "Products"
+    },
+    categories: {
+      label: "Categories"
+    },
+    settings: {
+      label: "Settings"
+    }
   },
   ui: {
     name: "Name",
@@ -3419,6 +3599,9 @@ var en_default = {
     lowStock: "Low stock",
     searchProduct: "Search product\u2026",
     noProducts: "No products",
+    taxRate: "Tax rate",
+    taxDefault: "\u2014 (default)",
+    taxGroup: "group",
     save: "Save",
     cancel: "Cancel",
     delete: "Delete",
@@ -3426,11 +3609,21 @@ var en_default = {
     no: "No",
     actionDetail: "Details",
     actionEdit: "Edit",
-    actionDelete: "Delete"
+    actionDelete: "Delete",
+    importTaxTitle: "CSV tax categories",
+    importTaxHint: "Some category texts in the CSV aren't recognized. Pick an existing category or create a new one; it will be remembered for future imports.",
+    importPick: "Pick",
+    importCreate: "Create",
+    importSkip: "Skip",
+    importConfirm: "Confirm & import",
+    btnCancel: "Cancel",
+    colCategory: "Category",
+    colKey: "Key",
+    colName: "Name"
   }
 };
 
-// inventory/ui/components/erp-inventory-products/erp-inventory-products.ts
+// modules/inventory/ui/components/erp-inventory-products/erp-inventory-products.ts
 var CATALOG = { es: es_default, en: en_default };
 function erplora3() {
   const c5 = globalThis.erplora;
@@ -3443,8 +3636,15 @@ var ErpInventoryProducts = class extends i3 {
     this.newName = "";
     this.newSku = "";
     this.newPrice = "";
+    this.newTaxCategoryKey = "";
+    this.taxCategories = [];
     this.saving = false;
     this.formError = "";
+    this.importOpen = false;
+    this.importRows = [];
+    this.importMap = /* @__PURE__ */ new Map();
+    this.importUnresolved = [];
+    this.importChoice = {};
     this.detail = null;
     // Init una sola vez tras el primer render (equivalente a `componentWillLoad` de Stencil: el shell
     // crea una instancia nueva del WC en cada montaje de la vista). El re-render lo dispara el
@@ -3485,7 +3685,9 @@ var ErpInventoryProducts = class extends i3 {
         sortable: true,
         filterable: true,
         filterType: "range",
-        format: (r6) => erplora3().formatAmount(Number(r6.price))
+        // El precio está en CÉNTIMOS → `formatMoney` (divide). `formatAmount` NO divide: con él,
+        // un café de 220 céntimos se pintaba «220,00 €».
+        format: (r6) => erplora3().formatMoney(Number(r6.price))
       },
       { key: "stock", header: t5("ui.stock"), align: "right", sortable: true, filterable: true, filterType: "range" },
       {
@@ -3528,7 +3730,8 @@ var ErpInventoryProducts = class extends i3 {
     } else if (actionId === "edit") {
       this.newName = p4.name;
       this.newSku = p4.sku;
-      this.newPrice = String(p4.price ?? "");
+      this.newPrice = centsToEuros(p4.price);
+      this.newTaxCategoryKey = p4.tax_category_key ?? "";
       this.dataTable()?.open("create");
     } else if (actionId === "delete") {
       try {
@@ -3548,6 +3751,7 @@ var ErpInventoryProducts = class extends i3 {
         price: p4.price,
         cost: p4.cost ?? 0,
         low_stock_threshold: p4.low_stock_threshold ?? 10,
+        tax_category_key: p4.tax_category_key ?? null,
         is_active: checked ? 1 : 0
       });
       await this.ctrl.load();
@@ -3560,28 +3764,129 @@ var ErpInventoryProducts = class extends i3 {
     return this.renderRoot.querySelector("ok-data-table");
   }
   // Importa productos desde CSV (cabeceras = name, sku, price, stock…). Crea uno por fila.
+  // Cada fila resuelve su tipo de IVA por referencia (ADR-0066): la columna fiscal (tax/iva/vat/…)
+  // se matchea contra los tipos existentes de `taxes`, los que falten (con un % real) se crean en
+  // bloque, y el producto enlaza por `tax_category_key`. Vacío / sin columna → null = tipo por defecto
+  // del hub. NO se convierten precios: "IVA incluido o no" lo gobierna el ajuste del hub/POS.
   async onCsvImport(ev) {
     const rows = ev.detail.rows ?? [];
+    let map = /* @__PURE__ */ new Map();
+    let unresolved = [];
+    try {
+      const res = await resolveTaxCategories(rows, erplora3());
+      map = res.map;
+      unresolved = res.unresolved;
+    } catch (e5) {
+      console.warn("[inventory] No se pudieron resolver las categor\xEDas fiscales del CSV:", e5);
+    }
+    if (unresolved.length > 0) {
+      this.importRows = rows;
+      this.importMap = map;
+      this.importUnresolved = unresolved;
+      const choice = {};
+      for (const u5 of unresolved) choice[u5] = { mode: "pick", key: "", newKey: "", newName: u5 };
+      this.importChoice = choice;
+      if (this.taxCategories.length === 0) await this.loadTaxCategories();
+      this.importOpen = true;
+      return;
+    }
+    await this.finalizeImport(rows, map);
+  }
+  // Aplica las decisiones del modal: por cada texto sin resolver, persiste el alias hacia una
+  // categoría existente (learnAlias) o crea una categoría nueva + alias (createCategoryWithAlias),
+  // actualiza el mapa y procede con la creación de productos (ADR-0085).
+  async confirmImportResolution() {
+    const map = new Map(this.importMap);
+    for (const text of this.importUnresolved) {
+      const c5 = this.importChoice[text];
+      try {
+        if (c5?.mode === "pick" && c5.key) {
+          await learnAlias(erplora3(), text, c5.key);
+          map.set(normalizeAlias(text), c5.key);
+        } else if (c5?.mode === "create" && c5.newKey.trim()) {
+          const key = c5.newKey.trim();
+          await createCategoryWithAlias(erplora3(), key, (c5.newName || key).trim(), text);
+          map.set(normalizeAlias(text), key);
+        }
+      } catch (e5) {
+        console.warn(`[inventory] No se pudo resolver la categor\xEDa "${text}":`, e5);
+      }
+    }
+    this.importOpen = false;
+    await this.loadTaxCategories();
+    await this.finalizeImport(this.importRows, map);
+  }
+  // Crea un producto por fila enlazando su tax_category_key resuelto (o null = sin categoría).
+  async finalizeImport(rows, map) {
+    let linked = 0;
     for (const r6 of rows) {
       if (!r6.name && !r6.sku) continue;
+      const taxValue = pickTaxValue(r6);
+      const taxCategoryKey = taxValue ? map.get(normalizeAlias(taxValue)) ?? null : null;
+      if (taxCategoryKey) linked++;
       try {
         await erplora3().command("inventory.products.create", {
           name: r6.name ?? "",
           sku: r6.sku ?? "",
-          price: Number(r6.price) || 0,
+          price: eurosToCents(r6.price),
           stock: Number(r6.stock) || 0,
-          cost: Number(r6.cost) || 0,
+          cost: eurosToCents(r6.cost),
           low_stock_threshold: Number(r6.low_stock_threshold) || 10,
           product_type: "physical",
           ean13: r6.ean13 || null,
           description: r6.description ?? "",
-          tax_class_id: null,
+          tax_category_key: taxCategoryKey,
           image: ""
         });
       } catch {
       }
     }
+    console.info(`[inventory] Import CSV: ${linked} productos enlazados por categor\xEDa.`);
+    this.importRows = [];
+    this.importUnresolved = [];
     await this.ctrl.load();
+  }
+  // Modal de resolución de categorías del importador (ADR-0085): una fila por texto sin resolver,
+  // con elegir categoría existente / crear nueva / omitir; al confirmar persiste el alias.
+  renderImportModal() {
+    const t5 = (k2) => erplora3().t(CATALOG, k2);
+    const setChoice = (text, patch) => {
+      this.importChoice = { ...this.importChoice, [text]: { ...this.importChoice[text], ...patch } };
+    };
+    return b2`
+      <ion-modal .isOpen=${this.importOpen} @ionModalDidDismiss=${() => this.importOpen = false}>
+        <ion-header>
+          <ion-toolbar>
+            <ion-title>${t5("ui.importTaxTitle")}</ion-title>
+            <ion-buttons slot="end">
+              <ion-button @click=${() => this.importOpen = false}>${t5("ui.btnCancel")}</ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content class="ion-padding">
+          <p>${t5("ui.importTaxHint")}</p>
+          ${this.importUnresolved.map((text) => {
+      const c5 = this.importChoice[text] ?? { mode: "pick", key: "", newKey: "", newName: text };
+      return b2`<div style="border:1px solid var(--ion-border-color,#e6e2d8);border-radius:10px;padding:.6rem .8rem;margin-bottom:.7rem;">
+              <strong>"${text}"</strong>
+              <ion-segment .value=${c5.mode} @ionChange=${(e5) => setChoice(text, { mode: e5.detail.value })} style="margin:.5rem 0;">
+                <ion-segment-button value="pick"><ion-label>${t5("ui.importPick")}</ion-label></ion-segment-button>
+                <ion-segment-button value="create"><ion-label>${t5("ui.importCreate")}</ion-label></ion-segment-button>
+                <ion-segment-button value="skip"><ion-label>${t5("ui.importSkip")}</ion-label></ion-segment-button>
+              </ion-segment>
+              ${c5.mode === "pick" ? b2`<ion-select fill="outline" label-placement="floating" label=${t5("ui.colCategory")} .value=${c5.key} @ionChange=${(e5) => setChoice(text, { key: e5.detail.value })}>
+                    ${this.taxCategories.map((cat) => b2`<ion-select-option .value=${cat.key}>${cat.name} (${cat.key})</ion-select-option>`)}
+                  </ion-select>` : A}
+              ${c5.mode === "create" ? b2`<div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+                    <ion-input fill="outline" label-placement="floating" label=${t5("ui.colKey")} placeholder="restaurant.food" .value=${c5.newKey} @ionInput=${(e5) => setChoice(text, { newKey: e5.target.value })}></ion-input>
+                    <ion-input fill="outline" label-placement="floating" label=${t5("ui.colName")} .value=${c5.newName} @ionInput=${(e5) => setChoice(text, { newName: e5.target.value })}></ion-input>
+                  </div>` : A}
+            </div>`;
+    })}
+          <ion-button expand="block" @click=${() => this.confirmImportResolution()}>${t5("ui.importConfirm")}</ion-button>
+        </ion-content>
+      </ion-modal>
+    `;
   }
   // Código de barras Code128 (SVG) del SKU.
   renderBarcode(text) {
@@ -3613,6 +3918,7 @@ var ErpInventoryProducts = class extends i3 {
       { pageSize: 50, sort: "name", dir: "asc" }
     );
     await this.ctrl.load();
+    void this.loadTaxCategories();
     try {
       const reload = () => this.ctrl.load();
       const off1 = erplora3().on("inventory.stock_changed", reload);
@@ -3629,6 +3935,27 @@ var ErpInventoryProducts = class extends i3 {
     super.disconnectedCallback();
     this.unsub?.();
   }
+  // Carga las CATEGORÍAS fiscales para el selector del formulario (ADR-0085). Best-effort: si falla
+  // (módulo `taxes` no instalado, sin permiso…), el select queda con solo "— (sin categoría)" y el
+  // alta sigue funcionando (tax_category_key = null). El % lo resuelve `taxes` por país+categoría.
+  async loadTaxCategories() {
+    try {
+      this.taxCategories = await erplora3().query("taxes.categories.list", { page_size: 200 }) ?? [];
+    } catch {
+      this.taxCategories = [];
+    }
+  }
+  // Opciones del ion-select: "— (sin categoría)" (valor '') + una categoría por fila.
+  // Etiqueta = "Nombre (key)".
+  taxOptions() {
+    const t5 = (k2) => erplora3().t(CATALOG, k2);
+    return b2`
+      <ion-select-option value="">${t5("ui.taxDefault")}</ion-select-option>
+      ${this.taxCategories.map(
+      (c5) => b2`<ion-select-option .value=${c5.key}>${c5.name} (${c5.key})</ion-select-option>`
+    )}
+    `;
+  }
   async createProduct(ev) {
     ev.preventDefault();
     if (!this.newName.trim() || !this.newSku.trim()) return;
@@ -3638,19 +3965,22 @@ var ErpInventoryProducts = class extends i3 {
       await erplora3().command("inventory.products.create", {
         name: this.newName.trim(),
         sku: this.newSku.trim(),
-        price: Number(this.newPrice) || 0,
+        // El input es EUROS (`step="0.01"`); la columna es INTEGER de céntimos (ADR-0007).
+        // Sin esta frontera, teclear «2,20» guardaba 2 céntimos.
+        price: eurosToCents(this.newPrice),
         cost: 0,
         stock: 0,
         low_stock_threshold: 10,
         product_type: "physical",
         ean13: null,
         description: "",
-        tax_class_id: null,
+        tax_category_key: this.newTaxCategoryKey || null,
         image: ""
       });
       this.newName = "";
       this.newSku = "";
       this.newPrice = "";
+      this.newTaxCategoryKey = "";
       this.dataTable()?.close();
       await this.ctrl.load();
     } catch (e5) {
@@ -3717,6 +4047,15 @@ var ErpInventoryProducts = class extends i3 {
               .value=${this.newPrice}
               @ionInput=${(e5) => this.newPrice = e5.target.value}
             ></ion-input>
+            <ion-select
+              fill="outline"
+              label-placement="floating"
+              label=${erplora3().t(CATALOG, "ui.taxRate")}
+              .value=${this.newTaxCategoryKey}
+              @ionChange=${(e5) => this.newTaxCategoryKey = e5.target.value}
+            >
+              ${this.taxOptions()}
+            </ion-select>
             <ion-button type="submit" ?disabled=${this.saving || !this.newName || !this.newSku}>
               ${this.saving ? "Guardando\u2026" : "Guardar"}
             </ion-button>
@@ -3750,6 +4089,7 @@ var ErpInventoryProducts = class extends i3 {
                 ` : A}
           </ion-content>
         </ion-modal>
+        ${this.renderImportModal()}
       </div>
     `;
   }
@@ -3765,126 +4105,32 @@ __decorateClass([
 ], ErpInventoryProducts.prototype, "newPrice", 2);
 __decorateClass([
   r5()
+], ErpInventoryProducts.prototype, "newTaxCategoryKey", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "taxCategories", 2);
+__decorateClass([
+  r5()
 ], ErpInventoryProducts.prototype, "saving", 2);
 __decorateClass([
   r5()
 ], ErpInventoryProducts.prototype, "formError", 2);
 __decorateClass([
   r5()
+], ErpInventoryProducts.prototype, "importOpen", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "importRows", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "importMap", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "importUnresolved", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "importChoice", 2);
+__decorateClass([
+  r5()
 ], ErpInventoryProducts.prototype, "detail", 2);
 define("erp-inventory-products", ErpInventoryProducts);
-
-// inventory/ui/components/erp-inventory-settings/erp-inventory-settings.ts
-function erplora4() {
-  const c5 = globalThis.erplora;
-  if (!c5) throw new Error("erplora SDK no inicializado por el shell");
-  return c5;
-}
-var GREEN = "--track-background-checked: rgba(var(--ion-color-success-rgb, 45,211,111), 0.5); --handle-background-checked: var(--ion-color-success, #2dd36f);";
-var ErpInventorySettings = class extends i3 {
-  constructor() {
-    super(...arguments);
-    this.s = {};
-    this.prev = {};
-    this.confirmOpen = false;
-    this.confirmMsg = "";
-  }
-  static {
-    this.styles = i`
-    :host { display: block; height: 100%; overflow: auto; font-family: system-ui, sans-serif; color: var(--ion-text-color, #1c1b18); }
-    .card { background: var(--ion-card-background, #fff); border: 1px solid var(--ion-border-color, #e6e2d8); border-radius: 12px; overflow: hidden; }
-    h2 { font-size: 1.1rem; margin: 0 0 0.75rem; }
-    /* Diálogo de confirmación inline (alerta) — fiable y CSP-safe. */
-    .scrim { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.32); z-index: 1000; display: grid; place-items: center; }
-    .dialog { background: var(--ion-card-background, #fff); border-radius: 14px; width: 320px; max-width: 90vw; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25); overflow: hidden; }
-    .dialog .dh { padding: 1.1rem 1.25rem 0.25rem; font-weight: 700; font-size: 1.05rem; }
-    .dialog .dm { padding: 0 1.25rem 1rem; color: var(--ion-color-medium, #555); }
-    .dialog .da { display: flex; justify-content: flex-end; gap: 0.25rem; padding: 0.25rem 0.75rem 0.75rem; }
-  `;
-  }
-  async firstUpdated() {
-    try {
-      this.s = await erplora4().query("inventory.settings.get") ?? {};
-    } catch {
-      this.s = {};
-    }
-  }
-  // Cambio optimista + confirmación; al cancelar se revierte al snapshot previo.
-  change(key, value, label) {
-    this.prev = { ...this.s };
-    this.s = { ...this.s, [key]: value };
-    this.confirmMsg = `\xBFAplicar el cambio en "${label}"?`;
-    this.confirmOpen = true;
-  }
-  async apply() {
-    this.confirmOpen = false;
-    try {
-      await erplora4().command("inventory.settings.update", { ...this.s });
-    } catch {
-      this.s = { ...this.prev };
-    }
-  }
-  cancel() {
-    this.s = { ...this.prev };
-    this.confirmOpen = false;
-  }
-  render() {
-    return b2`
-      <h2>Ajustes de inventario</h2>
-      <div class="card">
-        <ion-list>
-          <ion-item>
-            <ion-toggle
-              style=${GREEN}
-              ?checked=${!!this.s.allow_sell_without_stock}
-              @ionChange=${(e5) => this.change("allow_sell_without_stock", e5.target.checked ? 1 : 0, "Permitir vender sin stock")}
-            >
-              Permitir vender sin stock
-            </ion-toggle>
-          </ion-item>
-          <ion-item>
-            <ion-toggle
-              style=${GREEN}
-              ?checked=${this.s.track_stock !== 0}
-              @ionChange=${(e5) => this.change("track_stock", e5.target.checked ? 1 : 0, "Controlar stock")}
-            >
-              Controlar stock
-            </ion-toggle>
-          </ion-item>
-          <ion-item lines="none">
-            <ion-input
-              type="number"
-              label="Umbral de stock bajo"
-              label-placement="stacked"
-              .value=${String(this.s.low_stock_threshold ?? 10)}
-              @ionChange=${(e5) => this.change("low_stock_threshold", Number(e5.target.value) || 0, "Umbral de stock bajo")}
-            ></ion-input>
-          </ion-item>
-        </ion-list>
-      </div>
-
-      ${this.confirmOpen ? b2`
-            <div class="scrim" @click=${() => this.cancel()}>
-              <div class="dialog" role="alertdialog" @click=${(e5) => e5.stopPropagation()}>
-                <div class="dh">Confirmar cambio</div>
-                <div class="dm">${this.confirmMsg}</div>
-                <div class="da">
-                  <ion-button fill="clear" color="medium" @click=${() => this.cancel()}>Cancelar</ion-button>
-                  <ion-button @click=${() => this.apply()}>Aplicar</ion-button>
-                </div>
-              </div>
-            </div>
-          ` : A}
-    `;
-  }
-};
-__decorateClass([
-  r5()
-], ErpInventorySettings.prototype, "s", 2);
-__decorateClass([
-  r5()
-], ErpInventorySettings.prototype, "confirmOpen", 2);
-__decorateClass([
-  r5()
-], ErpInventorySettings.prototype, "confirmMsg", 2);
-define("erp-inventory-settings", ErpInventorySettings);

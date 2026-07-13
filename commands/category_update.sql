@@ -1,4 +1,5 @@
 -- Edición de categoría. Portado de CategoryService.update_category.
+-- tax_category_key añadido (ADR-0066: el IVA de la categoría es una referencia a taxes_rate.id).
 UPDATE inventory_category SET
   name = :name,
   slug = :slug,
@@ -6,6 +7,7 @@ UPDATE inventory_category SET
   color = :color,
   description = :description,
   "order" = :order,
+  tax_category_key = :tax_category_key,
   is_active = :is_active,
   updated_by = :current_user_id,
   updated_at = :now
