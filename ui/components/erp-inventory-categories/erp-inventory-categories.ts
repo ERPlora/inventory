@@ -12,6 +12,10 @@ import type { ListController, ListClient, ListParams, ListPage } from '@erplora/
 
 interface ErploraClientLike extends ListClient {
   query<T = unknown>(name: string, params?: Record<string, unknown>): Promise<T>;
+  /** TODAS las filas, sin tope (salvo que pases `limit`). Para lo que no es «una página»: la
+   *  rejilla de productos del TPV, un `<ion-select>` de categorías fiscales, el mapa
+   *  producto↔categoría. El viejo `page_size` NO era un parámetro del runtime: truncaba a 50. */
+  queryAll<T = unknown>(name: string, params?: Record<string, unknown>): Promise<T[]>;
   queryPage<R = unknown>(name: string, params: ListParams): Promise<ListPage<R>>;
   command<T = unknown>(name: string, payload?: Record<string, unknown>): Promise<T>;
   on(event: string, cb: (payload: unknown) => void): () => void;
@@ -84,7 +88,7 @@ export class ErpInventoryCategories extends LitElement {
   // y el alta sigue funcionando (tax_category_key = null = tipo por defecto del hub).
   private async loadTaxRates(): Promise<void> {
     try {
-      this.taxRates = (await erplora().query<TaxCategory[]>('taxes.categories.list', { page_size: 200 })) ?? [];
+      this.taxRates = await erplora().queryAll<TaxCategory>('taxes.categories.list', { sort: 'name', dir: 'asc' });
     } catch {
       this.taxRates = [];
     }

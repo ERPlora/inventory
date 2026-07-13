@@ -3110,7 +3110,7 @@ var ErpInventoryCategories = class extends i3 {
   // y el alta sigue funcionando (tax_category_key = null = tipo por defecto del hub).
   async loadTaxRates() {
     try {
-      this.taxRates = await erplora().query("taxes.categories.list", { page_size: 200 }) ?? [];
+      this.taxRates = await erplora().queryAll("taxes.categories.list", { sort: "name", dir: "asc" });
     } catch {
       this.taxRates = [];
     }
@@ -3940,7 +3940,8 @@ var ErpInventoryProducts = class extends i3 {
   // alta sigue funcionando (tax_category_key = null). El % lo resuelve `taxes` por país+categoría.
   async loadTaxCategories() {
     try {
-      this.taxCategories = await erplora3().query("taxes.categories.list", { page_size: 200 }) ?? [];
+      const res = await erplora3().queryAll("taxes.categories.list", { sort: "name", dir: "asc" });
+      this.taxCategories = Array.isArray(res) ? res : [];
     } catch {
       this.taxCategories = [];
     }

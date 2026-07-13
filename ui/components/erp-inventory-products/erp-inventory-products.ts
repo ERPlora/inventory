@@ -27,6 +27,10 @@ const CATALOG: Record<string, unknown> = { es: esLocale, en: enLocale };
 
 interface ErploraClientLike extends ListClient {
   query<T = unknown>(name: string, params?: Record<string, unknown>): Promise<T>;
+  /** TODAS las filas, sin tope (salvo que pases `limit`). Para lo que no es «una página»: la
+   *  rejilla de productos del TPV, un `<ion-select>` de categorías fiscales, el mapa
+   *  producto↔categoría. El viejo `page_size` NO era un parámetro del runtime: truncaba a 50. */
+  queryAll<T = unknown>(name: string, params?: Record<string, unknown>): Promise<T[]>;
   queryPage<R = unknown>(name: string, params: ListParams): Promise<ListPage<R>>;
   command<T = unknown>(name: string, payload?: Record<string, unknown>): Promise<T>;
   on(event: string, cb: (payload: unknown) => void): () => void;
@@ -423,7 +427,11 @@ export class ErpInventoryProducts extends LitElement {
   // alta sigue funcionando (tax_category_key = null). El % lo resuelve `taxes` por país+categoría.
   private async loadTaxCategories(): Promise<void> {
     try {
-      this.taxCategories = (await erplora().query<TaxCategory[]>('taxes.categories.list', { page_size: 200 })) ?? [];
+      const res = await erplora().queryAll<TaxCategory>('taxes.categories.list', { sort: 'name', dir: 'asc' });
+      // `Array.isArray`, no `?? []`: si esto NO es una lista, `.map()` peta EN EL RENDER y se lleva
+      // por delante la página de productos entera — por un desplegable de IVA. El alta de productos
+      // no puede depender de que `taxes` conteste bien.
+      this.taxCategories = Array.isArray(res) ? res : [];
     } catch {
       this.taxCategories = [];
     }

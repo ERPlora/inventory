@@ -17,11 +17,24 @@ const comandos: { name: string; payload: Record<string, unknown> }[] = [];
 
 beforeEach(() => {
   comandos.length = 0;
+  // El doble imita el contrato del CLIENTE (`ErploraClient`), no el del transporte: `query()` pasa
+  // la respuesta por `unwrapPage()`, así que a quien la llama le llega ya el ARRAY. Devolver aquí
+  // el sobre `{rows}` en crudo sería un doble infiel — y de hecho lo era: escondía que el
+  // componente hacía `.map()` sobre un objeto.
   (globalThis as Record<string, unknown>).erplora = {
     query: async (name: string) =>
       name === 'inventory.products.list'
-        ? { rows: [{ id: 'p1', name: 'Café solo', sku: 'CAF', price: 220, stock: 10, is_active: 1 }] }
-        : { rows: [] },
+        ? [{ id: 'p1', name: 'Café solo', sku: 'CAF', price: 220, stock: 10, is_active: 1 }]
+        : [],
+    queryPage: async (name: string) =>
+      name === 'inventory.products.list'
+        ? {
+            rows: [{ id: 'p1', name: 'Café solo', sku: 'CAF', price: 220, stock: 10, is_active: 1 }],
+            total: 1,
+            limit: 50,
+            offset: 0,
+          }
+        : { rows: [], total: 0, limit: 50, offset: 0 },
     command: async (name: string, payload: Record<string, unknown>) => {
       comandos.push({ name, payload });
       return {};
@@ -44,6 +57,24 @@ async function montar() {
   await (el as unknown as { updateComplete: Promise<unknown> }).updateComplete;
   return el as HTMLElement & { updateComplete: Promise<unknown> };
 }
+
+describe('el selector de categoría fiscal es best-effort (ADR-0085)', () => {
+  // `taxes` es una DEPENDENCIA BLANDA: puede no estar instalado, no tener permiso, o contestar algo
+  // que no es una lista. En cualquiera de esos casos el select se queda con "sin categoría" y el
+  // alta sigue funcionando. Lo que NO puede pasar es que la página de productos se caiga entera.
+  it('si `taxes` no devuelve una lista, la página sigue en pie (no revienta el render)', async () => {
+    (globalThis as Record<string, unknown>).erplora = {
+      ...(globalThis as Record<string, { erplora: unknown }> & { erplora: object }).erplora,
+      query: async (name: string) =>
+        name === 'inventory.products.list'
+          ? [{ id: 'p1', name: 'Café solo', sku: 'CAF', price: 220, stock: 10, is_active: 1 }]
+          : ({ error: 'unknown_query' } as unknown), // taxes no instalado → NO es un array
+    };
+    const el = await montar();
+    expect(el.shadowRoot, 'el componente ha renderizado pese a la respuesta rara').not.toBeNull();
+    expect((el as unknown as { taxCategories: unknown }).taxCategories).toEqual([]);
+  });
+});
 
 describe('precios del CRUD de productos (dinero = céntimos, ADR-0007)', () => {
   it('SALIDA: 220 céntimos se formatean 2,20 € (formatMoney, no formatAmount)', async () => {
