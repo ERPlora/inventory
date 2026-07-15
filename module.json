@@ -3,11 +3,10 @@
   "name": "Inventory",
   "version": "1.2.1",
   "agent": {
-    "description": "Manages stock, warehouses and products: check availability, adjust stock, receive goods, create or remove products and categories.",
+    "description": "Product catalog and basic stock control: check availability, adjust stock, receive goods, create or remove products and categories.",
     "keywords": [
       "stock",
       "inventory",
-      "warehouse",
       "product",
       "category",
       "availability",
