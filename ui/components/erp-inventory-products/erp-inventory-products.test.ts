@@ -383,3 +383,18 @@ describe('edición REAL de productos (inventory#8)', () => {
     expect(wc.formError).toBe('ui.errSkuTaken');
   });
 });
+
+describe('hallazgos del QA en navegador (07-16)', () => {
+  it('cancelar la edición CIERRA el panel lateral (no lo deja abierto vacío)', async () => {
+    const el = await montar();
+    const wc = el as unknown as { editingId: string | null; cancelEdit: () => void };
+    let cerrado = false;
+    const table = (el as unknown as { renderRoot: ShadowRoot }).renderRoot.querySelector('ok-data-table') as
+      | { close?: () => void }
+      | null;
+    if (table) table.close = () => { cerrado = true; };
+    wc.editingId = 'p1';
+    wc.cancelEdit();
+    expect(cerrado, 'el drawer debe cerrarse al cancelar').toBe(true);
+  });
+});

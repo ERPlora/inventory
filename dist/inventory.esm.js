@@ -3880,6 +3880,11 @@ function erplora3() {
   if (!c5) throw new Error("erplora SDK no inicializado por el shell");
   return c5;
 }
+function formatDate(v3) {
+  const d3 = new Date(v3);
+  if (Number.isNaN(d3.getTime())) return v3;
+  return d3.toLocaleString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
 function formatQty(v3) {
   const n6 = Number(v3);
   return n6 > 0 ? `+${n6}` : String(n6);
@@ -3904,7 +3909,12 @@ var ErpInventoryMovements = class extends i3 {
       return map[mt] ?? mt;
     };
     return [
-      { key: "created_at", header: t5("ui.mvDate"), sortable: true },
+      {
+        key: "created_at",
+        header: t5("ui.mvDate"),
+        sortable: true,
+        format: (r6) => formatDate(String(r6.created_at))
+      },
       { key: "product_name", header: t5("ui.name") },
       { key: "sku", header: t5("ui.sku") },
       {
@@ -4571,8 +4581,10 @@ var ErpInventoryProducts = class extends i3 {
       this.productCategories = [];
     }
   }
-  /** Vuelve al modo ALTA limpio (inventory#8): tras editar, el siguiente «+» no hereda datos. */
+  /** Vuelve al modo ALTA limpio (inventory#8): tras editar, el siguiente «+» no hereda datos.
+   *  También CIERRA el panel lateral (QA 07-16: quedaba abierto con el form vacío). */
   cancelEdit() {
+    this.dataTable()?.close();
     this.editingId = null;
     this.newName = "";
     this.newSku = "";
