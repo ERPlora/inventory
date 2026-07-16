@@ -159,11 +159,69 @@ export class ErpInventoryProducts extends LitElement {
 
   @state() private detail: Product | null = null;
 
+  // ── Recuento y recepción (inventory#7) ──────────────────────────────────────
+  // Estado de los dos modales de stock. El recuento es ABSOLUTO: se enseña la
+  // DIFERENCIA contra el stock actual ANTES de aplicar, y el motivo es obligatorio.
+  @state() countTarget: Product | null = null;
+  @state() countValue = '';
+  @state() countReason = '';
+  @state() receiveTarget: Product | null = null;
+  @state() receiveQty = '';
+  @state() receiveCost = '';
+
+  /** Diferencia del recuento (nuevo − actual), o null si aún no hay valor tecleado. */
+  get countDifference(): number | null {
+    if (!this.countTarget || this.countValue.trim() === '') return null;
+    const v = Number(this.countValue);
+    if (!Number.isFinite(v)) return null;
+    return Math.round((v - Number(this.countTarget.stock)) * 1000) / 1000;
+  }
+
+  async submitCount(): Promise<void> {
+    if (!this.countTarget || this.countValue.trim() === '' || this.countReason.trim() === '') return;
+    const v = Number(this.countValue);
+    if (!Number.isFinite(v) || v < 0) return;
+    try {
+      await erplora().command('inventory.stock.adjust', {
+        product_id: this.countTarget.id,
+        stock: v,
+        reason: this.countReason.trim(),
+      });
+      this.countTarget = null;
+      this.countValue = '';
+      this.countReason = '';
+      await this.ctrl.load();
+    } catch (e) {
+      this.formError = e instanceof Error ? e.message : 'No se pudo aplicar el recuento';
+    }
+  }
+
+  async submitReceive(): Promise<void> {
+    if (!this.receiveTarget || this.receiveQty.trim() === '') return;
+    const qty = Number(this.receiveQty);
+    if (!Number.isFinite(qty) || qty <= 0) return;
+    // El coste se teclea en EUROS y se guarda en CÉNTIMOS (ADR-0007/0123).
+    const cost = this.receiveCost.trim() === '' ? null : Math.round(Number(this.receiveCost) * 100);
+    try {
+      await erplora().command('inventory.stock.receive', {
+        items: [{ product_id: this.receiveTarget.id, qty, unit_cost: cost }],
+      });
+      this.receiveTarget = null;
+      this.receiveQty = '';
+      this.receiveCost = '';
+      await this.ctrl.load();
+    } catch (e) {
+      this.formError = e instanceof Error ? e.message : 'No se pudo registrar la recepción';
+    }
+  }
+
   // Acciones por fila (botones) → la tabla emite `rowAction` con { actionId, row }. Getter (i18n).
-  private get actions(): DataTableAction[] {
+  get actions(): DataTableAction[] {
     const t = (k: string): string => erplora().t(CATALOG, k);
     return [
       { id: 'detail', label: t('ui.actionDetail'), icon: 'eye-outline' },
+      { id: 'receive', label: t('ui.actionReceive'), icon: 'download-outline' },
+      { id: 'count', label: t('ui.actionCount'), icon: 'calculator-outline' },
       { id: 'edit', label: t('ui.actionEdit'), icon: 'create-outline' },
       { id: 'delete', label: t('ui.actionDelete'), icon: 'trash-outline', color: 'danger' },
     ];
@@ -174,6 +232,12 @@ export class ErpInventoryProducts extends LitElement {
     const p = row as unknown as Product;
     if (actionId === 'detail') {
       this.detail = p; // abre el modal de detalle (con código de barras)
+    } else if (actionId === 'receive') {
+      this.receiveTarget = p;
+    } else if (actionId === 'count') {
+      this.countTarget = p;
+      this.countValue = '';
+      this.countReason = '';
     } else if (actionId === 'edit') {
       this.newName = p.name;
       this.newSku = p.sku;
@@ -590,8 +654,88 @@ export class ErpInventoryProducts extends LitElement {
               : nothing}
           </ion-content>
         </ion-modal>
+        ${this.renderCountModal()}
+        ${this.renderReceiveModal()}
         ${this.renderImportModal()}
       </div>
+    `;
+  }
+
+  // Modal de RECUENTO (inventory#7): ajuste absoluto — se enseña la diferencia contra el
+  // stock actual ANTES de aplicar, y el motivo es obligatorio (lo exige también el schema).
+  private renderCountModal() {
+    const t = (k: string): string => erplora().t(CATALOG, k);
+    const diff = this.countDifference;
+    return html`
+      <ion-modal .isOpen=${!!this.countTarget} @ionModalDidDismiss=${() => (this.countTarget = null)}>
+        <ion-header class="ion-no-border">
+          <ion-toolbar>
+            <ion-title>${t('ui.countTitle')} — ${this.countTarget?.name ?? ''}</ion-title>
+            <ion-buttons slot="end">
+              <ion-button @click=${() => (this.countTarget = null)}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content class="ion-padding">
+          <div class="detail">
+            <div class="drow"><span>${t('ui.countCurrent')}</span><b>${Number(this.countTarget?.stock ?? 0)}</b></div>
+            <ion-input fill="outline" label-placement="floating" label=${t('ui.countNew')}
+              type="number" step="0.001" min="0" inputmode="decimal"
+              .value=${this.countValue}
+              @ionInput=${(e: CustomEvent) => (this.countValue = String((e.detail as { value?: string }).value ?? ''))}
+            ></ion-input>
+            ${diff !== null
+              ? html`<div class="drow"><span>${t('ui.countDiff')}</span>
+                  <b>${diff > 0 ? `+${diff}` : diff}</b></div>`
+              : nothing}
+            <ion-input fill="outline" label-placement="floating" label=${t('ui.countReason')}
+              .value=${this.countReason} required
+              @ionInput=${(e: CustomEvent) => (this.countReason = String((e.detail as { value?: string }).value ?? ''))}
+            ></ion-input>
+            <ion-button expand="block" .disabled=${diff === null || this.countReason.trim() === ''}
+              @click=${() => this.submitCount()}>
+              ${t('ui.countApply')}
+            </ion-button>
+          </div>
+        </ion-content>
+      </ion-modal>
+    `;
+  }
+
+  // Modal de RECEPCIÓN (inventory#7): entrada de mercancía por producto (qty decimal —
+  // #10 — y coste unitario en euros → céntimos). El movimiento `reception` lo deja el SQL.
+  private renderReceiveModal() {
+    const t = (k: string): string => erplora().t(CATALOG, k);
+    return html`
+      <ion-modal .isOpen=${!!this.receiveTarget} @ionModalDidDismiss=${() => (this.receiveTarget = null)}>
+        <ion-header class="ion-no-border">
+          <ion-toolbar>
+            <ion-title>${t('ui.receiveTitle')} — ${this.receiveTarget?.name ?? ''}</ion-title>
+            <ion-buttons slot="end">
+              <ion-button @click=${() => (this.receiveTarget = null)}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content class="ion-padding">
+          <div class="detail">
+            <div class="drow"><span>${t('ui.countCurrent')}</span><b>${Number(this.receiveTarget?.stock ?? 0)}</b></div>
+            <ion-input fill="outline" label-placement="floating" label=${t('ui.receiveQty')}
+              type="number" step="0.001" min="0.001" inputmode="decimal"
+              .value=${this.receiveQty}
+              @ionInput=${(e: CustomEvent) => (this.receiveQty = String((e.detail as { value?: string }).value ?? ''))}
+            ></ion-input>
+            <ion-input fill="outline" label-placement="floating" label=${t('ui.receiveCost')}
+              type="number" step="0.01" min="0" inputmode="decimal"
+              .value=${this.receiveCost}
+              @ionInput=${(e: CustomEvent) => (this.receiveCost = String((e.detail as { value?: string }).value ?? ''))}
+            ></ion-input>
+            <ion-button expand="block" .disabled=${this.receiveQty.trim() === ''}
+              @click=${() => this.submitReceive()}>
+              ${t('ui.receiveApply')}
+            </ion-button>
+          </div>
+        </ion-content>
+      </ion-modal>
     `;
   }
 }

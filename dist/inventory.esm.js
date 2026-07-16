@@ -3453,6 +3453,9 @@ var es_default = {
     },
     settings: {
       label: "Ajustes"
+    },
+    movements: {
+      label: "Movimientos"
     }
   },
   ui: {
@@ -3500,7 +3503,32 @@ var es_default = {
     statsWithoutCost: "producto(s) sin coste registrado: el valor mostrado es parcial",
     statsError: "No se pudieron cargar las m\xE9tricas del inventario.",
     lowStockTitle: "Productos con stock bajo",
-    lowStockEmpty: "Sin productos en stock bajo."
+    lowStockEmpty: "Sin productos en stock bajo.",
+    actionReceive: "Recibir",
+    actionCount: "Recontar",
+    countTitle: "Recuento",
+    countCurrent: "Stock actual",
+    countNew: "Stock contado",
+    countDiff: "Diferencia",
+    countReason: "Motivo (obligatorio)",
+    countApply: "Aplicar recuento",
+    receiveTitle: "Recepci\xF3n",
+    receiveQty: "Cantidad recibida",
+    receiveCost: "Coste unitario (\u20AC)",
+    receiveApply: "Registrar recepci\xF3n",
+    mvDate: "Fecha",
+    mvType: "Tipo",
+    mvQty: "Cantidad",
+    mvStockAfter: "Saldo",
+    mvReason: "Motivo",
+    mvReference: "Referencia",
+    mvEmpty: "Sin movimientos.",
+    mvInitial: "Inicial",
+    mvReception: "Recepci\xF3n",
+    mvSale: "Venta",
+    mvVoid: "Anulaci\xF3n",
+    mvCount: "Recuento",
+    mvDecrease: "Descuento"
   }
 };
 
@@ -3519,6 +3547,9 @@ var en_default = {
     },
     settings: {
       label: "Settings"
+    },
+    movements: {
+      label: "Movements"
     }
   },
   ui: {
@@ -3566,7 +3597,32 @@ var en_default = {
     statsWithoutCost: "product(s) without recorded cost: the value shown is partial",
     statsError: "Inventory metrics could not be loaded.",
     lowStockTitle: "Low stock products",
-    lowStockEmpty: "No products in low stock."
+    lowStockEmpty: "No products in low stock.",
+    actionReceive: "Receive",
+    actionCount: "Count",
+    countTitle: "Stock count",
+    countCurrent: "Current stock",
+    countNew: "Counted stock",
+    countDiff: "Difference",
+    countReason: "Reason (required)",
+    countApply: "Apply count",
+    receiveTitle: "Goods receipt",
+    receiveQty: "Quantity received",
+    receiveCost: "Unit cost (\u20AC)",
+    receiveApply: "Record receipt",
+    mvDate: "Date",
+    mvType: "Type",
+    mvQty: "Quantity",
+    mvStockAfter: "Balance",
+    mvReason: "Reason",
+    mvReference: "Reference",
+    mvEmpty: "No movements.",
+    mvInitial: "Initial",
+    mvReception: "Reception",
+    mvSale: "Sale",
+    mvVoid: "Void",
+    mvCount: "Count",
+    mvDecrease: "Decrease"
   }
 };
 
@@ -3678,6 +3734,95 @@ __decorateClass([
   r5()
 ], ErpInventoryDashboard.prototype, "statsError", 2);
 define("erp-inventory-dashboard", ErpInventoryDashboard);
+
+// ui/components/erp-inventory-movements/erp-inventory-movements.ts
+var CATALOG2 = { es: es_default, en: en_default };
+function erplora3() {
+  const c5 = globalThis.erplora;
+  if (!c5) throw new Error("erplora SDK no inicializado por el shell");
+  return c5;
+}
+function formatQty(v3) {
+  const n6 = Number(v3);
+  return n6 > 0 ? `+${n6}` : String(n6);
+}
+var ErpInventoryMovements = class extends i3 {
+  static {
+    this.styles = i`
+    :host { display: block; height: 100%; font-family: system-ui, sans-serif; color: var(--ion-text-color, #1c1b18); }
+  `;
+  }
+  get columns() {
+    const t5 = (k2) => erplora3().t(CATALOG2, k2);
+    const typeKey = (mt) => {
+      const map = {
+        initial: "ui.mvInitial",
+        reception: "ui.mvReception",
+        sale: "ui.mvSale",
+        void: "ui.mvVoid",
+        count: "ui.mvCount",
+        decrease: "ui.mvDecrease"
+      };
+      return map[mt] ?? mt;
+    };
+    return [
+      { key: "created_at", header: t5("ui.mvDate"), sortable: true },
+      { key: "product_name", header: t5("ui.name") },
+      { key: "sku", header: t5("ui.sku") },
+      {
+        key: "movement_type",
+        header: t5("ui.mvType"),
+        filterable: true,
+        filterType: "select",
+        options: ["reception", "sale", "void", "count", "decrease", "initial"].map((v3) => ({ value: v3, label: t5(typeKey(v3)) })),
+        format: (r6) => t5(typeKey(String(r6.movement_type)))
+      },
+      {
+        key: "qty",
+        header: t5("ui.mvQty"),
+        align: "right",
+        sortable: true,
+        format: (r6) => formatQty(r6.qty)
+      },
+      {
+        key: "stock_after",
+        header: t5("ui.mvStockAfter"),
+        align: "right",
+        sortable: true,
+        format: (r6) => String(Number(r6.stock_after))
+      },
+      { key: "reason", header: t5("ui.mvReason") },
+      { key: "reference", header: t5("ui.mvReference"), filterable: true, filterType: "text" }
+    ];
+  }
+  async firstUpdated() {
+    this.ctrl = createListController(erplora3(), "inventory.stock.movements", () => this.requestUpdate());
+    await this.ctrl.load();
+  }
+  render() {
+    const t5 = (k2) => erplora3().t(CATALOG2, k2);
+    return b2`
+      ${this.ctrl?.error ? b2`<p>${this.ctrl.error}</p>` : A}
+      <ok-data-table
+        fill
+        .serverSide=${true}
+        .searchable=${true}
+        .columns=${this.columns}
+        .rows=${this.ctrl?.rows ?? []}
+        .total=${this.ctrl?.total ?? 0}
+        .page=${this.ctrl?.state.page ?? 0}
+        .pageSize=${this.ctrl?.state.pageSize ?? 50}
+        .emptyMessage=${this.ctrl?.loading ? t5("ui.loading") : t5("ui.mvEmpty")}
+        @pageChange=${(e5) => this.ctrl.setPage(e5.detail)}
+        @pageSizeChange=${(e5) => this.ctrl.setPageSize(e5.detail)}
+        @searchChange=${(e5) => this.ctrl.setSearch(e5.detail)}
+        @sortChange=${(e5) => this.ctrl.setSort(e5.detail.sort, e5.detail.dir)}
+        @filterChange=${(e5) => this.ctrl.setFilter(e5.detail.col, e5.detail.value)}
+      ></ok-data-table>
+    `;
+  }
+};
+define("erp-inventory-movements", ErpInventoryMovements);
 
 // ui/lib/code128.ts
 var PATTERNS = [
@@ -3818,8 +3963,8 @@ function code128b(text, module = 2, height = 70) {
 }
 
 // ui/components/erp-inventory-products/erp-inventory-products.ts
-var CATALOG2 = { es: es_default, en: en_default };
-function erplora3() {
+var CATALOG3 = { es: es_default, en: en_default };
+function erplora4() {
   const c5 = globalThis.erplora;
   if (!c5) throw new Error("erplora SDK no inicializado por el shell");
   return c5;
@@ -3840,6 +3985,12 @@ var ErpInventoryProducts = class extends i3 {
     this.importUnresolved = [];
     this.importChoice = {};
     this.detail = null;
+    this.countTarget = null;
+    this.countValue = "";
+    this.countReason = "";
+    this.receiveTarget = null;
+    this.receiveQty = "";
+    this.receiveCost = "";
     // Init una sola vez tras el primer render (equivalente a `componentWillLoad` de Stencil: el shell
     // crea una instancia nueva del WC en cada montaje de la vista). El re-render lo dispara el
     // controlador vía `requestUpdate()` (sustituye al antiguo `this.tick++`), no un @state.
@@ -3868,7 +4019,7 @@ var ErpInventoryProducts = class extends i3 {
   // Getter (no campo): se re-evalúa en cada render, así los textos cambian con el idioma activo
   // (ADR-0055). `connectedCallback` re-renderiza al recibir `erplora:locale-changed`.
   get columns() {
-    const t5 = (k2) => erplora3().t(CATALOG2, k2);
+    const t5 = (k2) => erplora4().t(CATALOG3, k2);
     return [
       { key: "name", header: t5("ui.name"), sortable: true, filterable: true, filterType: "text" },
       { key: "sku", header: t5("ui.sku"), sortable: true, filterable: true, filterType: "text" },
@@ -3881,7 +4032,7 @@ var ErpInventoryProducts = class extends i3 {
         filterType: "range",
         // El precio está en CÉNTIMOS → `formatMoney` (divide). `formatAmount` NO divide: con él,
         // un café de 220 céntimos se pintaba «220,00 €».
-        format: (r6) => erplora3().formatMoney(Number(r6.price))
+        format: (r6) => erplora4().formatMoney(Number(r6.price))
       },
       { key: "stock", header: t5("ui.stock"), align: "right", sortable: true, filterable: true, filterType: "range" },
       {
@@ -3907,11 +4058,55 @@ var ErpInventoryProducts = class extends i3 {
       }
     ];
   }
+  /** Diferencia del recuento (nuevo − actual), o null si aún no hay valor tecleado. */
+  get countDifference() {
+    if (!this.countTarget || this.countValue.trim() === "") return null;
+    const v3 = Number(this.countValue);
+    if (!Number.isFinite(v3)) return null;
+    return Math.round((v3 - Number(this.countTarget.stock)) * 1e3) / 1e3;
+  }
+  async submitCount() {
+    if (!this.countTarget || this.countValue.trim() === "" || this.countReason.trim() === "") return;
+    const v3 = Number(this.countValue);
+    if (!Number.isFinite(v3) || v3 < 0) return;
+    try {
+      await erplora4().command("inventory.stock.adjust", {
+        product_id: this.countTarget.id,
+        stock: v3,
+        reason: this.countReason.trim()
+      });
+      this.countTarget = null;
+      this.countValue = "";
+      this.countReason = "";
+      await this.ctrl.load();
+    } catch (e5) {
+      this.formError = e5 instanceof Error ? e5.message : "No se pudo aplicar el recuento";
+    }
+  }
+  async submitReceive() {
+    if (!this.receiveTarget || this.receiveQty.trim() === "") return;
+    const qty = Number(this.receiveQty);
+    if (!Number.isFinite(qty) || qty <= 0) return;
+    const cost = this.receiveCost.trim() === "" ? null : Math.round(Number(this.receiveCost) * 100);
+    try {
+      await erplora4().command("inventory.stock.receive", {
+        items: [{ product_id: this.receiveTarget.id, qty, unit_cost: cost }]
+      });
+      this.receiveTarget = null;
+      this.receiveQty = "";
+      this.receiveCost = "";
+      await this.ctrl.load();
+    } catch (e5) {
+      this.formError = e5 instanceof Error ? e5.message : "No se pudo registrar la recepci\xF3n";
+    }
+  }
   // Acciones por fila (botones) → la tabla emite `rowAction` con { actionId, row }. Getter (i18n).
   get actions() {
-    const t5 = (k2) => erplora3().t(CATALOG2, k2);
+    const t5 = (k2) => erplora4().t(CATALOG3, k2);
     return [
       { id: "detail", label: t5("ui.actionDetail"), icon: "eye-outline" },
+      { id: "receive", label: t5("ui.actionReceive"), icon: "download-outline" },
+      { id: "count", label: t5("ui.actionCount"), icon: "calculator-outline" },
       { id: "edit", label: t5("ui.actionEdit"), icon: "create-outline" },
       { id: "delete", label: t5("ui.actionDelete"), icon: "trash-outline", color: "danger" }
     ];
@@ -3921,6 +4116,12 @@ var ErpInventoryProducts = class extends i3 {
     const p4 = row;
     if (actionId === "detail") {
       this.detail = p4;
+    } else if (actionId === "receive") {
+      this.receiveTarget = p4;
+    } else if (actionId === "count") {
+      this.countTarget = p4;
+      this.countValue = "";
+      this.countReason = "";
     } else if (actionId === "edit") {
       this.newName = p4.name;
       this.newSku = p4.sku;
@@ -3929,7 +4130,7 @@ var ErpInventoryProducts = class extends i3 {
       this.dataTable()?.open("create");
     } else if (actionId === "delete") {
       try {
-        await erplora3().command("inventory.products.delete", { product_id: p4.id });
+        await erplora4().command("inventory.products.delete", { product_id: p4.id });
         await this.ctrl.load();
       } catch (e5) {
         this.formError = e5 instanceof Error ? e5.message : "No se pudo eliminar";
@@ -3939,7 +4140,7 @@ var ErpInventoryProducts = class extends i3 {
   async toggleActive(p4, ev) {
     const checked = ev.target.checked;
     try {
-      await erplora3().command("inventory.products.update", {
+      await erplora4().command("inventory.products.update", {
         product_id: p4.id,
         name: p4.name,
         price: p4.price,
@@ -3967,7 +4168,7 @@ var ErpInventoryProducts = class extends i3 {
     let map = /* @__PURE__ */ new Map();
     let unresolved = [];
     try {
-      const res = await resolveTaxCategories(rows, erplora3());
+      const res = await resolveTaxCategories(rows, erplora4());
       map = res.map;
       unresolved = res.unresolved;
     } catch (e5) {
@@ -3995,11 +4196,11 @@ var ErpInventoryProducts = class extends i3 {
       const c5 = this.importChoice[text];
       try {
         if (c5?.mode === "pick" && c5.key) {
-          await learnAlias(erplora3(), text, c5.key);
+          await learnAlias(erplora4(), text, c5.key);
           map.set(normalizeAlias(text), c5.key);
         } else if (c5?.mode === "create" && c5.newKey.trim()) {
           const key = c5.newKey.trim();
-          await createCategoryWithAlias(erplora3(), key, (c5.newName || key).trim(), text);
+          await createCategoryWithAlias(erplora4(), key, (c5.newName || key).trim(), text);
           map.set(normalizeAlias(text), key);
         }
       } catch (e5) {
@@ -4019,7 +4220,7 @@ var ErpInventoryProducts = class extends i3 {
       const taxCategoryKey = taxValue ? map.get(normalizeAlias(taxValue)) ?? null : null;
       if (taxCategoryKey) linked++;
       try {
-        await erplora3().command("inventory.products.create", {
+        await erplora4().command("inventory.products.create", {
           name: r6.name ?? "",
           sku: r6.sku ?? "",
           price: eurosToCents(r6.price),
@@ -4043,7 +4244,7 @@ var ErpInventoryProducts = class extends i3 {
   // Modal de resolución de categorías del importador (ADR-0085): una fila por texto sin resolver,
   // con elegir categoría existente / crear nueva / omitir; al confirmar persiste el alias.
   renderImportModal() {
-    const t5 = (k2) => erplora3().t(CATALOG2, k2);
+    const t5 = (k2) => erplora4().t(CATALOG3, k2);
     const setChoice = (text, patch) => {
       this.importChoice = { ...this.importChoice, [text]: { ...this.importChoice[text], ...patch } };
     };
@@ -4106,7 +4307,7 @@ var ErpInventoryProducts = class extends i3 {
   }
   async firstUpdated() {
     this.ctrl = createListController(
-      erplora3(),
+      erplora4(),
       "inventory.products.list",
       () => this.requestUpdate(),
       { pageSize: 50, sort: "name", dir: "asc" }
@@ -4115,8 +4316,8 @@ var ErpInventoryProducts = class extends i3 {
     void this.loadTaxCategories();
     try {
       const reload = () => this.ctrl.load();
-      const off1 = erplora3().on("inventory.stock_changed", reload);
-      const off2 = erplora3().on("inventory.product.created", reload);
+      const off1 = erplora4().on("inventory.stock_changed", reload);
+      const off2 = erplora4().on("inventory.product.created", reload);
       this.unsub = () => {
         off1();
         off2();
@@ -4134,7 +4335,7 @@ var ErpInventoryProducts = class extends i3 {
   // alta sigue funcionando (tax_category_key = null). El % lo resuelve `taxes` por país+categoría.
   async loadTaxCategories() {
     try {
-      const res = await erplora3().queryAll("taxes.categories.list", { sort: "name", dir: "asc" });
+      const res = await erplora4().queryAll("taxes.categories.list", { sort: "name", dir: "asc" });
       this.taxCategories = Array.isArray(res) ? res : [];
     } catch {
       this.taxCategories = [];
@@ -4143,7 +4344,7 @@ var ErpInventoryProducts = class extends i3 {
   // Opciones del ion-select: "— (sin categoría)" (valor '') + una categoría por fila.
   // Etiqueta = "Nombre (key)".
   taxOptions() {
-    const t5 = (k2) => erplora3().t(CATALOG2, k2);
+    const t5 = (k2) => erplora4().t(CATALOG3, k2);
     return b2`
       <ion-select-option value="">${t5("ui.taxDefault")}</ion-select-option>
       ${this.taxCategories.map(
@@ -4157,7 +4358,7 @@ var ErpInventoryProducts = class extends i3 {
     this.saving = true;
     this.formError = "";
     try {
-      await erplora3().command("inventory.products.create", {
+      await erplora4().command("inventory.products.create", {
         name: this.newName.trim(),
         sku: this.newSku.trim(),
         // El input es EUROS (`step="0.01"`); la columna es INTEGER de céntimos (ADR-0007).
@@ -4245,7 +4446,7 @@ var ErpInventoryProducts = class extends i3 {
             <ion-select
               fill="outline"
               label-placement="floating"
-              label=${erplora3().t(CATALOG2, "ui.taxRate")}
+              label=${erplora4().t(CATALOG3, "ui.taxRate")}
               .value=${this.newTaxCategoryKey}
               @ionChange=${(e5) => this.newTaxCategoryKey = e5.target.value}
             >
@@ -4270,7 +4471,7 @@ var ErpInventoryProducts = class extends i3 {
             ${this.detail ? b2`
                   <div class="detail">
                     <div class="drow"><span>SKU</span><b>${this.detail.sku}</b></div>
-                    <div class="drow"><span>Precio</span><b>${erplora3().formatMoney(Number(this.detail.price))}</b></div>
+                    <div class="drow"><span>Precio</span><b>${erplora4().formatMoney(Number(this.detail.price))}</b></div>
                     <div class="drow"><span>Stock</span><b>${this.detail.stock}</b></div>
                     <div class="drow"><span>Activo</span><b>${this.detail.is_active ? "S\xED" : "No"}</b></div>
                     <div class="barcode">
@@ -4284,8 +4485,84 @@ var ErpInventoryProducts = class extends i3 {
                 ` : A}
           </ion-content>
         </ion-modal>
+        ${this.renderCountModal()}
+        ${this.renderReceiveModal()}
         ${this.renderImportModal()}
       </div>
+    `;
+  }
+  // Modal de RECUENTO (inventory#7): ajuste absoluto — se enseña la diferencia contra el
+  // stock actual ANTES de aplicar, y el motivo es obligatorio (lo exige también el schema).
+  renderCountModal() {
+    const t5 = (k2) => erplora4().t(CATALOG3, k2);
+    const diff = this.countDifference;
+    return b2`
+      <ion-modal .isOpen=${!!this.countTarget} @ionModalDidDismiss=${() => this.countTarget = null}>
+        <ion-header class="ion-no-border">
+          <ion-toolbar>
+            <ion-title>${t5("ui.countTitle")} — ${this.countTarget?.name ?? ""}</ion-title>
+            <ion-buttons slot="end">
+              <ion-button @click=${() => this.countTarget = null}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content class="ion-padding">
+          <div class="detail">
+            <div class="drow"><span>${t5("ui.countCurrent")}</span><b>${Number(this.countTarget?.stock ?? 0)}</b></div>
+            <ion-input fill="outline" label-placement="floating" label=${t5("ui.countNew")}
+              type="number" step="0.001" min="0" inputmode="decimal"
+              .value=${this.countValue}
+              @ionInput=${(e5) => this.countValue = String(e5.detail.value ?? "")}
+            ></ion-input>
+            ${diff !== null ? b2`<div class="drow"><span>${t5("ui.countDiff")}</span>
+                  <b>${diff > 0 ? `+${diff}` : diff}</b></div>` : A}
+            <ion-input fill="outline" label-placement="floating" label=${t5("ui.countReason")}
+              .value=${this.countReason} required
+              @ionInput=${(e5) => this.countReason = String(e5.detail.value ?? "")}
+            ></ion-input>
+            <ion-button expand="block" .disabled=${diff === null || this.countReason.trim() === ""}
+              @click=${() => this.submitCount()}>
+              ${t5("ui.countApply")}
+            </ion-button>
+          </div>
+        </ion-content>
+      </ion-modal>
+    `;
+  }
+  // Modal de RECEPCIÓN (inventory#7): entrada de mercancía por producto (qty decimal —
+  // #10 — y coste unitario en euros → céntimos). El movimiento `reception` lo deja el SQL.
+  renderReceiveModal() {
+    const t5 = (k2) => erplora4().t(CATALOG3, k2);
+    return b2`
+      <ion-modal .isOpen=${!!this.receiveTarget} @ionModalDidDismiss=${() => this.receiveTarget = null}>
+        <ion-header class="ion-no-border">
+          <ion-toolbar>
+            <ion-title>${t5("ui.receiveTitle")} — ${this.receiveTarget?.name ?? ""}</ion-title>
+            <ion-buttons slot="end">
+              <ion-button @click=${() => this.receiveTarget = null}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content class="ion-padding">
+          <div class="detail">
+            <div class="drow"><span>${t5("ui.countCurrent")}</span><b>${Number(this.receiveTarget?.stock ?? 0)}</b></div>
+            <ion-input fill="outline" label-placement="floating" label=${t5("ui.receiveQty")}
+              type="number" step="0.001" min="0.001" inputmode="decimal"
+              .value=${this.receiveQty}
+              @ionInput=${(e5) => this.receiveQty = String(e5.detail.value ?? "")}
+            ></ion-input>
+            <ion-input fill="outline" label-placement="floating" label=${t5("ui.receiveCost")}
+              type="number" step="0.01" min="0" inputmode="decimal"
+              .value=${this.receiveCost}
+              @ionInput=${(e5) => this.receiveCost = String(e5.detail.value ?? "")}
+            ></ion-input>
+            <ion-button expand="block" .disabled=${this.receiveQty.trim() === ""}
+              @click=${() => this.submitReceive()}>
+              ${t5("ui.receiveApply")}
+            </ion-button>
+          </div>
+        </ion-content>
+      </ion-modal>
     `;
   }
 };
@@ -4328,4 +4605,22 @@ __decorateClass([
 __decorateClass([
   r5()
 ], ErpInventoryProducts.prototype, "detail", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "countTarget", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "countValue", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "countReason", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "receiveTarget", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "receiveQty", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "receiveCost", 2);
 define("erp-inventory-products", ErpInventoryProducts);

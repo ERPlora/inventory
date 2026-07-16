@@ -7,6 +7,7 @@
       "inventory.products.list",
       "inventory.products.low_stock",
       "inventory.products.stats",
+      "inventory.stock.movements",
       "taxes.aliases.resolve",
       "taxes.categories.list"
     ],
@@ -17,6 +18,8 @@
       "inventory.products.create",
       "inventory.products.delete",
       "inventory.products.update",
+      "inventory.stock.adjust",
+      "inventory.stock.receive",
       "taxes.aliases.create",
       "taxes.categories.create"
     ],

@@ -66,6 +66,28 @@ fn as_i64(v: &Value, default: i64) -> i64 {
     }
 }
 
+/// Cantidad DECIMAL (#10): número o string numérico → f64 redondeado HALF_UP a 3
+/// decimales. Sustituye al truncado float→i64 que convertía 2,5 kg vendidos en 2.
+/// La exactitud plena (milli-unidades enteras) queda como decisión futura; el redondeo
+/// controlado en la frontera evita errores silenciosos.
+fn as_qty(v: &Value) -> f64 {
+    let raw = match v {
+        Value::Number(n) => n.as_f64().unwrap_or(0.0),
+        Value::String(s) => s.trim().parse::<f64>().unwrap_or(0.0),
+        _ => 0.0,
+    };
+    (raw * 1000.0).round() / 1000.0
+}
+
+/// Serializa una cantidad como JSON number sin ruido flotante (3 decimales máx).
+fn qty_json(q: f64) -> Value {
+    if q.fract() == 0.0 && q.abs() < 9.0e15 {
+        json!(q as i64)
+    } else {
+        json!(q)
+    }
+}
+
 fn opt_str(item: &Value, key: &str) -> Value {
     match item.get(key) {
         Some(Value::Null) | None => Value::Null,
@@ -132,18 +154,21 @@ pub fn receive_stock_pure(input: Value) -> Output {
     let (payload, _ids) = payload_context(&input);
     let empty: Vec<Value> = Vec::new();
     let items = payload.get("items").and_then(|v| v.as_array()).unwrap_or(&empty);
+    // Referencia del documento (albarán) — viaja a cada línea para el movimiento (#7).
+    let reference = payload.get("reference").cloned().unwrap_or(Value::Null);
 
     let mut ops: Vec<Operation> = Vec::new();
     for item in items.iter().take(MAX_RECEIVE) {
-        let qty = as_i64(item.get("qty").unwrap_or(&Value::Null), 0);
+        let qty = as_qty(item.get("qty").unwrap_or(&Value::Null)); // decimal (#10)
         let product_id = item.get("product_id").cloned().unwrap_or(Value::Null);
-        if qty <= 0 || product_id.is_null() {
+        if qty <= 0.0 || product_id.is_null() {
             continue; // líneas inválidas se omiten (el legacy las reporta; aquí se saltan)
         }
         let mut p = Map::new();
         p.insert("product_id".into(), product_id);
-        p.insert("qty".into(), json!(qty));
+        p.insert("qty".into(), qty_json(qty));
         p.insert("unit_cost".into(), item.get("unit_cost").cloned().unwrap_or(Value::Null));
+        p.insert("reference".into(), reference.clone());
         ops.push(Operation::sql("inventory._receive_line", p));
     }
     Output { operations: ops, events: vec![] }
@@ -190,6 +215,8 @@ pub fn decrease_on_sale_pure(input: Value) -> Output {
     }
     let empty: Vec<Value> = Vec::new();
     let items = payload.get("items").and_then(|v| v.as_array()).unwrap_or(&empty);
+    // Referencia al documento origen (#7): el movimiento `sale` del ledger la registra.
+    let sale_id = payload.get("sale_id").cloned().unwrap_or(Value::Null);
     let mut ops: Vec<Operation> = Vec::new();
     for it in items {
         let is_service = match it.get("is_service") {
@@ -202,13 +229,14 @@ pub fn decrease_on_sale_pure(input: Value) -> Output {
         if is_service || product_id.is_null() {
             continue;
         }
-        let qty = it.get("quantity").map(|v| as_i64(v, 0)).unwrap_or(0);
-        if qty <= 0 {
+        let qty = as_qty(it.get("quantity").unwrap_or(&Value::Null)); // decimal (#10)
+        if qty <= 0.0 {
             continue;
         }
         let mut p = Map::new();
         p.insert("product_id".into(), product_id);
-        p.insert("qty".into(), json!(qty));
+        p.insert("qty".into(), qty_json(qty));
+        p.insert("sale_id".into(), sale_id.clone());
         ops.push(Operation::sql("inventory.stock.decrease", p));
     }
     Output { operations: ops, events: vec![] }
@@ -352,5 +380,47 @@ mod tests {
         ]});
         let out = decrease_on_sale_pure(input_with_settings(payload, 0));
         assert!(out.operations.iter().all(|o| o.command != "inventory.stock.decrease"));
+    }
+
+    // ── Decimales (#10): fin del truncado float→i64 ──────────────────────────
+
+    /// Una venta de 2,5 kg descuenta 2,5 — no 2 (el bug de #10).
+    #[test]
+    fn decrease_on_sale_keeps_decimal_quantities() {
+        let payload = json!({ "sale_id": "s-90", "items": [
+            { "product_id": "p1", "quantity": 2.5, "is_service": false },
+            { "product_id": "p2", "quantity": 0.125, "is_service": false }
+        ]});
+        let out = decrease_on_sale_pure(json!({ "payload": payload, "context": { "new_ids": [] } }));
+        assert_eq!(out.operations.len(), 2);
+        assert_eq!(out.operations[0].params["qty"], json!(2.5));
+        // Redondeo CONTROLADO a 3 decimales en la frontera (HALF_UP), nunca truncado.
+        assert_eq!(out.operations[1].params["qty"], json!(0.125));
+        // La referencia al documento origen viaja en cada op (movimiento `sale`, #7).
+        assert_eq!(out.operations[0].params["sale_id"], json!("s-90"));
+    }
+
+    /// Cantidades con más de 3 decimales se redondean HALF_UP (no se truncan ni pasan crudas).
+    #[test]
+    fn decimal_quantities_round_half_up_to_3_decimals() {
+        let payload = json!({ "items": [
+            { "product_id": "p1", "quantity": 0.0005, "is_service": false },
+            { "product_id": "p2", "quantity": 1.23456, "is_service": false }
+        ]});
+        let out = decrease_on_sale_pure(json!({ "payload": payload, "context": { "new_ids": [] } }));
+        assert_eq!(out.operations[0].params["qty"], json!(0.001), "HALF_UP, no truncar a 0");
+        assert_eq!(out.operations[1].params["qty"], json!(1.235));
+    }
+
+    /// receive_stock acepta qty decimal (recepción de 1,75 kg) y pasa `reference` a cada línea.
+    #[test]
+    fn receive_stock_accepts_decimal_qty_and_reference() {
+        let payload = json!({ "reference": "ALB-77", "items": [
+            { "product_id": "p1", "qty": 1.75, "unit_cost": 300 }
+        ]});
+        let out = receive_stock_pure(merge(payload, ctx(0)));
+        assert_eq!(out.operations.len(), 1);
+        assert_eq!(out.operations[0].params["qty"], json!(1.75));
+        assert_eq!(out.operations[0].params["reference"], json!("ALB-77"));
     }
 }

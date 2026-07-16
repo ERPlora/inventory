@@ -12,6 +12,9 @@
     },
     "settings": {
       "label": "Ajustes"
+    },
+    "movements": {
+      "label": "Movimientos"
     }
   },
   "ui": {
@@ -59,6 +62,31 @@
     "statsWithoutCost": "producto(s) sin coste registrado: el valor mostrado es parcial",
     "statsError": "No se pudieron cargar las métricas del inventario.",
     "lowStockTitle": "Productos con stock bajo",
-    "lowStockEmpty": "Sin productos en stock bajo."
+    "lowStockEmpty": "Sin productos en stock bajo.",
+    "actionReceive": "Recibir",
+    "actionCount": "Recontar",
+    "countTitle": "Recuento",
+    "countCurrent": "Stock actual",
+    "countNew": "Stock contado",
+    "countDiff": "Diferencia",
+    "countReason": "Motivo (obligatorio)",
+    "countApply": "Aplicar recuento",
+    "receiveTitle": "Recepción",
+    "receiveQty": "Cantidad recibida",
+    "receiveCost": "Coste unitario (€)",
+    "receiveApply": "Registrar recepción",
+    "mvDate": "Fecha",
+    "mvType": "Tipo",
+    "mvQty": "Cantidad",
+    "mvStockAfter": "Saldo",
+    "mvReason": "Motivo",
+    "mvReference": "Referencia",
+    "mvEmpty": "Sin movimientos.",
+    "mvInitial": "Inicial",
+    "mvReception": "Recepción",
+    "mvSale": "Venta",
+    "mvVoid": "Anulación",
+    "mvCount": "Recuento",
+    "mvDecrease": "Descuento"
   }
 }

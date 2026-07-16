@@ -1,12 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "inventory.stock.adjust",
-  "description": "Ajuste de stock por delta (puede ser negativo; el SQL no baja de 0).",
+  "description": "Recuento/corrección ABSOLUTA (inventory#7): fija el stock contado. El motivo es obligatorio en correcciones manuales. `location_id` opcional (MVP ubicación única: se resuelve la predeterminada).",
   "type": "object",
   "additionalProperties": false,
-  "required": ["product_id", "delta"],
+  "required": ["product_id", "stock", "reason"],
   "properties": {
     "product_id": { "type": "string", "minLength": 1 },
-    "delta": { "type": "integer" }
+    "stock": { "type": "number", "minimum": 0 },
+    "reason": { "type": "string", "minLength": 3, "maxLength": 500 },
+    "location_id": { "type": ["string", "null"], "default": null }
   }
 }
