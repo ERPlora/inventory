@@ -1,12 +1,15 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "inventory.stock.decrease",
-  "description": "Descuento de stock de un producto por qty (>0; el SQL no baja de 0).",
+  "description": "Descuento de stock por qty (>0, decimales OK — #10), gobernado por los ajustes del hub (#6). `sale_id` referencia el documento origen (movimiento `sale`, #7); sin él es un `decrease` directo. `location_id` opcional (se resuelve la predeterminada).",
   "type": "object",
   "additionalProperties": false,
   "required": ["product_id", "qty"],
   "properties": {
     "product_id": { "type": "string", "minLength": 1 },
-    "qty": { "type": "number", "exclusiveMinimum": 0 }
+    "qty": { "type": "number", "exclusiveMinimum": 0 },
+    "sale_id": { "type": ["string", "null"], "default": null },
+    "reason": { "type": ["string", "null"], "default": null, "maxLength": 500 },
+    "location_id": { "type": ["string", "null"], "default": null }
   }
 }

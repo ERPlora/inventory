@@ -164,3 +164,63 @@ describe('el DETALLE de producto usa el mismo formateador que la lista (inventor
     expect(texto).toContain('2.20 €');
   });
 });
+
+describe('recepción y recuento desde la tabla (inventory#7)', () => {
+  it('las filas ofrecen las acciones receive y count', async () => {
+    const el = await montar();
+    const acts = (el as unknown as { actions: { id: string }[] }).actions.map((a) => a.id);
+    expect(acts).toContain('receive');
+    expect(acts).toContain('count');
+  });
+
+  it('el recuento muestra la DIFERENCIA antes de aplicar y manda adjust ABSOLUTO con motivo', async () => {
+    const el = await montar();
+    const wc = el as unknown as {
+      countTarget: Record<string, unknown> | null; countValue: string; countReason: string;
+      countDifference: number | null;
+      submitCount: () => Promise<void>; updateComplete: Promise<unknown>;
+    };
+    wc.countTarget = { id: 'p1', name: 'Café solo', sku: 'CAF', stock: 10 };
+    wc.countValue = '7';
+    await wc.updateComplete;
+    expect(wc.countDifference, 'la diferencia se enseña ANTES de aplicar (#7)').toBe(-3);
+
+    wc.countReason = 'recuento semanal';
+    await wc.submitCount();
+    const adj = comandos.find((c) => c.name === 'inventory.stock.adjust');
+    expect(adj, 'no se mandó el ajuste').toBeTruthy();
+    expect(adj!.payload.stock, 'el ajuste es ABSOLUTO (valor contado)').toBe(7);
+    expect(adj!.payload.reason).toBe('recuento semanal');
+  });
+
+  it('el recuento sin motivo NO se envía (motivo obligatorio)', async () => {
+    const el = await montar();
+    const wc = el as unknown as {
+      countTarget: Record<string, unknown> | null; countValue: string; countReason: string;
+      submitCount: () => Promise<void>;
+    };
+    wc.countTarget = { id: 'p1', stock: 10 };
+    wc.countValue = '7';
+    wc.countReason = '';
+    await wc.submitCount();
+    expect(comandos.find((c) => c.name === 'inventory.stock.adjust')).toBeFalsy();
+  });
+
+  it('recibir mercancía manda stock.receive con qty DECIMAL y coste en céntimos', async () => {
+    const el = await montar();
+    const wc = el as unknown as {
+      receiveTarget: Record<string, unknown> | null; receiveQty: string; receiveCost: string;
+      submitReceive: () => Promise<void>;
+    };
+    wc.receiveTarget = { id: 'p1', name: 'Café', sku: 'CAF', stock: 10 };
+    wc.receiveQty = '2.5';
+    wc.receiveCost = '1.80'; // euros tecleados → céntimos guardados (ADR-0007)
+    await wc.submitReceive();
+    const rec = comandos.find((c) => c.name === 'inventory.stock.receive');
+    expect(rec, 'no se mandó la recepción').toBeTruthy();
+    const item = (rec!.payload.items as Record<string, unknown>[])[0];
+    expect(item.product_id).toBe('p1');
+    expect(item.qty, 'cantidad decimal intacta (#10)').toBe(2.5);
+    expect(item.unit_cost, '1,80 € → 180 céntimos').toBe(180);
+  });
+});

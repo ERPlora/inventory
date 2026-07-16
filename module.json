@@ -27,7 +27,9 @@
     "inventory.delete_category",
     "inventory.export_product",
     "inventory.import_product",
-    "inventory.manage_settings"
+    "inventory.manage_settings",
+    "inventory.view_stock",
+    "inventory.adjust_stock"
   ],
   "role_permissions": {
     "admin": [
@@ -44,11 +46,14 @@
       "inventory.delete_category",
       "inventory.export_product",
       "inventory.import_product",
-      "inventory.manage_settings"
+      "inventory.manage_settings",
+      "inventory.view_stock",
+      "inventory.adjust_stock"
     ],
     "employee": [
       "inventory.view_product",
-      "inventory.view_category"
+      "inventory.view_category",
+      "inventory.view_stock"
     ]
   },
   "navigation": [
@@ -63,6 +68,12 @@
       "label": "Products",
       "icon": "cube",
       "component": "erp-inventory-products"
+    },
+    {
+      "id": "movements",
+      "label": "Movements",
+      "icon": "swap-vertical",
+      "component": "erp-inventory-movements"
     },
     {
       "id": "categories",
@@ -83,13 +94,15 @@
       "migrations/sqlite/001_init.sql",
       "migrations/sqlite/002_tax_rate_id.sql",
       "migrations/sqlite/003_void_restock.sql",
-      "migrations/sqlite/004_tax_category_key.sql"
+      "migrations/sqlite/004_tax_category_key.sql",
+      "migrations/sqlite/005_stock_ledger.sql"
     ],
     "postgres": [
       "migrations/postgres/001_init.sql",
       "migrations/postgres/002_tax_rate_id.sql",
       "migrations/postgres/003_void_restock.sql",
-      "migrations/postgres/004_tax_category_key.sql"
+      "migrations/postgres/004_tax_category_key.sql",
+      "migrations/postgres/005_stock_ledger.sql"
     ]
   },
   "queries": {
@@ -209,6 +222,44 @@
       "ai": {
         "description": "Returns inventory module settings (e.g. whether selling without stock is allowed)."
       }
+    },
+    "inventory.stock.movements": {
+      "permission": "inventory.view_stock",
+      "expose_api": true,
+      "sql": "queries/stock_movements.sql",
+      "list": {
+        "search": [
+          "product_name",
+          "sku",
+          "reference"
+        ],
+        "sort": [
+          "created_at",
+          "movement_type",
+          "qty",
+          "stock_after"
+        ],
+        "default_sort": "created_at",
+        "default_dir": "desc",
+        "filters": {
+          "product_id": {
+            "op": "eq"
+          },
+          "movement_type": {
+            "op": "eq"
+          },
+          "reference": {
+            "op": "eq"
+          },
+          "created_at": {
+            "op": "range"
+          }
+        },
+        "page_size": 50
+      },
+      "ai": {
+        "description": "Immutable stock movement ledger: receptions, sales, voids, counts — with delta, resulting balance, reason and source document reference."
+      }
     }
   },
   "commands": {
@@ -296,17 +347,19 @@
       }
     },
     "inventory.stock.adjust": {
-      "permission": "inventory.change_product",
+      "permission": "inventory.adjust_stock",
       "schema": "schemas/stock_adjust.json",
       "transaction": true,
       "sql": [
+        "commands/_ensure_location.sql",
+        "commands/_movement_on_adjust.sql",
         "commands/stock_adjust.sql"
       ],
       "emit": [
         "inventory.stock_changed"
       ],
       "ai": {
-        "description": "Adjusts a product's stock to an absolute value (inventory correction)."
+        "description": "Stock count/correction: sets the counted ABSOLUTE stock value (mandatory reason); the ledger records the difference."
       }
     },
     "inventory.stock.decrease": {
@@ -314,6 +367,8 @@
       "schema": "schemas/stock_decrease.json",
       "transaction": true,
       "sql": [
+        "commands/_ensure_location.sql",
+        "commands/_movement_on_decrease.sql",
         "commands/stock_decrease.sql"
       ],
       "emit": [
@@ -324,7 +379,7 @@
       }
     },
     "inventory.stock.receive": {
-      "permission": "inventory.change_product",
+      "permission": "inventory.adjust_stock",
       "schema": "schemas/stock_receive.json",
       "handler": {
         "type": "wasm",
@@ -423,6 +478,8 @@
     "inventory._receive_line": {
       "permission": "inventory.change_product",
       "sql": [
+        "commands/_ensure_location.sql",
+        "commands/_movement_on_receive.sql",
         "commands/_receive_line.sql"
       ]
     },
@@ -444,6 +501,7 @@
       "permission": "inventory.change_product",
       "transaction": true,
       "sql": [
+        "commands/_ensure_location.sql",
         "commands/_restock_on_void.sql"
       ]
     },

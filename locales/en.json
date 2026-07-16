@@ -12,6 +12,9 @@
     },
     "settings": {
       "label": "Settings"
+    },
+    "movements": {
+      "label": "Movements"
     }
   },
   "ui": {
@@ -59,6 +62,31 @@
     "statsWithoutCost": "product(s) without recorded cost: the value shown is partial",
     "statsError": "Inventory metrics could not be loaded.",
     "lowStockTitle": "Low stock products",
-    "lowStockEmpty": "No products in low stock."
+    "lowStockEmpty": "No products in low stock.",
+    "actionReceive": "Receive",
+    "actionCount": "Count",
+    "countTitle": "Stock count",
+    "countCurrent": "Current stock",
+    "countNew": "Counted stock",
+    "countDiff": "Difference",
+    "countReason": "Reason (required)",
+    "countApply": "Apply count",
+    "receiveTitle": "Goods receipt",
+    "receiveQty": "Quantity received",
+    "receiveCost": "Unit cost (€)",
+    "receiveApply": "Record receipt",
+    "mvDate": "Date",
+    "mvType": "Type",
+    "mvQty": "Quantity",
+    "mvStockAfter": "Balance",
+    "mvReason": "Reason",
+    "mvReference": "Reference",
+    "mvEmpty": "No movements.",
+    "mvInitial": "Initial",
+    "mvReception": "Reception",
+    "mvSale": "Sale",
+    "mvVoid": "Void",
+    "mvCount": "Count",
+    "mvDecrease": "Decrease"
   }
 }
