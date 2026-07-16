@@ -224,3 +224,162 @@ describe('recepción y recuento desde la tabla (inventory#7)', () => {
     expect(item.unit_cost, '1,80 € → 180 céntimos').toBe(180);
   });
 });
+
+describe('importador CSV: los errores se VEN, nunca parcial silencioso (inventory#13)', () => {
+  async function importarConResultado(rows: Record<string, string>[]) {
+    const el = await montar();
+    const wc = el as unknown as {
+      finalizeImport: (rows: Record<string, string>[], map: Map<string, string>) => Promise<void>;
+      importReport: { total: number; created: number; skipped: number;
+        failed: { line: number; sku: string; reason: string }[] } | null;
+      updateComplete: Promise<unknown>;
+    };
+    await wc.finalizeImport(rows, new Map());
+    return wc;
+  }
+
+  it('una fila inválida NO se traga: cuenta como fallida con su número de línea y motivo', async () => {
+    const wc = await importarConResultado([
+      { name: 'Café', sku: 'CAF-2', price: '2.20' },   // línea 1: válida
+      { name: '', sku: '', price: '1.00' },             // línea 2: sin name/sku
+      { name: 'Té', sku: 'TE-2', price: 'abc' },        // línea 3: precio no numérico
+    ]);
+    const rep = wc.importReport!;
+    expect(rep, 'debe existir un informe visible').toBeTruthy();
+    expect(rep.total).toBe(3);
+    expect(rep.created).toBe(1);
+    expect(rep.failed).toHaveLength(2);
+    // Línea FÍSICA del fichero (la cabecera es la 1): filas de datos = índice + 2.
+    expect(rep.failed[0].line).toBe(3);
+    expect(rep.failed[1].line).toBe(4);
+    expect(rep.failed[1].reason.length, 'motivo legible, no vacío').toBeGreaterThan(3);
+    // Solo la fila válida llegó al dispatcher.
+    expect(comandos.filter((c) => c.name === 'inventory.products.create')).toHaveLength(1);
+  });
+
+  it('SKU duplicado DENTRO del fichero: la segunda fila falla, no crea dos', async () => {
+    const wc = await importarConResultado([
+      { name: 'A', sku: 'DUP', price: '1.00' },
+      { name: 'B', sku: 'DUP', price: '2.00' },
+    ]);
+    expect(wc.importReport!.created).toBe(1);
+    expect(wc.importReport!.failed).toHaveLength(1);
+    expect(wc.importReport!.failed[0].line).toBe(3);
+  });
+
+  it('duplicado en BD (UNIQUE del runtime) cuenta como OMITIDA, y el resto sigue', async () => {
+    (globalThis as Record<string, unknown>).erplora = {
+      ...(globalThis as { erplora: object }).erplora,
+      command: async (name: string, payload: Record<string, unknown>) => {
+        comandos.push({ name, payload });
+        if (payload.sku === 'YA-EXISTE') throw new Error('UNIQUE constraint failed: inventory_product.sku');
+        return {};
+      },
+    };
+    const wc = await importarConResultado([
+      { name: 'Nuevo', sku: 'NUEVO', price: '1.00' },
+      { name: 'Viejo', sku: 'YA-EXISTE', price: '2.00' },
+    ]);
+    expect(wc.importReport!.created).toBe(1);
+    expect(wc.importReport!.skipped, 'el duplicado de BD se OMITE (política definida), no se calla').toBe(1);
+    expect(wc.importReport!.failed).toHaveLength(0);
+  });
+
+  it('el informe es copiable: texto con línea y motivo por fila fallida', async () => {
+    const wc = await importarConResultado([
+      { name: '', sku: '', price: '' },
+    ]) as unknown as { importReportText: () => string };
+    const texto = wc.importReportText();
+    expect(texto).toContain('2'); // línea 2 (1 = cabecera del CSV)
+    expect(texto.length).toBeGreaterThan(10);
+  });
+});
+
+describe('edición REAL de productos (inventory#8)', () => {
+  it('Editar carga la ficha completa (products.get) y el submit llama a UPDATE, no a create', async () => {
+    (globalThis as Record<string, unknown>).erplora = {
+      ...(globalThis as { erplora: object }).erplora,
+      query: async (name: string) =>
+        name === 'inventory.products.get'
+          ? [{ id: 'p1', name: 'Café solo', sku: 'CAF', price: 220, cost: 90, stock: 10,
+               low_stock_threshold: 5, ean13: '8412345678905', description: 'café de casa',
+               tax_category_key: null, is_active: 1, product_type: 'physical', image: '' }]
+          : name === 'inventory.product_categories'
+            ? [{ product_id: 'p1', category_id: 'c1' }]
+            : [],
+    };
+    const el = await montar();
+    const wc = el as unknown as {
+      onRowAction: (ev: CustomEvent) => Promise<void>;
+      editingId: string | null; newName: string; newDescription: string; newEan: string;
+      selectedCategoryIds: Set<string>;
+      createProduct: (ev: Event) => Promise<void>; updateComplete: Promise<unknown>;
+    };
+    await wc.onRowAction(new CustomEvent('rowAction', {
+      detail: { actionId: 'edit', row: { id: 'p1', name: 'Café solo', sku: 'CAF', price: 220 } },
+    }) as CustomEvent);
+    await wc.updateComplete;
+
+    expect(wc.editingId, 'estado de edición técnico y visible').toBe('p1');
+    expect(wc.newDescription, 'la ficha carga TODOS los campos (no solo 4)').toBe('café de casa');
+    expect(wc.newEan).toBe('8412345678905');
+    expect([...wc.selectedCategoryIds], 'las categorías actuales vienen pre-marcadas').toEqual(['c1']);
+
+    await wc.createProduct(new Event('submit'));
+    const upd = comandos.find((c) => c.name === 'inventory.products.update');
+    expect(upd, 'el submit en modo edición debe llamar a update').toBeTruthy();
+    expect(upd!.payload.product_id).toBe('p1');
+    expect(upd!.payload.description).toBe('café de casa');
+    expect(comandos.find((c) => c.name === 'inventory.products.create'),
+      'NUNCA create en modo edición (el bug de #8)').toBeFalsy();
+  });
+
+  it('cancelar la edición limpia el estado: el siguiente alta no hereda datos', async () => {
+    const el = await montar();
+    const wc = el as unknown as {
+      editingId: string | null; newName: string; cancelEdit: () => void;
+    };
+    wc.editingId = 'p1';
+    wc.newName = 'Viejo';
+    wc.cancelEdit();
+    expect(wc.editingId).toBeNull();
+    expect(wc.newName).toBe('');
+  });
+
+  it('la edición sincroniza el M2M: añade las categorías marcadas y quita las desmarcadas', async () => {
+    const el = await montar();
+    const wc = el as unknown as {
+      editingId: string | null; newName: string; newSku: string; newPrice: string;
+      selectedCategoryIds: Set<string>; initialCategoryIds: Set<string>;
+      createProduct: (ev: Event) => Promise<void>;
+    };
+    wc.editingId = 'p1';
+    wc.newName = 'Café';
+    wc.newSku = 'CAF';
+    wc.newPrice = '2.20';
+    wc.initialCategoryIds = new Set(['c1']);
+    wc.selectedCategoryIds = new Set(['c2']);
+    await wc.createProduct(new Event('submit'));
+    const added = comandos.find((c) => c.name === 'inventory.products.add_category');
+    const removed = comandos.find((c) => c.name === 'inventory.products.remove_category');
+    expect(added?.payload.category_id).toBe('c2');
+    expect(removed?.payload.category_id).toBe('c1');
+  });
+
+  it('un SKU duplicado al crear se explica junto al formulario (no genérico)', async () => {
+    (globalThis as Record<string, unknown>).erplora = {
+      ...(globalThis as { erplora: object }).erplora,
+      command: async () => { throw new Error('UNIQUE constraint failed: inventory_product.sku'); },
+    };
+    const el = await montar();
+    const wc = el as unknown as {
+      newName: string; newSku: string; newPrice: string; formError: string;
+      createProduct: (ev: Event) => Promise<void>;
+    };
+    wc.newName = 'Café';
+    wc.newSku = 'CAF';
+    wc.newPrice = '2.20';
+    await wc.createProduct(new Event('submit'));
+    expect(wc.formError).toBe('ui.errSkuTaken');
+  });
+});

@@ -1,17 +1,65 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "inventory.products.update",
-  "description": "Edición de producto (la UI envía el conjunto completo de campos editables).",
+  "description": "Edición de producto (inventory#8): la UI envía el conjunto COMPLETO de campos editables — obligatorios en el schema para que un caller que olvide uno falle alto en vez de borrar datos. El stock NO se edita aquí (autoridad del ledger #7: recuento/recepción). El SKU es identidad (no editable).",
   "type": "object",
   "additionalProperties": false,
-  "required": ["product_id", "name", "price", "cost", "low_stock_threshold", "is_active"],
+  "required": [
+    "product_id",
+    "name",
+    "price",
+    "cost",
+    "low_stock_threshold",
+    "ean13",
+    "description",
+    "is_active"
+  ],
   "properties": {
-    "product_id": { "type": "string", "minLength": 1 },
-    "name": { "type": "string", "minLength": 1, "maxLength": 200 },
-    "price": { "type": "integer", "minimum": 0 },
-    "cost": { "type": "integer", "minimum": 0 },
-    "low_stock_threshold": { "type": "integer", "minimum": 0 },
-    "tax_category_key": { "type": ["string", "null"], "default": null },
-    "is_active": { "type": "integer", "enum": [0, 1] }
+    "product_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "price": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "cost": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "low_stock_threshold": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "tax_category_key": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null
+    },
+    "is_active": {
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ]
+    },
+    "ean13": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 13
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 2000
+    }
   }
 }

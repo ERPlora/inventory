@@ -1336,6 +1336,248 @@ async function createCategoryWithAlias(client, key, name, aliasText) {
   return key;
 }
 
+// locales/es.json
+var es_default = {
+  name: "Inventario",
+  navigation: {
+    dashboard: {
+      label: "Panel"
+    },
+    products: {
+      label: "Productos"
+    },
+    categories: {
+      label: "Categor\xEDas"
+    },
+    settings: {
+      label: "Ajustes"
+    },
+    movements: {
+      label: "Movimientos"
+    }
+  },
+  ui: {
+    name: "Nombre",
+    sku: "SKU",
+    price: "Precio",
+    stock: "Stock",
+    active: "Activo",
+    category: "Categor\xEDa",
+    addProduct: "A\xF1adir producto",
+    newProduct: "Nuevo producto",
+    editProduct: "Editar producto",
+    lowStock: "Stock bajo",
+    searchProduct: "Buscar producto\u2026",
+    noProducts: "Sin productos",
+    taxRate: "Tipo de IVA / Impuesto",
+    taxDefault: "\u2014 (por defecto)",
+    taxGroup: "grupo",
+    save: "Guardar",
+    cancel: "Cancelar",
+    delete: "Borrar",
+    yes: "S\xED",
+    no: "No",
+    actionDetail: "Detalles",
+    actionEdit: "Editar",
+    actionDelete: "Eliminar",
+    importTaxTitle: "Categor\xEDas fiscales del CSV",
+    importTaxHint: "Algunos textos de categor\xEDa del CSV no se reconocen. Elige una categor\xEDa existente o crea una nueva; se recordar\xE1 para futuras importaciones.",
+    importPick: "Elegir",
+    importCreate: "Crear",
+    importSkip: "Omitir",
+    importConfirm: "Confirmar e importar",
+    btnCancel: "Cancelar",
+    colCategory: "Categor\xEDa",
+    colKey: "Clave",
+    colName: "Nombre",
+    threshold: "Umbral",
+    loading: "Cargando\u2026",
+    statsTracked: "Productos seguidos",
+    statsInStock: "En stock",
+    statsOutOfStock: "Agotados",
+    statsLowStock: "Stock bajo",
+    statsValue: "Valor de existencias",
+    statsValueAtCost: "a coste",
+    statsWithoutCost: "producto(s) sin coste registrado: el valor mostrado es parcial",
+    statsError: "No se pudieron cargar las m\xE9tricas del inventario.",
+    lowStockTitle: "Productos con stock bajo",
+    lowStockEmpty: "Sin productos en stock bajo.",
+    actionReceive: "Recibir",
+    actionCount: "Recontar",
+    countTitle: "Recuento",
+    countCurrent: "Stock actual",
+    countNew: "Stock contado",
+    countDiff: "Diferencia",
+    countReason: "Motivo (obligatorio)",
+    countApply: "Aplicar recuento",
+    receiveTitle: "Recepci\xF3n",
+    receiveQty: "Cantidad recibida",
+    receiveCost: "Coste unitario (\u20AC)",
+    receiveApply: "Registrar recepci\xF3n",
+    mvDate: "Fecha",
+    mvType: "Tipo",
+    mvQty: "Cantidad",
+    mvStockAfter: "Saldo",
+    mvReason: "Motivo",
+    mvReference: "Referencia",
+    mvEmpty: "Sin movimientos.",
+    mvInitial: "Inicial",
+    mvReception: "Recepci\xF3n",
+    mvSale: "Venta",
+    mvVoid: "Anulaci\xF3n",
+    mvCount: "Recuento",
+    mvDecrease: "Descuento",
+    importErrNameSku: "Faltan nombre o SKU",
+    importErrPrice: "Precio no num\xE9rico",
+    importErrDupFile: "SKU duplicado en el fichero",
+    importReportTitle: "Resultado de la importaci\xF3n",
+    importTotal: "Filas",
+    importCreated: "Creadas",
+    importSkipped: "Omitidas (ya exist\xEDan)",
+    importFailed: "Fallidas",
+    importLine: "L\xEDnea",
+    importCopy: "Copiar informe",
+    editingTitle: "Editando producto",
+    editingCancel: "Cancelar edici\xF3n",
+    skuIdentity: "El SKU es la identidad del producto: no se edita",
+    fieldCost: "Coste (\u20AC)",
+    fieldInitialStock: "Stock inicial",
+    fieldThreshold: "Umbral stock bajo",
+    fieldDescription: "Descripci\xF3n",
+    fieldType: "Tipo",
+    typePhysical: "F\xEDsico",
+    typeService: "Servicio",
+    fieldCategories: "Categor\xEDas",
+    saveChanges: "Guardar cambios",
+    errSkuTaken: "Ese SKU ya existe en el cat\xE1logo",
+    errEanTaken: "Ese EAN ya existe en el cat\xE1logo",
+    deleteCatTitle: "Eliminar categor\xEDa",
+    deleteCatImpact: "producto(s) quedar\xE1n sin esta categor\xEDa (se desvinculan; los productos no se borran)",
+    deleteCatConfirm: "Eliminar y desvincular"
+  }
+};
+
+// locales/en.json
+var en_default = {
+  name: "Inventory",
+  navigation: {
+    dashboard: {
+      label: "Dashboard"
+    },
+    products: {
+      label: "Products"
+    },
+    categories: {
+      label: "Categories"
+    },
+    settings: {
+      label: "Settings"
+    },
+    movements: {
+      label: "Movements"
+    }
+  },
+  ui: {
+    name: "Name",
+    sku: "SKU",
+    price: "Price",
+    stock: "Stock",
+    active: "Active",
+    category: "Category",
+    addProduct: "Add product",
+    newProduct: "New product",
+    editProduct: "Edit product",
+    lowStock: "Low stock",
+    searchProduct: "Search product\u2026",
+    noProducts: "No products",
+    taxRate: "Tax rate",
+    taxDefault: "\u2014 (default)",
+    taxGroup: "group",
+    save: "Save",
+    cancel: "Cancel",
+    delete: "Delete",
+    yes: "Yes",
+    no: "No",
+    actionDetail: "Details",
+    actionEdit: "Edit",
+    actionDelete: "Delete",
+    importTaxTitle: "CSV tax categories",
+    importTaxHint: "Some category texts in the CSV aren't recognized. Pick an existing category or create a new one; it will be remembered for future imports.",
+    importPick: "Pick",
+    importCreate: "Create",
+    importSkip: "Skip",
+    importConfirm: "Confirm & import",
+    btnCancel: "Cancel",
+    colCategory: "Category",
+    colKey: "Key",
+    colName: "Name",
+    threshold: "Threshold",
+    loading: "Loading\u2026",
+    statsTracked: "Tracked products",
+    statsInStock: "In stock",
+    statsOutOfStock: "Out of stock",
+    statsLowStock: "Low stock",
+    statsValue: "Inventory value",
+    statsValueAtCost: "at cost",
+    statsWithoutCost: "product(s) without recorded cost: the value shown is partial",
+    statsError: "Inventory metrics could not be loaded.",
+    lowStockTitle: "Low stock products",
+    lowStockEmpty: "No products in low stock.",
+    actionReceive: "Receive",
+    actionCount: "Count",
+    countTitle: "Stock count",
+    countCurrent: "Current stock",
+    countNew: "Counted stock",
+    countDiff: "Difference",
+    countReason: "Reason (required)",
+    countApply: "Apply count",
+    receiveTitle: "Goods receipt",
+    receiveQty: "Quantity received",
+    receiveCost: "Unit cost (\u20AC)",
+    receiveApply: "Record receipt",
+    mvDate: "Date",
+    mvType: "Type",
+    mvQty: "Quantity",
+    mvStockAfter: "Balance",
+    mvReason: "Reason",
+    mvReference: "Reference",
+    mvEmpty: "No movements.",
+    mvInitial: "Initial",
+    mvReception: "Reception",
+    mvSale: "Sale",
+    mvVoid: "Void",
+    mvCount: "Count",
+    mvDecrease: "Decrease",
+    importErrNameSku: "Missing name or SKU",
+    importErrPrice: "Non-numeric price",
+    importErrDupFile: "Duplicate SKU in file",
+    importReportTitle: "Import result",
+    importTotal: "Rows",
+    importCreated: "Created",
+    importSkipped: "Skipped (already existed)",
+    importFailed: "Failed",
+    importLine: "Line",
+    importCopy: "Copy report",
+    editingTitle: "Editing product",
+    editingCancel: "Cancel editing",
+    skuIdentity: "SKU is the product identity: not editable",
+    fieldCost: "Cost (\u20AC)",
+    fieldInitialStock: "Initial stock",
+    fieldThreshold: "Low stock threshold",
+    fieldDescription: "Description",
+    fieldType: "Type",
+    typePhysical: "Physical",
+    typeService: "Service",
+    fieldCategories: "Categories",
+    saveChanges: "Save changes",
+    errSkuTaken: "That SKU already exists in the catalog",
+    errEanTaken: "That EAN already exists in the catalog",
+    deleteCatTitle: "Delete category",
+    deleteCatImpact: "product(s) will lose this category (unlinked; products are kept)",
+    deleteCatConfirm: "Delete and unlink"
+  }
+};
+
 // ../../../../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/node_modules/.pnpm/@erplora+outfitkit@file+..+outfitkit/node_modules/@erplora/outfitkit/dist/define.js
 function define(tag, ctor) {
   if (typeof customElements !== "undefined" && !customElements.get(tag)) {
@@ -3066,6 +3308,7 @@ function centsToEuros(cents) {
 }
 
 // ui/components/erp-inventory-categories/erp-inventory-categories.ts
+var CATALOG = { es: es_default, en: en_default };
 function erplora() {
   const c5 = globalThis.erplora;
   if (!c5) throw new Error("erplora SDK no inicializado por el shell");
@@ -3080,6 +3323,11 @@ var ErpInventoryCategories = class extends i3 {
     this.taxRates = [];
     this.saving = false;
     this.formError = "";
+    this.editingId = null;
+    // Fila completa en edición: preserva los campos que el form no expone (icon/color/order).
+    this.editRow = null;
+    this.deleteTarget = null;
+    this.deleteImpact = 0;
     this.columns = [
       { key: "name", header: "Nombre", sortable: true, filterable: true, filterType: "text" },
       { key: "slug", header: "Slug", sortable: true, filterable: true, filterType: "text" },
@@ -3132,18 +3380,45 @@ var ErpInventoryCategories = class extends i3 {
     const { actionId, row } = ev.detail;
     const c5 = row;
     if (actionId === "edit") {
+      this.editingId = c5.id;
+      this.editRow = row;
       this.newName = c5.name;
       this.newSlug = c5.slug;
       this.newTaxRateId = c5.tax_category_key ?? "";
       this.dataTable()?.open("create");
     } else if (actionId === "delete") {
+      let impact = 0;
       try {
-        await erplora().command("inventory.categories.delete", { category_id: c5.id });
-        await this.ctrl.load();
-      } catch (e5) {
-        this.formError = e5 instanceof Error ? e5.message : "No se pudo eliminar";
+        const links = await erplora().query("inventory.product_categories");
+        impact = (Array.isArray(links) ? links : []).filter((l3) => l3.category_id === c5.id).length;
+      } catch {
+        impact = 0;
       }
+      this.deleteImpact = impact;
+      this.deleteTarget = c5;
     }
+  }
+  /** Ejecuta el borrado confirmado (política definida: DESVINCULAR; los productos siguen). */
+  async confirmDelete() {
+    if (!this.deleteTarget) return;
+    try {
+      await erplora().command("inventory.categories.delete", { category_id: this.deleteTarget.id });
+      this.deleteTarget = null;
+      this.deleteImpact = 0;
+      await this.ctrl.load();
+    } catch (e5) {
+      this.formError = e5 instanceof Error ? e5.message : "No se pudo eliminar";
+      this.deleteTarget = null;
+    }
+  }
+  /** Vuelve al modo ALTA limpio (inventory#8). */
+  cancelEdit() {
+    this.editingId = null;
+    this.editRow = null;
+    this.newName = "";
+    this.newSlug = "";
+    this.newTaxRateId = "";
+    this.formError = "";
   }
   dataTable() {
     return this.renderRoot.querySelector("ok-data-table");
@@ -3187,24 +3462,42 @@ var ErpInventoryCategories = class extends i3 {
     }
     await this.ctrl.load();
   }
+  // Submit del form: alta O edición según `editingId` (inventory#8 — antes editar
+  // llamaba a create y duplicaba la categoría en silencio).
   async create(ev) {
     ev.preventDefault();
     if (!this.newName.trim()) return;
     this.saving = true;
     this.formError = "";
     try {
-      await erplora().command("inventory.categories.create", {
-        name: this.newName.trim(),
-        slug: this.newSlug.trim() || this.newName.trim().toLowerCase().replace(/\s+/g, "-"),
-        tax_category_key: this.newTaxRateId || null
-      });
-      this.newName = "";
-      this.newSlug = "";
-      this.newTaxRateId = "";
+      const slug = this.newSlug.trim() || this.newName.trim().toLowerCase().replace(/\s+/g, "-");
+      if (this.editingId) {
+        const r6 = this.editRow ?? {};
+        await erplora().command("inventory.categories.update", {
+          category_id: this.editingId,
+          name: this.newName.trim(),
+          slug,
+          // Campos no editados en el form: se reenvían para que los defaults del schema
+          // no los machaquen (inventory#8).
+          icon: r6.icon ?? "cube-outline",
+          color: r6.color ?? "#3880ff",
+          description: r6.description ?? "",
+          order: Number(r6.order ?? 0),
+          is_active: Number(r6.is_active ?? 1),
+          tax_category_key: this.newTaxRateId || null
+        });
+      } else {
+        await erplora().command("inventory.categories.create", {
+          name: this.newName.trim(),
+          slug,
+          tax_category_key: this.newTaxRateId || null
+        });
+      }
+      this.cancelEdit();
       this.dataTable()?.close();
       await this.ctrl.load();
     } catch (e5) {
-      this.formError = e5 instanceof Error ? e5.message : "No se pudo crear";
+      this.formError = e5 instanceof Error ? e5.message : "No se pudo guardar";
     } finally {
       this.saving = false;
     }
@@ -3266,11 +3559,35 @@ var ErpInventoryCategories = class extends i3 {
             >
               ${this.taxOptions()}
             </ion-select>
+            ${this.editingId ? b2`<ion-button size="small" fill="clear" @click=${() => this.cancelEdit()}>
+                  ${erplora().t(CATALOG, "ui.editingCancel")}
+                </ion-button>` : A}
             <ion-button type="submit" ?disabled=${this.saving || !this.newName}>
-              ${this.saving ? "Guardando\u2026" : "Guardar"}
+              ${this.saving ? "Guardando\u2026" : this.editingId ? erplora().t(CATALOG, "ui.saveChanges") : "Guardar"}
             </ion-button>
           </form>
         </ok-data-table>
+
+        <!-- Confirmación de borrado con IMPACTO (inventory#8): política = desvincular. -->
+        <ion-modal .isOpen=${!!this.deleteTarget} @ionModalDidDismiss=${() => this.deleteTarget = null}>
+          <ion-header class="ion-no-border">
+            <ion-toolbar>
+              <ion-title>${erplora().t(CATALOG, "ui.deleteCatTitle")}</ion-title>
+            </ion-toolbar>
+          </ion-header>
+          <ion-content class="ion-padding">
+            <p>
+              <b>${this.deleteTarget?.name ?? ""}</b> —
+              ${this.deleteImpact} ${erplora().t(CATALOG, "ui.deleteCatImpact")}
+            </p>
+            <ion-button expand="block" color="danger" @click=${() => this.confirmDelete()}>
+              ${erplora().t(CATALOG, "ui.deleteCatConfirm")}
+            </ion-button>
+            <ion-button expand="block" fill="outline" @click=${() => this.deleteTarget = null}>
+              ${erplora().t(CATALOG, "ui.btnCancel")}
+            </ion-button>
+          </ion-content>
+        </ion-modal>
       </div>
     `;
   }
@@ -3293,6 +3610,15 @@ __decorateClass([
 __decorateClass([
   r5()
 ], ErpInventoryCategories.prototype, "formError", 2);
+__decorateClass([
+  r5()
+], ErpInventoryCategories.prototype, "editingId", 2);
+__decorateClass([
+  r5()
+], ErpInventoryCategories.prototype, "deleteTarget", 2);
+__decorateClass([
+  r5()
+], ErpInventoryCategories.prototype, "deleteImpact", 2);
 define("erp-inventory-categories", ErpInventoryCategories);
 
 // ../../../../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/node_modules/.pnpm/@erplora+outfitkit@file+..+outfitkit/node_modules/@erplora/outfitkit/dist/ok-kpi.js
@@ -3438,196 +3764,8 @@ __decorateClass3([
 ], OkKpi.prototype, "icon");
 define("ok-kpi", OkKpi);
 
-// locales/es.json
-var es_default = {
-  name: "Inventario",
-  navigation: {
-    dashboard: {
-      label: "Panel"
-    },
-    products: {
-      label: "Productos"
-    },
-    categories: {
-      label: "Categor\xEDas"
-    },
-    settings: {
-      label: "Ajustes"
-    },
-    movements: {
-      label: "Movimientos"
-    }
-  },
-  ui: {
-    name: "Nombre",
-    sku: "SKU",
-    price: "Precio",
-    stock: "Stock",
-    active: "Activo",
-    category: "Categor\xEDa",
-    addProduct: "A\xF1adir producto",
-    newProduct: "Nuevo producto",
-    editProduct: "Editar producto",
-    lowStock: "Stock bajo",
-    searchProduct: "Buscar producto\u2026",
-    noProducts: "Sin productos",
-    taxRate: "Tipo de IVA / Impuesto",
-    taxDefault: "\u2014 (por defecto)",
-    taxGroup: "grupo",
-    save: "Guardar",
-    cancel: "Cancelar",
-    delete: "Borrar",
-    yes: "S\xED",
-    no: "No",
-    actionDetail: "Detalles",
-    actionEdit: "Editar",
-    actionDelete: "Eliminar",
-    importTaxTitle: "Categor\xEDas fiscales del CSV",
-    importTaxHint: "Algunos textos de categor\xEDa del CSV no se reconocen. Elige una categor\xEDa existente o crea una nueva; se recordar\xE1 para futuras importaciones.",
-    importPick: "Elegir",
-    importCreate: "Crear",
-    importSkip: "Omitir",
-    importConfirm: "Confirmar e importar",
-    btnCancel: "Cancelar",
-    colCategory: "Categor\xEDa",
-    colKey: "Clave",
-    colName: "Nombre",
-    threshold: "Umbral",
-    loading: "Cargando\u2026",
-    statsTracked: "Productos seguidos",
-    statsInStock: "En stock",
-    statsOutOfStock: "Agotados",
-    statsLowStock: "Stock bajo",
-    statsValue: "Valor de existencias",
-    statsValueAtCost: "a coste",
-    statsWithoutCost: "producto(s) sin coste registrado: el valor mostrado es parcial",
-    statsError: "No se pudieron cargar las m\xE9tricas del inventario.",
-    lowStockTitle: "Productos con stock bajo",
-    lowStockEmpty: "Sin productos en stock bajo.",
-    actionReceive: "Recibir",
-    actionCount: "Recontar",
-    countTitle: "Recuento",
-    countCurrent: "Stock actual",
-    countNew: "Stock contado",
-    countDiff: "Diferencia",
-    countReason: "Motivo (obligatorio)",
-    countApply: "Aplicar recuento",
-    receiveTitle: "Recepci\xF3n",
-    receiveQty: "Cantidad recibida",
-    receiveCost: "Coste unitario (\u20AC)",
-    receiveApply: "Registrar recepci\xF3n",
-    mvDate: "Fecha",
-    mvType: "Tipo",
-    mvQty: "Cantidad",
-    mvStockAfter: "Saldo",
-    mvReason: "Motivo",
-    mvReference: "Referencia",
-    mvEmpty: "Sin movimientos.",
-    mvInitial: "Inicial",
-    mvReception: "Recepci\xF3n",
-    mvSale: "Venta",
-    mvVoid: "Anulaci\xF3n",
-    mvCount: "Recuento",
-    mvDecrease: "Descuento"
-  }
-};
-
-// locales/en.json
-var en_default = {
-  name: "Inventory",
-  navigation: {
-    dashboard: {
-      label: "Dashboard"
-    },
-    products: {
-      label: "Products"
-    },
-    categories: {
-      label: "Categories"
-    },
-    settings: {
-      label: "Settings"
-    },
-    movements: {
-      label: "Movements"
-    }
-  },
-  ui: {
-    name: "Name",
-    sku: "SKU",
-    price: "Price",
-    stock: "Stock",
-    active: "Active",
-    category: "Category",
-    addProduct: "Add product",
-    newProduct: "New product",
-    editProduct: "Edit product",
-    lowStock: "Low stock",
-    searchProduct: "Search product\u2026",
-    noProducts: "No products",
-    taxRate: "Tax rate",
-    taxDefault: "\u2014 (default)",
-    taxGroup: "group",
-    save: "Save",
-    cancel: "Cancel",
-    delete: "Delete",
-    yes: "Yes",
-    no: "No",
-    actionDetail: "Details",
-    actionEdit: "Edit",
-    actionDelete: "Delete",
-    importTaxTitle: "CSV tax categories",
-    importTaxHint: "Some category texts in the CSV aren't recognized. Pick an existing category or create a new one; it will be remembered for future imports.",
-    importPick: "Pick",
-    importCreate: "Create",
-    importSkip: "Skip",
-    importConfirm: "Confirm & import",
-    btnCancel: "Cancel",
-    colCategory: "Category",
-    colKey: "Key",
-    colName: "Name",
-    threshold: "Threshold",
-    loading: "Loading\u2026",
-    statsTracked: "Tracked products",
-    statsInStock: "In stock",
-    statsOutOfStock: "Out of stock",
-    statsLowStock: "Low stock",
-    statsValue: "Inventory value",
-    statsValueAtCost: "at cost",
-    statsWithoutCost: "product(s) without recorded cost: the value shown is partial",
-    statsError: "Inventory metrics could not be loaded.",
-    lowStockTitle: "Low stock products",
-    lowStockEmpty: "No products in low stock.",
-    actionReceive: "Receive",
-    actionCount: "Count",
-    countTitle: "Stock count",
-    countCurrent: "Current stock",
-    countNew: "Counted stock",
-    countDiff: "Difference",
-    countReason: "Reason (required)",
-    countApply: "Apply count",
-    receiveTitle: "Goods receipt",
-    receiveQty: "Quantity received",
-    receiveCost: "Unit cost (\u20AC)",
-    receiveApply: "Record receipt",
-    mvDate: "Date",
-    mvType: "Type",
-    mvQty: "Quantity",
-    mvStockAfter: "Balance",
-    mvReason: "Reason",
-    mvReference: "Reference",
-    mvEmpty: "No movements.",
-    mvInitial: "Initial",
-    mvReception: "Reception",
-    mvSale: "Sale",
-    mvVoid: "Void",
-    mvCount: "Count",
-    mvDecrease: "Decrease"
-  }
-};
-
 // ui/components/erp-inventory-dashboard/erp-inventory-dashboard.ts
-var CATALOG = { es: es_default, en: en_default };
+var CATALOG2 = { es: es_default, en: en_default };
 function erplora2() {
   const c5 = globalThis.erplora;
   if (!c5) throw new Error("erplora SDK no inicializado por el shell");
@@ -3654,7 +3792,7 @@ var ErpInventoryDashboard = class extends i3 {
   }
   /** Columnas = las que `low_stock.sql` proyecta (nada de `price`: no viene, era NaN). */
   get columns() {
-    const t5 = (k2) => erplora2().t(CATALOG, k2);
+    const t5 = (k2) => erplora2().t(CATALOG2, k2);
     return [
       { key: "name", header: t5("ui.name") },
       { key: "sku", header: t5("ui.sku") },
@@ -3682,7 +3820,7 @@ var ErpInventoryDashboard = class extends i3 {
     await this.ctrl.load();
   }
   kpis() {
-    const t5 = (k2) => erplora2().t(CATALOG, k2);
+    const t5 = (k2) => erplora2().t(CATALOG2, k2);
     const s5 = this.stats;
     const n6 = (v3) => String(v3 ?? 0);
     const productsHref = "/m/inventory/products";
@@ -3698,7 +3836,7 @@ var ErpInventoryDashboard = class extends i3 {
     `;
   }
   render() {
-    const t5 = (k2) => erplora2().t(CATALOG, k2);
+    const t5 = (k2) => erplora2().t(CATALOG2, k2);
     return b2`
       <div>
         ${this.statsLoading ? b2`<p class="state">${t5("ui.loading")}</p>` : A}
@@ -3736,7 +3874,7 @@ __decorateClass([
 define("erp-inventory-dashboard", ErpInventoryDashboard);
 
 // ui/components/erp-inventory-movements/erp-inventory-movements.ts
-var CATALOG2 = { es: es_default, en: en_default };
+var CATALOG3 = { es: es_default, en: en_default };
 function erplora3() {
   const c5 = globalThis.erplora;
   if (!c5) throw new Error("erplora SDK no inicializado por el shell");
@@ -3753,7 +3891,7 @@ var ErpInventoryMovements = class extends i3 {
   `;
   }
   get columns() {
-    const t5 = (k2) => erplora3().t(CATALOG2, k2);
+    const t5 = (k2) => erplora3().t(CATALOG3, k2);
     const typeKey = (mt) => {
       const map = {
         initial: "ui.mvInitial",
@@ -3800,7 +3938,7 @@ var ErpInventoryMovements = class extends i3 {
     await this.ctrl.load();
   }
   render() {
-    const t5 = (k2) => erplora3().t(CATALOG2, k2);
+    const t5 = (k2) => erplora3().t(CATALOG3, k2);
     return b2`
       ${this.ctrl?.error ? b2`<p>${this.ctrl.error}</p>` : A}
       <ok-data-table
@@ -3963,7 +4101,7 @@ function code128b(text, module = 2, height = 70) {
 }
 
 // ui/components/erp-inventory-products/erp-inventory-products.ts
-var CATALOG3 = { es: es_default, en: en_default };
+var CATALOG4 = { es: es_default, en: en_default };
 function erplora4() {
   const c5 = globalThis.erplora;
   if (!c5) throw new Error("erplora SDK no inicializado por el shell");
@@ -3976,6 +4114,17 @@ var ErpInventoryProducts = class extends i3 {
     this.newSku = "";
     this.newPrice = "";
     this.newTaxCategoryKey = "";
+    this.newCost = "";
+    this.newStock = "";
+    this.newThreshold = "";
+    this.newEan = "";
+    this.newDescription = "";
+    this.newType = "physical";
+    this.newActive = true;
+    this.editingId = null;
+    this.selectedCategoryIds = /* @__PURE__ */ new Set();
+    this.initialCategoryIds = /* @__PURE__ */ new Set();
+    this.productCategories = [];
     this.taxCategories = [];
     this.saving = false;
     this.formError = "";
@@ -3984,6 +4133,7 @@ var ErpInventoryProducts = class extends i3 {
     this.importMap = /* @__PURE__ */ new Map();
     this.importUnresolved = [];
     this.importChoice = {};
+    this.importReport = null;
     this.detail = null;
     this.countTarget = null;
     this.countValue = "";
@@ -4019,7 +4169,7 @@ var ErpInventoryProducts = class extends i3 {
   // Getter (no campo): se re-evalúa en cada render, así los textos cambian con el idioma activo
   // (ADR-0055). `connectedCallback` re-renderiza al recibir `erplora:locale-changed`.
   get columns() {
-    const t5 = (k2) => erplora4().t(CATALOG3, k2);
+    const t5 = (k2) => erplora4().t(CATALOG4, k2);
     return [
       { key: "name", header: t5("ui.name"), sortable: true, filterable: true, filterType: "text" },
       { key: "sku", header: t5("ui.sku"), sortable: true, filterable: true, filterType: "text" },
@@ -4102,7 +4252,7 @@ var ErpInventoryProducts = class extends i3 {
   }
   // Acciones por fila (botones) → la tabla emite `rowAction` con { actionId, row }. Getter (i18n).
   get actions() {
-    const t5 = (k2) => erplora4().t(CATALOG3, k2);
+    const t5 = (k2) => erplora4().t(CATALOG4, k2);
     return [
       { id: "detail", label: t5("ui.actionDetail"), icon: "eye-outline" },
       { id: "receive", label: t5("ui.actionReceive"), icon: "download-outline" },
@@ -4123,10 +4273,27 @@ var ErpInventoryProducts = class extends i3 {
       this.countValue = "";
       this.countReason = "";
     } else if (actionId === "edit") {
-      this.newName = p4.name;
-      this.newSku = p4.sku;
-      this.newPrice = centsToEuros(p4.price);
-      this.newTaxCategoryKey = p4.tax_category_key ?? "";
+      this.editingId = p4.id;
+      try {
+        const full = (await erplora4().query("inventory.products.get", { product_id: p4.id }))?.[0] ?? p4;
+        this.newName = full.name ?? "";
+        this.newSku = full.sku ?? "";
+        this.newPrice = centsToEuros(full.price);
+        this.newCost = centsToEuros(full.cost ?? 0);
+        this.newThreshold = String(full.low_stock_threshold ?? 10);
+        this.newEan = String(full.ean13 ?? "");
+        this.newDescription = String(full.description ?? "");
+        this.newType = full.product_type === "service" ? "service" : "physical";
+        this.newActive = Number(full.is_active ?? 1) === 1;
+        this.newTaxCategoryKey = full.tax_category_key ?? "";
+        const links = await erplora4().query("inventory.product_categories");
+        const mine = (Array.isArray(links) ? links : []).filter((l3) => l3.product_id === p4.id).map((l3) => l3.category_id);
+        this.initialCategoryIds = new Set(mine);
+        this.selectedCategoryIds = new Set(mine);
+      } catch {
+        this.initialCategoryIds = /* @__PURE__ */ new Set();
+        this.selectedCategoryIds = /* @__PURE__ */ new Set();
+      }
       this.dataTable()?.open("create");
     } else if (actionId === "delete") {
       try {
@@ -4140,12 +4307,15 @@ var ErpInventoryProducts = class extends i3 {
   async toggleActive(p4, ev) {
     const checked = ev.target.checked;
     try {
+      const full = (await erplora4().query("inventory.products.get", { product_id: p4.id }))?.[0] ?? {};
       await erplora4().command("inventory.products.update", {
         product_id: p4.id,
         name: p4.name,
         price: p4.price,
         cost: p4.cost ?? 0,
         low_stock_threshold: p4.low_stock_threshold ?? 10,
+        ean13: full.ean13 ?? null,
+        description: full.description ?? "",
         tax_category_key: p4.tax_category_key ?? null,
         is_active: checked ? 1 : 0
       });
@@ -4212,18 +4382,42 @@ var ErpInventoryProducts = class extends i3 {
     await this.finalizeImport(this.importRows, map);
   }
   // Crea un producto por fila enlazando su tax_category_key resuelto (o null = sin categoría).
+  // Importa fila a fila con VALIDACIÓN previa e informe VISIBLE (inventory#13): nada de
+  // `catch {}` — cada fila acaba en creada / omitida (duplicado en BD, política definida:
+  // se salta y se cuenta, reintentable) / fallida (con línea FÍSICA del fichero y motivo).
+  // El resumen se enseña en un modal y es copiable para corregir y reintentar.
   async finalizeImport(rows, map) {
-    let linked = 0;
-    for (const r6 of rows) {
-      if (!r6.name && !r6.sku) continue;
+    const t5 = (k2) => erplora4().t(CATALOG4, k2);
+    const failed = [];
+    let created = 0;
+    let skipped = 0;
+    const seenSkus = /* @__PURE__ */ new Set();
+    for (let i7 = 0; i7 < rows.length; i7++) {
+      const r6 = rows[i7];
+      const line = i7 + 2;
+      const sku = (r6.sku ?? "").trim();
+      const name = (r6.name ?? "").trim();
+      if (!name || !sku) {
+        failed.push({ line, sku, reason: t5("ui.importErrNameSku") });
+        continue;
+      }
+      const price = eurosToCents(r6.price);
+      if (r6.price !== void 0 && r6.price.trim() !== "" && !Number.isFinite(Number(r6.price))) {
+        failed.push({ line, sku, reason: t5("ui.importErrPrice") });
+        continue;
+      }
+      if (seenSkus.has(sku)) {
+        failed.push({ line, sku, reason: t5("ui.importErrDupFile") });
+        continue;
+      }
+      seenSkus.add(sku);
       const taxValue = pickTaxValue(r6);
       const taxCategoryKey = taxValue ? map.get(normalizeAlias(taxValue)) ?? null : null;
-      if (taxCategoryKey) linked++;
       try {
         await erplora4().command("inventory.products.create", {
-          name: r6.name ?? "",
-          sku: r6.sku ?? "",
-          price: eurosToCents(r6.price),
+          name,
+          sku,
+          price,
           stock: Number(r6.stock) || 0,
           cost: eurosToCents(r6.cost),
           low_stock_threshold: Number(r6.low_stock_threshold) || 10,
@@ -4233,18 +4427,33 @@ var ErpInventoryProducts = class extends i3 {
           tax_category_key: taxCategoryKey,
           image: ""
         });
-      } catch {
+        created++;
+      } catch (e5) {
+        const msg = e5 instanceof Error ? e5.message : String(e5);
+        if (/unique|duplicate/i.test(msg)) {
+          skipped++;
+        } else {
+          failed.push({ line, sku, reason: msg });
+        }
       }
     }
-    console.info(`[inventory] Import CSV: ${linked} productos enlazados por categor\xEDa.`);
+    this.importReport = { total: rows.length, created, skipped, failed };
     this.importRows = [];
     this.importUnresolved = [];
     await this.ctrl.load();
   }
+  /** Informe copiable: una línea por fila fallida (`línea N · SKU · motivo`). */
+  importReportText() {
+    const rep = this.importReport;
+    if (!rep) return "";
+    const head = `total=${rep.total} created=${rep.created} skipped=${rep.skipped} failed=${rep.failed.length}`;
+    const lines = rep.failed.map((f3) => `l\xEDnea ${f3.line} \xB7 ${f3.sku || "\u2014"} \xB7 ${f3.reason}`);
+    return [head, ...lines].join("\n");
+  }
   // Modal de resolución de categorías del importador (ADR-0085): una fila por texto sin resolver,
   // con elegir categoría existente / crear nueva / omitir; al confirmar persiste el alias.
   renderImportModal() {
-    const t5 = (k2) => erplora4().t(CATALOG3, k2);
+    const t5 = (k2) => erplora4().t(CATALOG4, k2);
     const setChoice = (text, patch) => {
       this.importChoice = { ...this.importChoice, [text]: { ...this.importChoice[text], ...patch } };
     };
@@ -4314,6 +4523,7 @@ var ErpInventoryProducts = class extends i3 {
     );
     await this.ctrl.load();
     void this.loadTaxCategories();
+    void this.loadProductCategories();
     try {
       const reload = () => this.ctrl.load();
       const off1 = erplora4().on("inventory.stock_changed", reload);
@@ -4344,7 +4554,7 @@ var ErpInventoryProducts = class extends i3 {
   // Opciones del ion-select: "— (sin categoría)" (valor '') + una categoría por fila.
   // Etiqueta = "Nombre (key)".
   taxOptions() {
-    const t5 = (k2) => erplora4().t(CATALOG3, k2);
+    const t5 = (k2) => erplora4().t(CATALOG4, k2);
     return b2`
       <ion-select-option value="">${t5("ui.taxDefault")}</ion-select-option>
       ${this.taxCategories.map(
@@ -4352,35 +4562,97 @@ var ErpInventoryProducts = class extends i3 {
     )}
     `;
   }
+  /** Categorías de producto del hub (para el multi-select de la ficha, inventory#8). */
+  async loadProductCategories() {
+    try {
+      const rows = await erplora4().queryAll("inventory.categories.list");
+      this.productCategories = Array.isArray(rows) ? rows : [];
+    } catch {
+      this.productCategories = [];
+    }
+  }
+  /** Vuelve al modo ALTA limpio (inventory#8): tras editar, el siguiente «+» no hereda datos. */
+  cancelEdit() {
+    this.editingId = null;
+    this.newName = "";
+    this.newSku = "";
+    this.newPrice = "";
+    this.newCost = "";
+    this.newStock = "";
+    this.newThreshold = "";
+    this.newEan = "";
+    this.newDescription = "";
+    this.newType = "physical";
+    this.newActive = true;
+    this.newTaxCategoryKey = "";
+    this.initialCategoryIds = /* @__PURE__ */ new Set();
+    this.selectedCategoryIds = /* @__PURE__ */ new Set();
+    this.formError = "";
+  }
+  // Submit del form (alta O edición — decide `editingId`, inventory#8). El nombre se
+  // conserva por compatibilidad con el template/tests históricos.
   async createProduct(ev) {
     ev.preventDefault();
     if (!this.newName.trim() || !this.newSku.trim()) return;
     this.saving = true;
     this.formError = "";
+    const t5 = (k2) => erplora4().t(CATALOG4, k2);
     try {
-      await erplora4().command("inventory.products.create", {
-        name: this.newName.trim(),
-        sku: this.newSku.trim(),
-        // El input es EUROS (`step="0.01"`); la columna es INTEGER de céntimos (ADR-0007).
-        // Sin esta frontera, teclear «2,20» guardaba 2 céntimos.
-        price: eurosToCents(this.newPrice),
-        cost: 0,
-        stock: 0,
-        low_stock_threshold: 10,
-        product_type: "physical",
-        ean13: null,
-        description: "",
-        tax_category_key: this.newTaxCategoryKey || null,
-        image: ""
-      });
-      this.newName = "";
-      this.newSku = "";
-      this.newPrice = "";
-      this.newTaxCategoryKey = "";
+      if (this.editingId) {
+        await erplora4().command("inventory.products.update", {
+          product_id: this.editingId,
+          name: this.newName.trim(),
+          price: eurosToCents(this.newPrice),
+          cost: eurosToCents(this.newCost),
+          low_stock_threshold: Number(this.newThreshold) || 10,
+          ean13: this.newEan.trim() || null,
+          description: this.newDescription,
+          tax_category_key: this.newTaxCategoryKey || null,
+          is_active: this.newActive ? 1 : 0
+        });
+        for (const cid of this.selectedCategoryIds) {
+          if (!this.initialCategoryIds.has(cid)) {
+            await erplora4().command("inventory.products.add_category", {
+              product_id: this.editingId,
+              category_id: cid
+            });
+          }
+        }
+        for (const cid of this.initialCategoryIds) {
+          if (!this.selectedCategoryIds.has(cid)) {
+            await erplora4().command("inventory.products.remove_category", {
+              product_id: this.editingId,
+              category_id: cid
+            });
+          }
+        }
+      } else {
+        await erplora4().command("inventory.products.create", {
+          name: this.newName.trim(),
+          sku: this.newSku.trim(),
+          price: eurosToCents(this.newPrice),
+          cost: eurosToCents(this.newCost),
+          stock: Number(this.newStock) || 0,
+          low_stock_threshold: Number(this.newThreshold) || 10,
+          product_type: this.newType,
+          ean13: this.newEan.trim() || null,
+          description: this.newDescription,
+          tax_category_key: this.newTaxCategoryKey || null,
+          image: ""
+        });
+      }
+      this.cancelEdit();
       this.dataTable()?.close();
       await this.ctrl.load();
     } catch (e5) {
-      this.formError = e5 instanceof Error ? e5.message : "No se pudo crear";
+      const msg = e5 instanceof Error ? e5.message : String(e5);
+      if (/unique|duplicate/i.test(msg) && /sku/i.test(msg)) {
+        this.formError = t5("ui.errSkuTaken");
+      } else if (/unique|duplicate/i.test(msg) && /ean/i.test(msg)) {
+        this.formError = t5("ui.errEanTaken");
+      } else {
+        this.formError = msg || "No se pudo guardar";
+      }
     } finally {
       this.saving = false;
     }
@@ -4420,6 +4692,12 @@ var ErpInventoryProducts = class extends i3 {
         >
           <!-- Formulario de alta: el botón "+" del data-table despliega este acordeón. -->
           <form slot="create" class="form" @submit=${(e5) => this.createProduct(e5)}>
+            ${this.editingId ? b2`<div class="drow" style="align-items:center;">
+                  <b>${erplora4().t(CATALOG4, "ui.editingTitle")}</b>
+                  <ion-button size="small" fill="clear" @click=${() => this.cancelEdit()}>
+                    ${erplora4().t(CATALOG4, "ui.editingCancel")}
+                  </ion-button>
+                </div>` : A}
             <ion-input
               fill="outline"
               label="Nombre"
@@ -4432,6 +4710,8 @@ var ErpInventoryProducts = class extends i3 {
               label="SKU"
               label-placement="floating"
               .value=${this.newSku}
+              .disabled=${!!this.editingId}
+              helper-text=${this.editingId ? erplora4().t(CATALOG4, "ui.skuIdentity") : ""}
               @ionInput=${(e5) => this.newSku = e5.target.value}
             ></ion-input>
             <ion-input
@@ -4443,17 +4723,81 @@ var ErpInventoryProducts = class extends i3 {
               .value=${this.newPrice}
               @ionInput=${(e5) => this.newPrice = e5.target.value}
             ></ion-input>
+            <ion-input
+              fill="outline"
+              label=${erplora4().t(CATALOG4, "ui.fieldCost")}
+              label-placement="floating"
+              type="number" step="0.01" min="0"
+              .value=${this.newCost}
+              @ionInput=${(e5) => this.newCost = e5.target.value}
+            ></ion-input>
+            ${!this.editingId ? b2`<ion-input
+                  fill="outline"
+                  label=${erplora4().t(CATALOG4, "ui.fieldInitialStock")}
+                  label-placement="floating"
+                  type="number" step="0.001" min="0"
+                  .value=${this.newStock}
+                  @ionInput=${(e5) => this.newStock = e5.target.value}
+                ></ion-input>` : A}
+            <ion-input
+              fill="outline"
+              label=${erplora4().t(CATALOG4, "ui.fieldThreshold")}
+              label-placement="floating"
+              type="number" step="1" min="0"
+              .value=${this.newThreshold}
+              @ionInput=${(e5) => this.newThreshold = e5.target.value}
+            ></ion-input>
+            <ion-input
+              fill="outline"
+              label="EAN-13"
+              label-placement="floating"
+              maxlength="13"
+              .value=${this.newEan}
+              @ionInput=${(e5) => this.newEan = e5.target.value}
+            ></ion-input>
+            <ion-input
+              fill="outline"
+              label=${erplora4().t(CATALOG4, "ui.fieldDescription")}
+              label-placement="floating"
+              .value=${this.newDescription}
+              @ionInput=${(e5) => this.newDescription = e5.target.value}
+            ></ion-input>
+            ${!this.editingId ? b2`<ion-select
+                  fill="outline"
+                  label-placement="floating"
+                  label=${erplora4().t(CATALOG4, "ui.fieldType")}
+                  .value=${this.newType}
+                  @ionChange=${(e5) => this.newType = e5.target.value === "service" ? "service" : "physical"}
+                >
+                  <ion-select-option value="physical">${erplora4().t(CATALOG4, "ui.typePhysical")}</ion-select-option>
+                  <ion-select-option value="service">${erplora4().t(CATALOG4, "ui.typeService")}</ion-select-option>
+                </ion-select>` : A}
             <ion-select
               fill="outline"
               label-placement="floating"
-              label=${erplora4().t(CATALOG3, "ui.taxRate")}
+              label=${erplora4().t(CATALOG4, "ui.taxRate")}
               .value=${this.newTaxCategoryKey}
               @ionChange=${(e5) => this.newTaxCategoryKey = e5.target.value}
             >
               ${this.taxOptions()}
             </ion-select>
+            ${this.productCategories.length ? b2`<ion-select
+                  fill="outline"
+                  label-placement="floating"
+                  label=${erplora4().t(CATALOG4, "ui.fieldCategories")}
+                  .multiple=${true}
+                  .value=${[...this.selectedCategoryIds]}
+                  @ionChange=${(e5) => {
+      const v3 = e5.detail.value ?? [];
+      this.selectedCategoryIds = new Set(v3);
+    }}
+                >
+                  ${this.productCategories.map(
+      (c5) => b2`<ion-select-option .value=${c5.id}>${c5.name}</ion-select-option>`
+    )}
+                </ion-select>` : A}
             <ion-button type="submit" ?disabled=${this.saving || !this.newName || !this.newSku}>
-              ${this.saving ? "Guardando\u2026" : "Guardar"}
+              ${this.saving ? "Guardando\u2026" : this.editingId ? erplora4().t(CATALOG4, "ui.saveChanges") : "Guardar"}
             </ion-button>
           </form>
         </ok-data-table>
@@ -4488,13 +4832,57 @@ var ErpInventoryProducts = class extends i3 {
         ${this.renderCountModal()}
         ${this.renderReceiveModal()}
         ${this.renderImportModal()}
+        ${this.renderImportReportModal()}
       </div>
+    `;
+  }
+  // Informe del import CSV (inventory#13): total/creadas/omitidas/fallidas con línea y
+  // motivo, copiable al portapapeles para corregir el fichero y reintentar.
+  renderImportReportModal() {
+    const t5 = (k2) => erplora4().t(CATALOG4, k2);
+    const rep = this.importReport;
+    return b2`
+      <ion-modal .isOpen=${!!rep} @ionModalDidDismiss=${() => this.importReport = null}>
+        <ion-header class="ion-no-border">
+          <ion-toolbar>
+            <ion-title>${t5("ui.importReportTitle")}</ion-title>
+            <ion-buttons slot="end">
+              <ion-button @click=${() => this.importReport = null}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content class="ion-padding">
+          ${rep ? b2`
+                <div class="detail">
+                  <div class="drow"><span>${t5("ui.importTotal")}</span><b>${rep.total}</b></div>
+                  <div class="drow"><span>${t5("ui.importCreated")}</span><b>${rep.created}</b></div>
+                  <div class="drow"><span>${t5("ui.importSkipped")}</span><b>${rep.skipped}</b></div>
+                  <div class="drow"><span>${t5("ui.importFailed")}</span><b>${rep.failed.length}</b></div>
+                  ${rep.failed.length ? b2`
+                        <ion-list>
+                          ${rep.failed.map(
+      (f3) => b2`<ion-item lines="none">
+                              <ion-label class="ion-text-wrap">
+                                <b>${t5("ui.importLine")} ${f3.line}</b> · ${f3.sku || "\u2014"} — ${f3.reason}
+                              </ion-label>
+                            </ion-item>`
+    )}
+                        </ion-list>
+                        <ion-button expand="block" fill="outline"
+                          @click=${() => navigator.clipboard?.writeText(this.importReportText())}>
+                          <ion-icon name="copy-outline" slot="start"></ion-icon>${t5("ui.importCopy")}
+                        </ion-button>
+                      ` : A}
+                </div>
+              ` : A}
+        </ion-content>
+      </ion-modal>
     `;
   }
   // Modal de RECUENTO (inventory#7): ajuste absoluto — se enseña la diferencia contra el
   // stock actual ANTES de aplicar, y el motivo es obligatorio (lo exige también el schema).
   renderCountModal() {
-    const t5 = (k2) => erplora4().t(CATALOG3, k2);
+    const t5 = (k2) => erplora4().t(CATALOG4, k2);
     const diff = this.countDifference;
     return b2`
       <ion-modal .isOpen=${!!this.countTarget} @ionModalDidDismiss=${() => this.countTarget = null}>
@@ -4532,7 +4920,7 @@ var ErpInventoryProducts = class extends i3 {
   // Modal de RECEPCIÓN (inventory#7): entrada de mercancía por producto (qty decimal —
   // #10 — y coste unitario en euros → céntimos). El movimiento `reception` lo deja el SQL.
   renderReceiveModal() {
-    const t5 = (k2) => erplora4().t(CATALOG3, k2);
+    const t5 = (k2) => erplora4().t(CATALOG4, k2);
     return b2`
       <ion-modal .isOpen=${!!this.receiveTarget} @ionModalDidDismiss=${() => this.receiveTarget = null}>
         <ion-header class="ion-no-border">
@@ -4580,6 +4968,36 @@ __decorateClass([
 ], ErpInventoryProducts.prototype, "newTaxCategoryKey", 2);
 __decorateClass([
   r5()
+], ErpInventoryProducts.prototype, "newCost", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "newStock", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "newThreshold", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "newEan", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "newDescription", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "newType", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "newActive", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "editingId", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "selectedCategoryIds", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "productCategories", 2);
+__decorateClass([
+  r5()
 ], ErpInventoryProducts.prototype, "taxCategories", 2);
 __decorateClass([
   r5()
@@ -4602,6 +5020,9 @@ __decorateClass([
 __decorateClass([
   r5()
 ], ErpInventoryProducts.prototype, "importChoice", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "importReport", 2);
 __decorateClass([
   r5()
 ], ErpInventoryProducts.prototype, "detail", 2);
