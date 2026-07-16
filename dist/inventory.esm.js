@@ -1453,7 +1453,9 @@ var es_default = {
     errEanTaken: "Ese EAN ya existe en el cat\xE1logo",
     deleteCatTitle: "Eliminar categor\xEDa",
     deleteCatImpact: "producto(s) quedar\xE1n sin esta categor\xEDa (se desvinculan; los productos no se borran)",
-    deleteCatConfirm: "Eliminar y desvincular"
+    deleteCatConfirm: "Eliminar y desvincular",
+    deleteProdTitle: "Eliminar producto",
+    deleteProdHint: "se eliminar\xE1 del cat\xE1logo (borrado l\xF3gico; sus movimientos de stock se conservan)"
   }
 };
 
@@ -1574,7 +1576,9 @@ var en_default = {
     errEanTaken: "That EAN already exists in the catalog",
     deleteCatTitle: "Delete category",
     deleteCatImpact: "product(s) will lose this category (unlinked; products are kept)",
-    deleteCatConfirm: "Delete and unlink"
+    deleteCatConfirm: "Delete and unlink",
+    deleteProdTitle: "Delete product",
+    deleteProdHint: "will be removed from the catalog (soft delete; its stock movements are kept)"
   }
 };
 
@@ -3576,11 +3580,16 @@ var ErpInventoryCategories = class extends i3 {
             </ion-toolbar>
           </ion-header>
           <ion-content class="ion-padding">
-            <p>
-              <b>${this.deleteTarget?.name ?? ""}</b> —
-              ${this.deleteImpact} ${erplora().t(CATALOG, "ui.deleteCatImpact")}
-            </p>
-            <ion-button expand="block" color="danger" @click=${() => this.confirmDelete()}>
+            <!-- Auto-estilado: el reparent de ion-modal a <body> mata el CSS del shadow. -->
+            <ion-list lines="none">
+              <ion-item>
+                <ion-label class="ion-text-wrap">
+                  <b>${this.deleteTarget?.name ?? ""}</b> —
+                  ${this.deleteImpact} ${erplora().t(CATALOG, "ui.deleteCatImpact")}
+                </ion-label>
+              </ion-item>
+            </ion-list>
+            <ion-button class="ion-margin-top" expand="block" color="danger" @click=${() => this.confirmDelete()}>
               ${erplora().t(CATALOG, "ui.deleteCatConfirm")}
             </ion-button>
             <ion-button expand="block" fill="outline" @click=${() => this.deleteTarget = null}>
@@ -3892,7 +3901,11 @@ function formatQty(v3) {
 var ErpInventoryMovements = class extends i3 {
   static {
     this.styles = i`
-    :host { display: block; height: 100%; font-family: system-ui, sans-serif; color: var(--ion-text-color, #1c1b18); }
+    :host { display:flex; flex-direction:column; height:100%; min-height:0; font-family: system-ui, sans-serif; color: var(--ion-text-color, #1c1b18); }
+    /* Estructura de la casa (services/staff/products): la vista llena el alto, la tabla scrollea dentro. */
+    .page { display:flex; flex-direction:column; min-height:0; flex:1 1 auto; }
+    .page > ok-data-table { flex:1 1 auto; min-height:0; }
+    .err { color:#d9480f; font-weight:600; }
   `;
   }
   get columns() {
@@ -3950,7 +3963,8 @@ var ErpInventoryMovements = class extends i3 {
   render() {
     const t5 = (k2) => erplora3().t(CATALOG3, k2);
     return b2`
-      ${this.ctrl?.error ? b2`<p>${this.ctrl.error}</p>` : A}
+      <div class="page">
+      ${this.ctrl?.error ? b2`<p class="err">${this.ctrl.error}</p>` : A}
       <ok-data-table
         fill
         .serverSide=${true}
@@ -3967,6 +3981,7 @@ var ErpInventoryMovements = class extends i3 {
         @sortChange=${(e5) => this.ctrl.setSort(e5.detail.sort, e5.detail.dir)}
         @filterChange=${(e5) => this.ctrl.setFilter(e5.detail.col, e5.detail.value)}
       ></ok-data-table>
+      </div>
     `;
   }
 };
@@ -4143,6 +4158,7 @@ var ErpInventoryProducts = class extends i3 {
     this.importMap = /* @__PURE__ */ new Map();
     this.importUnresolved = [];
     this.importChoice = {};
+    this.deleteTarget = null;
     this.importReport = null;
     this.detail = null;
     this.countTarget = null;
@@ -4306,12 +4322,19 @@ var ErpInventoryProducts = class extends i3 {
       }
       this.dataTable()?.open("create");
     } else if (actionId === "delete") {
-      try {
-        await erplora4().command("inventory.products.delete", { product_id: p4.id });
-        await this.ctrl.load();
-      } catch (e5) {
-        this.formError = e5 instanceof Error ? e5.message : "No se pudo eliminar";
-      }
+      this.deleteTarget = p4;
+    }
+  }
+  /** Ejecuta el borrado confirmado. */
+  async confirmDelete() {
+    if (!this.deleteTarget) return;
+    try {
+      await erplora4().command("inventory.products.delete", { product_id: this.deleteTarget.id });
+      this.deleteTarget = null;
+      await this.ctrl.load();
+    } catch (e5) {
+      this.formError = e5 instanceof Error ? e5.message : "No se pudo eliminar";
+      this.deleteTarget = null;
     }
   }
   async toggleActive(p4, ev) {
@@ -4670,6 +4693,7 @@ var ErpInventoryProducts = class extends i3 {
     }
   }
   render() {
+    const t5 = (k2) => erplora4().t(CATALOG4, k2);
     return b2`
       <div class="page">
         ${this.formError ? b2`<p class="err">${this.formError}</p>` : A}
@@ -4825,22 +4849,37 @@ var ErpInventoryProducts = class extends i3 {
           </ion-header>
           <ion-content class="ion-padding">
             ${this.detail ? b2`
-                  <div class="detail">
-                    <div class="drow"><span>SKU</span><b>${this.detail.sku}</b></div>
-                    <div class="drow"><span>Precio</span><b>${erplora4().formatMoney(Number(this.detail.price))}</b></div>
-                    <div class="drow"><span>Stock</span><b>${this.detail.stock}</b></div>
-                    <div class="drow"><span>Activo</span><b>${this.detail.is_active ? "S\xED" : "No"}</b></div>
-                    <div class="barcode">
-                      ${this.renderBarcode(this.detail.sku)}
-                      <div class="bccode">${this.detail.sku}</div>
-                    </div>
-                    <ion-button expand="block" @click=${() => this.detail && this.printBarcode(this.detail)}>
-                      <ion-icon name="print-outline" slot="start"></ion-icon> Imprimir código de barras
-                    </ion-button>
+                  <!-- Auto-estilado (reparent a <body>): las clases .detail/.drow/.barcode del
+                       shadow NO llegan aquí — Ionic puro + estilos inline para el barcode. -->
+                  <ion-list lines="full">
+                    <ion-item>
+                      <ion-label>SKU</ion-label>
+                      <ion-note slot="end">${this.detail.sku}</ion-note>
+                    </ion-item>
+                    <ion-item>
+                      <ion-label>${t5("ui.price")}</ion-label>
+                      <ion-note slot="end">${erplora4().formatMoney(Number(this.detail.price))}</ion-note>
+                    </ion-item>
+                    <ion-item>
+                      <ion-label>${t5("ui.stock")}</ion-label>
+                      <ion-note slot="end">${this.detail.stock}</ion-note>
+                    </ion-item>
+                    <ion-item>
+                      <ion-label>${t5("ui.active")}</ion-label>
+                      <ion-note slot="end">${this.detail.is_active ? t5("ui.yes") : t5("ui.no")}</ion-note>
+                    </ion-item>
+                  </ion-list>
+                  <div style="text-align:center; margin:1rem 0; padding:1rem; border:1px solid var(--ion-border-color,#e6e2d8); border-radius:10px;">
+                    ${this.renderBarcode(this.detail.sku)}
+                    <div style="font:14px ui-monospace,monospace; margin-top:.4rem; letter-spacing:.08em;">${this.detail.sku}</div>
                   </div>
+                  <ion-button expand="block" @click=${() => this.detail && this.printBarcode(this.detail)}>
+                    <ion-icon name="print-outline" slot="start"></ion-icon> Imprimir código de barras
+                  </ion-button>
                 ` : A}
           </ion-content>
         </ion-modal>
+        ${this.renderDeleteModal()}
         ${this.renderCountModal()}
         ${this.renderReceiveModal()}
         ${this.renderImportModal()}
@@ -4865,28 +4904,69 @@ var ErpInventoryProducts = class extends i3 {
         </ion-header>
         <ion-content class="ion-padding">
           ${rep ? b2`
-                <div class="detail">
-                  <div class="drow"><span>${t5("ui.importTotal")}</span><b>${rep.total}</b></div>
-                  <div class="drow"><span>${t5("ui.importCreated")}</span><b>${rep.created}</b></div>
-                  <div class="drow"><span>${t5("ui.importSkipped")}</span><b>${rep.skipped}</b></div>
-                  <div class="drow"><span>${t5("ui.importFailed")}</span><b>${rep.failed.length}</b></div>
-                  ${rep.failed.length ? b2`
-                        <ion-list>
-                          ${rep.failed.map(
-      (f3) => b2`<ion-item lines="none">
-                              <ion-label class="ion-text-wrap">
-                                <b>${t5("ui.importLine")} ${f3.line}</b> · ${f3.sku || "\u2014"} — ${f3.reason}
-                              </ion-label>
-                            </ion-item>`
+                <!-- Auto-estilado (reparent a <body>): Ionic puro, sin clases del shadow. -->
+                <ion-list lines="full">
+                  <ion-item>
+                    <ion-label>${t5("ui.importTotal")}</ion-label>
+                    <ion-note slot="end">${rep.total}</ion-note>
+                  </ion-item>
+                  <ion-item>
+                    <ion-label>${t5("ui.importCreated")}</ion-label>
+                    <ion-note slot="end" color="success">${rep.created}</ion-note>
+                  </ion-item>
+                  <ion-item>
+                    <ion-label>${t5("ui.importSkipped")}</ion-label>
+                    <ion-note slot="end">${rep.skipped}</ion-note>
+                  </ion-item>
+                  <ion-item>
+                    <ion-label>${t5("ui.importFailed")}</ion-label>
+                    <ion-note slot="end" color=${rep.failed.length ? "danger" : "success"}>${rep.failed.length}</ion-note>
+                  </ion-item>
+                </ion-list>
+                ${rep.failed.length ? b2`
+                      <ion-list class="ion-margin-top" lines="none">
+                        ${rep.failed.map(
+      (f3) => b2`<ion-item>
+                            <ion-label class="ion-text-wrap">
+                              <b>${t5("ui.importLine")} ${f3.line}</b> · ${f3.sku || "\u2014"} — ${f3.reason}
+                            </ion-label>
+                          </ion-item>`
     )}
-                        </ion-list>
-                        <ion-button expand="block" fill="outline"
-                          @click=${() => navigator.clipboard?.writeText(this.importReportText())}>
-                          <ion-icon name="copy-outline" slot="start"></ion-icon>${t5("ui.importCopy")}
-                        </ion-button>
-                      ` : A}
-                </div>
+                      </ion-list>
+                      <ion-button class="ion-margin-top" expand="block" fill="outline"
+                        @click=${() => navigator.clipboard?.writeText(this.importReportText())}>
+                        <ion-icon name="copy-outline" slot="start"></ion-icon>${t5("ui.importCopy")}
+                      </ion-button>
+                    ` : A}
               ` : A}
+        </ion-content>
+      </ion-modal>
+    `;
+  }
+  // Confirmación de borrado de producto (P1 QA #6): paridad con el borrado de categorías.
+  renderDeleteModal() {
+    const t5 = (k2) => erplora4().t(CATALOG4, k2);
+    return b2`
+      <ion-modal .isOpen=${!!this.deleteTarget} @ionModalDidDismiss=${() => this.deleteTarget = null}>
+        <ion-header class="ion-no-border">
+          <ion-toolbar>
+            <ion-title>${t5("ui.deleteProdTitle")}</ion-title>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content class="ion-padding">
+          <ion-list lines="none">
+            <ion-item>
+              <ion-label class="ion-text-wrap">
+                <b>${this.deleteTarget?.name ?? ""}</b> (${this.deleteTarget?.sku ?? ""}) — ${t5("ui.deleteProdHint")}
+              </ion-label>
+            </ion-item>
+          </ion-list>
+          <ion-button class="ion-margin-top" expand="block" color="danger" @click=${() => this.confirmDelete()}>
+            ${t5("ui.actionDelete")}
+          </ion-button>
+          <ion-button expand="block" fill="outline" @click=${() => this.deleteTarget = null}>
+            ${t5("ui.btnCancel")}
+          </ion-button>
         </ion-content>
       </ion-modal>
     `;
@@ -4907,24 +4987,32 @@ var ErpInventoryProducts = class extends i3 {
           </ion-toolbar>
         </ion-header>
         <ion-content class="ion-padding">
-          <div class="detail">
-            <div class="drow"><span>${t5("ui.countCurrent")}</span><b>${Number(this.countTarget?.stock ?? 0)}</b></div>
-            <ion-input fill="outline" label-placement="floating" label=${t5("ui.countNew")}
-              type="number" step="0.001" min="0" inputmode="decimal"
-              .value=${this.countValue}
-              @ionInput=${(e5) => this.countValue = String(e5.detail.value ?? "")}
-            ></ion-input>
-            ${diff !== null ? b2`<div class="drow"><span>${t5("ui.countDiff")}</span>
-                  <b>${diff > 0 ? `+${diff}` : diff}</b></div>` : A}
-            <ion-input fill="outline" label-placement="floating" label=${t5("ui.countReason")}
-              .value=${this.countReason} required
-              @ionInput=${(e5) => this.countReason = String(e5.detail.value ?? "")}
-            ></ion-input>
-            <ion-button expand="block" .disabled=${diff === null || this.countReason.trim() === ""}
-              @click=${() => this.submitCount()}>
-              ${t5("ui.countApply")}
-            </ion-button>
-          </div>
+          <!-- OJO: ion-modal se re-aparenta a <body> y PIERDE el CSS del shadow del
+               componente — el contenido debe AUTO-ESTILARSE (Ionic puro + ion-margin-*),
+               nunca clases propias (.detail/.drow). Patrón de la casa (sales-list). -->
+          <ion-list lines="full">
+            <ion-item>
+              <ion-label>${t5("ui.countCurrent")}</ion-label>
+              <ion-note slot="end">${Number(this.countTarget?.stock ?? 0)}</ion-note>
+            </ion-item>
+            ${diff !== null ? b2`<ion-item>
+                  <ion-label>${t5("ui.countDiff")}</ion-label>
+                  <ion-note slot="end" color=${diff < 0 ? "danger" : "success"}>${diff > 0 ? `+${diff}` : diff}</ion-note>
+                </ion-item>` : A}
+          </ion-list>
+          <ion-input class="ion-margin-top" fill="outline" label-placement="floating" label=${t5("ui.countNew")}
+            type="number" step="0.001" min="0" inputmode="decimal"
+            .value=${this.countValue}
+            @ionInput=${(e5) => this.countValue = String(e5.detail.value ?? "")}
+          ></ion-input>
+          <ion-input class="ion-margin-top" fill="outline" label-placement="floating" label=${t5("ui.countReason")}
+            .value=${this.countReason} required
+            @ionInput=${(e5) => this.countReason = String(e5.detail.value ?? "")}
+          ></ion-input>
+          <ion-button class="ion-margin-top" expand="block" .disabled=${diff === null || this.countReason.trim() === ""}
+            @click=${() => this.submitCount()}>
+            ${t5("ui.countApply")}
+          </ion-button>
         </ion-content>
       </ion-modal>
     `;
@@ -4944,23 +5032,27 @@ var ErpInventoryProducts = class extends i3 {
           </ion-toolbar>
         </ion-header>
         <ion-content class="ion-padding">
-          <div class="detail">
-            <div class="drow"><span>${t5("ui.countCurrent")}</span><b>${Number(this.receiveTarget?.stock ?? 0)}</b></div>
-            <ion-input fill="outline" label-placement="floating" label=${t5("ui.receiveQty")}
-              type="number" step="0.001" min="0.001" inputmode="decimal"
-              .value=${this.receiveQty}
-              @ionInput=${(e5) => this.receiveQty = String(e5.detail.value ?? "")}
-            ></ion-input>
-            <ion-input fill="outline" label-placement="floating" label=${t5("ui.receiveCost")}
-              type="number" step="0.01" min="0" inputmode="decimal"
-              .value=${this.receiveCost}
-              @ionInput=${(e5) => this.receiveCost = String(e5.detail.value ?? "")}
-            ></ion-input>
-            <ion-button expand="block" .disabled=${this.receiveQty.trim() === ""}
-              @click=${() => this.submitReceive()}>
-              ${t5("ui.receiveApply")}
-            </ion-button>
-          </div>
+          <!-- Auto-estilado (ver nota del modal de recuento): el reparent a <body> mata el CSS del shadow. -->
+          <ion-list lines="full">
+            <ion-item>
+              <ion-label>${t5("ui.countCurrent")}</ion-label>
+              <ion-note slot="end">${Number(this.receiveTarget?.stock ?? 0)}</ion-note>
+            </ion-item>
+          </ion-list>
+          <ion-input class="ion-margin-top" fill="outline" label-placement="floating" label=${t5("ui.receiveQty")}
+            type="number" step="0.001" min="0.001" inputmode="decimal"
+            .value=${this.receiveQty}
+            @ionInput=${(e5) => this.receiveQty = String(e5.detail.value ?? "")}
+          ></ion-input>
+          <ion-input class="ion-margin-top" fill="outline" label-placement="floating" label=${t5("ui.receiveCost")}
+            type="number" step="0.01" min="0" inputmode="decimal"
+            .value=${this.receiveCost}
+            @ionInput=${(e5) => this.receiveCost = String(e5.detail.value ?? "")}
+          ></ion-input>
+          <ion-button class="ion-margin-top" expand="block" .disabled=${this.receiveQty.trim() === ""}
+            @click=${() => this.submitReceive()}>
+            ${t5("ui.receiveApply")}
+          </ion-button>
         </ion-content>
       </ion-modal>
     `;
@@ -5032,6 +5124,9 @@ __decorateClass([
 __decorateClass([
   r5()
 ], ErpInventoryProducts.prototype, "importChoice", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "deleteTarget", 2);
 __decorateClass([
   r5()
 ], ErpInventoryProducts.prototype, "importReport", 2);

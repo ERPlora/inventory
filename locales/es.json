@@ -114,6 +114,8 @@
     "errEanTaken": "Ese EAN ya existe en el catálogo",
     "deleteCatTitle": "Eliminar categoría",
     "deleteCatImpact": "producto(s) quedarán sin esta categoría (se desvinculan; los productos no se borran)",
-    "deleteCatConfirm": "Eliminar y desvincular"
+    "deleteCatConfirm": "Eliminar y desvincular",
+    "deleteProdTitle": "Eliminar producto",
+    "deleteProdHint": "se eliminará del catálogo (borrado lógico; sus movimientos de stock se conservan)"
   }
 }

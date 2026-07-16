@@ -12,6 +12,7 @@
     "low_stock_threshold",
     "ean13",
     "description",
+    "tax_category_key",
     "is_active"
   ],
   "properties": {
@@ -40,8 +41,7 @@
       "type": [
         "string",
         "null"
-      ],
-      "default": null
+      ]
     },
     "is_active": {
       "type": "integer",

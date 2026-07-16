@@ -57,7 +57,11 @@ function formatQty(v: number | string): string {
 
 export class ErpInventoryMovements extends LitElement {
   static styles = css`
-    :host { display: block; height: 100%; font-family: system-ui, sans-serif; color: var(--ion-text-color, #1c1b18); }
+    :host { display:flex; flex-direction:column; height:100%; min-height:0; font-family: system-ui, sans-serif; color: var(--ion-text-color, #1c1b18); }
+    /* Estructura de la casa (services/staff/products): la vista llena el alto, la tabla scrollea dentro. */
+    .page { display:flex; flex-direction:column; min-height:0; flex:1 1 auto; }
+    .page > ok-data-table { flex:1 1 auto; min-height:0; }
+    .err { color:#d9480f; font-weight:600; }
   `;
 
   private ctrl!: ListController<MovementRow>;
@@ -99,7 +103,8 @@ export class ErpInventoryMovements extends LitElement {
   render() {
     const t = (k: string): string => erplora().t(CATALOG, k);
     return html`
-      ${this.ctrl?.error ? html`<p>${this.ctrl.error}</p>` : nothing}
+      <div class="page">
+      ${this.ctrl?.error ? html`<p class="err">${this.ctrl.error}</p>` : nothing}
       <ok-data-table
         fill
         .serverSide=${true}
@@ -118,6 +123,7 @@ export class ErpInventoryMovements extends LitElement {
         @filterChange=${(e: CustomEvent<{ col: string; value: unknown }>) =>
           this.ctrl.setFilter(e.detail.col, e.detail.value)}
       ></ok-data-table>
+      </div>
     `;
   }
 }

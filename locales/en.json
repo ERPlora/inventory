@@ -114,6 +114,8 @@
     "errEanTaken": "That EAN already exists in the catalog",
     "deleteCatTitle": "Delete category",
     "deleteCatImpact": "product(s) will lose this category (unlinked; products are kept)",
-    "deleteCatConfirm": "Delete and unlink"
+    "deleteCatConfirm": "Delete and unlink",
+    "deleteProdTitle": "Delete product",
+    "deleteProdHint": "will be removed from the catalog (soft delete; its stock movements are kept)"
   }
 }
