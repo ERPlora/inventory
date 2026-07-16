@@ -42,6 +42,13 @@ function erplora(): ErploraClientLike {
   return c;
 }
 
+/** Fecha legible en el locale activo (QA 07-16: el ISO crudo con offset no es para humanos). */
+function formatDate(v: string): string {
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return v;
+  return d.toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
 /** Delta firmado: las entradas llevan `+` explícito; Postgres sirve NUMERIC como string. */
 function formatQty(v: number | string): string {
   const n = Number(v);
@@ -65,7 +72,8 @@ export class ErpInventoryMovements extends LitElement {
       return map[mt] ?? mt;
     };
     return [
-      { key: 'created_at', header: t('ui.mvDate'), sortable: true },
+      { key: 'created_at', header: t('ui.mvDate'), sortable: true,
+        format: (r) => formatDate(String((r as unknown as MovementRow).created_at)) },
       { key: 'product_name', header: t('ui.name') },
       { key: 'sku', header: t('ui.sku') },
       {

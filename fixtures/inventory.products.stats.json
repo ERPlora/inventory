@@ -1,1 +1,1 @@
-{ "total_products": 12, "active_products": 11, "low_stock": 4, "total_value": 318.4 }
+{ "total_products": 12, "products_tracked": 10, "products_in_stock": 7, "products_out_of_stock": 3, "products_low_stock": 4, "products_without_cost": 2, "total_inventory_value": 31840 }

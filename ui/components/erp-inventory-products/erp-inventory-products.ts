@@ -613,8 +613,10 @@ export class ErpInventoryProducts extends LitElement {
     }
   }
 
-  /** Vuelve al modo ALTA limpio (inventory#8): tras editar, el siguiente «+» no hereda datos. */
+  /** Vuelve al modo ALTA limpio (inventory#8): tras editar, el siguiente «+» no hereda datos.
+   *  También CIERRA el panel lateral (QA 07-16: quedaba abierto con el form vacío). */
   cancelEdit(): void {
+    this.dataTable()?.close();
     this.editingId = null;
     this.newName = '';
     this.newSku = '';

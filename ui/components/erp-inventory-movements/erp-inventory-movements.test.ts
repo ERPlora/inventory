@@ -66,3 +66,16 @@ describe('vista Movimientos (inventory#7)', () => {
     expect(qty.format?.({ qty: 3 }), 'las entradas llevan signo + explícito').toBe('+3');
   });
 });
+
+describe('hallazgos del QA en navegador (07-16)', () => {
+  it('la fecha del movimiento se pinta legible, no en ISO crudo', async () => {
+    const el = await montar();
+    const table = el.shadowRoot.querySelector('ok-data-table') as unknown as {
+      columns: { key: string; format?: (r: Record<string, unknown>) => string }[];
+    };
+    const fecha = table.columns.find((c) => c.key === 'created_at')!;
+    const out = fecha.format?.({ created_at: '2026-07-16T10:12:00+00:00' }) ?? '';
+    expect(out, 'nada de ISO crudo con offset').not.toContain('T10:12:00+00:00');
+    expect(out).toMatch(/2026|26/);
+  });
+});
