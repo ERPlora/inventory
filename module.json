@@ -436,13 +436,23 @@
       },
       "ai": {
         "description": "Automatically decreases stock of sold products when a sale is completed."
-      }
+      },
+      "reads": [
+        "inventory.settings.get"
+      ]
     },
     "inventory._restock_on_void": {
       "permission": "inventory.change_product",
       "transaction": true,
       "sql": [
         "commands/_restock_on_void.sql"
+      ]
+    },
+    "inventory._skip_void_restock": {
+      "permission": "inventory.change_product",
+      "transaction": true,
+      "sql": [
+        "commands/_skip_void_restock.sql"
       ]
     }
   },

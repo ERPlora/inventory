@@ -149,12 +149,45 @@ pub fn receive_stock_pure(input: Value) -> Output {
     Output { operations: ops, events: vec![] }
 }
 
+/// `track_stock` de los ajustes del hub, PRE-CARGADOS por el host en
+/// `context.reads["inventory.settings.get"]` (ADR-0069; el manifest declara `reads`).
+/// Sin reads (manifest viejo o query caída) degrada a `true` — el guard autoritativo
+/// final vive en el SQL de `stock.decrease` (inventory#6).
+fn track_stock_enabled(input: &Value) -> bool {
+    input
+        .get("context")
+        .and_then(|c| c.get("reads"))
+        .and_then(|r| r.get("inventory.settings.get"))
+        .and_then(|rows| rows.as_array())
+        .and_then(|a| a.first())
+        .and_then(|row| row.get("track_stock"))
+        .map(|v| as_i64(v, 1) != 0)
+        .unwrap_or(true)
+}
+
 /// Lógica pura del listener de `sale.completed`: por cada línea con product_id
 /// que NO sea servicio, emite una op `inventory.stock.decrease` (product_id, qty).
-/// El payload del evento (lo emite sales) trae `items: [{product_id, quantity, is_service}]`.
-/// Fiel a inventory.events._on_sale_completed (saltaba servicios y product_id None).
+/// El payload del evento (lo emite sales) trae `sale_id` + `items: [{product_id,
+/// quantity, is_service}]`. Fiel a inventory.events._on_sale_completed (saltaba
+/// servicios y product_id None).
+///
+/// Modos operativos (inventory#6): con `track_stock = 0` NO se genera ningún
+/// descuento; en su lugar se emite `inventory._skip_void_restock` — siembra el
+/// marcador de `inventory_void_restock` para que un `sale.voided` posterior NO
+/// restituya una venta que nunca descontó (criterio: revertir solo cuando la
+/// operación original generó movimientos).
 pub fn decrease_on_sale_pure(input: Value) -> Output {
     let (payload, _ids) = payload_context(&input);
+    if !track_stock_enabled(&input) {
+        let mut ops: Vec<Operation> = Vec::new();
+        let sale_id = payload.get("sale_id").cloned().unwrap_or(Value::Null);
+        if !sale_id.is_null() {
+            let mut p = Map::new();
+            p.insert("sale_id".into(), sale_id);
+            ops.push(Operation::sql("inventory._skip_void_restock", p));
+        }
+        return Output { operations: ops, events: vec![] };
+    }
     let empty: Vec<Value> = Vec::new();
     let items = payload.get("items").and_then(|v| v.as_array()).unwrap_or(&empty);
     let mut ops: Vec<Operation> = Vec::new();
@@ -257,5 +290,67 @@ mod tests {
         assert_eq!(out.operations[0].params["product_id"], json!("p1"));
         assert_eq!(out.operations[0].params["qty"], json!(3));
         assert_eq!(out.operations[1].params["product_id"], json!("p3"));
+    }
+
+    // ── Modos operativos (inventory#6): el listener respeta `track_stock` vía reads ──
+
+    fn input_with_settings(payload: Value, track_stock: i64) -> Value {
+        json!({
+            "payload": payload,
+            "context": {
+                "new_ids": [],
+                "reads": { "inventory.settings.get": [
+                    { "allow_sell_without_stock": 0, "low_stock_threshold": 10, "track_stock": track_stock }
+                ]}
+            }
+        })
+    }
+
+    /// `track_stock = 0` → NINGÚN descuento; solo el marcador que evita que un void
+    /// futuro restituya una venta que no generó movimientos (reusa inventory_void_restock).
+    #[test]
+    fn decrease_on_sale_track_off_emits_only_skip_marker() {
+        let payload = json!({ "sale_id": "s-77", "items": [
+            { "product_id": "p1", "quantity": 3, "is_service": false }
+        ]});
+        let out = decrease_on_sale_pure(input_with_settings(payload, 0));
+        assert_eq!(out.operations.len(), 1, "{:?}", out.operations);
+        assert_eq!(out.operations[0].command, "inventory._skip_void_restock");
+        assert_eq!(out.operations[0].params["sale_id"], json!("s-77"));
+        assert!(out.events.is_empty());
+    }
+
+    /// `track_stock = 1` → descuenta como siempre, SIN marcador (el void debe restituir).
+    #[test]
+    fn decrease_on_sale_track_on_decreases_without_marker() {
+        let payload = json!({ "sale_id": "s-78", "items": [
+            { "product_id": "p1", "quantity": 3, "is_service": false }
+        ]});
+        let out = decrease_on_sale_pure(input_with_settings(payload, 1));
+        assert_eq!(out.operations.len(), 1);
+        assert_eq!(out.operations[0].command, "inventory.stock.decrease");
+    }
+
+    /// Sin `reads` (manifest viejo o query caída): degrada al comportamiento histórico
+    /// (tracking activo) — el guard autoritativo final vive en el SQL.
+    #[test]
+    fn decrease_on_sale_without_reads_defaults_to_tracking() {
+        let payload = json!({ "sale_id": "s-79", "items": [
+            { "product_id": "p1", "quantity": 2, "is_service": false }
+        ]});
+        let out = decrease_on_sale_pure(json!({ "payload": payload, "context": { "new_ids": [] } }));
+        assert_eq!(out.operations.len(), 1);
+        assert_eq!(out.operations[0].command, "inventory.stock.decrease");
+    }
+
+    /// Con tracking OFF y venta de SOLO servicios el marcador se emite igual (inofensivo:
+    /// el restock de servicios ya es 0) — lo importante es que no haya descuentos.
+    #[test]
+    fn decrease_on_sale_track_off_services_only_no_decreases() {
+        let payload = json!({ "sale_id": "s-80", "items": [
+            { "product_id": "p9", "quantity": 1, "is_service": true }
+        ]});
+        let out = decrease_on_sale_pure(input_with_settings(payload, 0));
+        assert!(out.operations.iter().all(|o| o.command != "inventory.stock.decrease"));
     }
 }
