@@ -47,6 +47,18 @@
     "btnCancel": "Cancelar",
     "colCategory": "Categoría",
     "colKey": "Clave",
-    "colName": "Nombre"
+    "colName": "Nombre",
+    "threshold": "Umbral",
+    "loading": "Cargando…",
+    "statsTracked": "Productos seguidos",
+    "statsInStock": "En stock",
+    "statsOutOfStock": "Agotados",
+    "statsLowStock": "Stock bajo",
+    "statsValue": "Valor de existencias",
+    "statsValueAtCost": "a coste",
+    "statsWithoutCost": "producto(s) sin coste registrado: el valor mostrado es parcial",
+    "statsError": "No se pudieron cargar las métricas del inventario.",
+    "lowStockTitle": "Productos con stock bajo",
+    "lowStockEmpty": "Sin productos en stock bajo."
   }
 }

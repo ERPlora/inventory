@@ -9,7 +9,7 @@ var __decorateClass = (decorators, target, key, kind) => {
   return result;
 };
 
-// node_modules/.pnpm/@lit-labs+ssr-dom-shim@1.6.0/node_modules/@lit-labs/ssr-dom-shim/lib/element-internals.js
+// ../../../../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/node_modules/.pnpm/@lit-labs+ssr-dom-shim@1.6.0/node_modules/@lit-labs/ssr-dom-shim/lib/element-internals.js
 var ElementInternalsShim = class ElementInternals {
   get shadowRoot() {
     return this.__host.__shadowRoot;
@@ -88,7 +88,7 @@ var ElementInternalsShim = class ElementInternals {
   }
 };
 
-// node_modules/.pnpm/@lit-labs+ssr-dom-shim@1.6.0/node_modules/@lit-labs/ssr-dom-shim/lib/events.js
+// ../../../../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/node_modules/.pnpm/@lit-labs+ssr-dom-shim@1.6.0/node_modules/@lit-labs/ssr-dom-shim/lib/events.js
 var __classPrivateFieldSet = function(receiver, state, value, kind, f3) {
   if (kind === "m") throw new TypeError("Private method is not writable");
   if (kind === "a" && !f3) throw new TypeError("Private accessor was defined without a setter");
@@ -246,7 +246,7 @@ Object.defineProperties(CustomEventShim.prototype, {
 var EventShimWithRealType = EventShim;
 var CustomEventShimWithRealType = CustomEventShim;
 
-// node_modules/.pnpm/@lit-labs+ssr-dom-shim@1.6.0/node_modules/@lit-labs/ssr-dom-shim/lib/css.js
+// ../../../../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/node_modules/.pnpm/@lit-labs+ssr-dom-shim@1.6.0/node_modules/@lit-labs/ssr-dom-shim/lib/css.js
 var _a2;
 var CSSRuleShim = (_a2 = class CSSRule {
   constructor() {
@@ -277,7 +277,7 @@ var CSSRuleShim = (_a2 = class CSSRule {
   }
 }, _a2.STYLE_RULE = 1, _a2.CHARSET_RULE = 2, _a2.IMPORT_RULE = 3, _a2.MEDIA_RULE = 4, _a2.FONT_FACE_RULE = 5, _a2.PAGE_RULE = 6, _a2.NAMESPACE_RULE = 10, _a2.KEYFRAMES_RULE = 7, _a2.KEYFRAME_RULE = 8, _a2.SUPPORTS_RULE = 12, _a2.COUNTER_STYLE_RULE = 11, _a2.FONT_FEATURE_VALUES_RULE = 14, _a2.MARGIN_RULE = 9, _a2);
 
-// node_modules/.pnpm/@lit-labs+ssr-dom-shim@1.6.0/node_modules/@lit-labs/ssr-dom-shim/index.js
+// ../../../../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/node_modules/.pnpm/@lit-labs+ssr-dom-shim@1.6.0/node_modules/@lit-labs/ssr-dom-shim/index.js
 globalThis.Event ??= EventShimWithRealType;
 globalThis.CustomEvent ??= CustomEventShimWithRealType;
 var constructionToken = Symbol();
@@ -674,7 +674,7 @@ var CustomElementRegistryShimWithRealType = CustomElementRegistry;
 var customElements2 = new CustomElementRegistryShimWithRealType();
 var windowShim = new WindowShim(constructionToken);
 
-// node_modules/.pnpm/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/node/css-tag.js
+// ../../../../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/node_modules/.pnpm/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/node/css-tag.js
 var t = globalThis;
 var e = t.ShadowRoot && (void 0 === t.ShadyCSS || t.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype;
 var s = Symbol();
@@ -719,7 +719,7 @@ var c = e || void 0 === t.CSSStyleSheet ? (t5) => t5 : (t5) => t5 instanceof CSS
   return r(e5);
 })(t5) : t5;
 
-// node_modules/.pnpm/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/node/reactive-element.js
+// ../../../../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/node_modules/.pnpm/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/node/reactive-element.js
 var { is: h, defineProperty: r2, getOwnPropertyDescriptor: o2, getOwnPropertyNames: n2, getOwnPropertySymbols: a, getPrototypeOf: c2 } = Object;
 var l = globalThis;
 l.customElements ??= customElements2;
@@ -942,7 +942,7 @@ var g = class extends (globalThis.HTMLElement ?? HTMLElementShimWithRealType) {
 };
 g.elementStyles = [], g.shadowRootOptions = { mode: "open" }, g[f("elementProperties")] = /* @__PURE__ */ new Map(), g[f("finalized")] = /* @__PURE__ */ new Map(), u?.({ ReactiveElement: g }), (l.reactiveElementVersions ??= []).push("2.1.2");
 
-// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/lit-html.js
+// ../../../../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/lit-html.js
 var t2 = globalThis;
 var i2 = (t5) => t5;
 var s2 = t2.trustedTypes;
@@ -1197,7 +1197,7 @@ var D = (t5, i7, s5) => {
   return h4._$AI(t5), h4;
 };
 
-// node_modules/.pnpm/lit-element@4.2.2/node_modules/lit-element/lit-element.js
+// ../../../../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/node_modules/.pnpm/lit-element@4.2.2/node_modules/lit-element/lit-element.js
 var s3 = globalThis;
 var i3 = class extends g {
   constructor() {
@@ -1226,7 +1226,7 @@ var o4 = s3.litElementPolyfillSupport;
 o4?.({ LitElement: i3 });
 (s3.litElementVersions ??= []).push("4.2.2");
 
-// node_modules/.pnpm/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/node/decorators/property.js
+// ../../../../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/node_modules/.pnpm/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/node/decorators/property.js
 var o5 = { attribute: true, type: String, converter: b, reflect: false, hasChanged: m };
 var r4 = (t5 = o5, e5, r6) => {
   const { kind: n6, metadata: i7 } = r6;
@@ -1256,12 +1256,12 @@ function n4(t5) {
   })(t5, e5, o7);
 }
 
-// node_modules/.pnpm/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/node/decorators/state.js
+// ../../../../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/node_modules/.pnpm/@lit+reactive-element@2.1.2/node_modules/@lit/reactive-element/node/decorators/state.js
 function r5(r6) {
   return n4({ ...r6, state: true, attribute: false });
 }
 
-// modules/inventory/ui/lib/tax-resolve.ts
+// ui/lib/tax-resolve.ts
 var TAX_HEADERS = [
   "tax_category",
   "tax_category_key",
@@ -1336,14 +1336,14 @@ async function createCategoryWithAlias(client, key, name, aliasText) {
   return key;
 }
 
-// node_modules/.pnpm/@erplora+outfitkit@file+..+outfitkit/node_modules/@erplora/outfitkit/dist/define.js
+// ../../../../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/node_modules/.pnpm/@erplora+outfitkit@file+..+outfitkit/node_modules/@erplora/outfitkit/dist/define.js
 function define(tag, ctor) {
   if (typeof customElements !== "undefined" && !customElements.get(tag)) {
     customElements.define(tag, ctor);
   }
 }
 
-// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directive.js
+// ../../../../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directive.js
 var t3 = { ATTRIBUTE: 1, CHILD: 2, PROPERTY: 3, BOOLEAN_ATTRIBUTE: 4, EVENT: 5, ELEMENT: 6 };
 var e4 = (t5) => (...e5) => ({ _$litDirective$: t5, values: e5 });
 var i4 = class {
@@ -1363,7 +1363,7 @@ var i4 = class {
   }
 };
 
-// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directive-helpers.js
+// ../../../../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directive-helpers.js
 var { I: t4 } = j;
 var i5 = (o7) => o7;
 var s4 = () => document.createComment("");
@@ -1396,7 +1396,7 @@ var h3 = (o7) => {
   o7._$AR(), o7._$AA.remove();
 };
 
-// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directives/repeat.js
+// ../../../../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directives/repeat.js
 var u4 = (e5, s5, t5) => {
   const r6 = /* @__PURE__ */ new Map();
   for (let l3 = s5; l3 <= t5; l3++) r6.set(e5[l3], l3);
@@ -1449,7 +1449,7 @@ var c4 = e4(class extends i4 {
   }
 });
 
-// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directives/style-map.js
+// ../../../../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directives/style-map.js
 var n5 = "important";
 var i6 = " !" + n5;
 var o6 = e4(class extends i4 {
@@ -1478,7 +1478,7 @@ var o6 = e4(class extends i4 {
   }
 });
 
-// node_modules/.pnpm/@erplora+outfitkit@file+..+outfitkit/node_modules/@erplora/outfitkit/dist/shared/icons.js
+// ../../../../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/node_modules/.pnpm/@erplora+outfitkit@file+..+outfitkit/node_modules/@erplora/outfitkit/dist/shared/icons.js
 var rawAdd = '<svg viewBox="0 0 512 512" width="1.2em" height="1.2em" ><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M256 112v288m144-144H112"/></svg>';
 var rawAlertCircle = '<svg viewBox="0 0 512 512" width="1.2em" height="1.2em" ><path fill="currentColor" d="M256 48C141.31 48 48 141.31 48 256s93.31 208 208 208s208-93.31 208-208S370.69 48 256 48m0 319.91a20 20 0 1 1 20-20a20 20 0 0 1-20 20m21.72-201.15l-5.74 122a16 16 0 0 1-32 0l-5.74-121.94v-.05a21.74 21.74 0 1 1 43.44 0Z"/></svg>';
 var rawAlertCircleOutline = '<svg viewBox="0 0 512 512" width="1.2em" height="1.2em" ><path fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" d="M448 256c0-106-86-192-192-192S64 150 64 256s86 192 192 192s192-86 192-192Z"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M250.26 166.05L256 288l5.73-121.95a5.74 5.74 0 0 0-5.79-6h0a5.74 5.74 0 0 0-5.68 6"/><path fill="currentColor" d="M256 367.91a20 20 0 1 1 20-20a20 20 0 0 1-20 20"/></svg>';
@@ -1626,7 +1626,7 @@ function okIcon(value) {
   return BY_NAME[value] ?? value;
 }
 
-// node_modules/.pnpm/@erplora+outfitkit@file+..+outfitkit/node_modules/@erplora/outfitkit/dist/ok-data-table.js
+// ../../../../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/node_modules/.pnpm/@erplora+outfitkit@file+..+outfitkit/node_modules/@erplora/outfitkit/dist/ok-data-table.js
 var __defProp2 = Object.defineProperty;
 var __decorateClass2 = (decorators, target, key, kind) => {
   var result = void 0;
@@ -2444,6 +2444,8 @@ var OkDataTable = class extends i3 {
       (a3) => {
         const loading = a3.loading?.(row) === true;
         const disabled = loading || a3.disabled?.(row) === true;
+        const iconOnly = !!a3.icon;
+        const name = iconOnly && a3.label ? a3.label : A;
         return b2`
             <ion-button
               size="small"
@@ -2451,6 +2453,8 @@ var OkDataTable = class extends i3 {
               color=${a3.color ?? "medium"}
               ?disabled=${disabled}
               aria-disabled=${disabled ? "true" : A}
+              title=${name}
+              aria-label=${name}
               @click=${() => this.emit("rowAction", { actionId: a3.id, row })}
             >
               ${loading ? b2`<ion-spinner slot="icon-only" name="dots"></ion-spinner>` : a3.icon ? b2`<ion-icon slot="icon-only" .icon=${okIcon(a3.icon)}></ion-icon>` : a3.label}
@@ -2933,7 +2937,7 @@ __decorateClass2([
 ], OkDataTable.prototype, "menuOpen");
 define("ok-data-table", OkDataTable);
 
-// node_modules/.pnpm/@erplora+module-sdk@file+..+hub+packages+module-sdk/node_modules/@erplora/module-sdk/src/index.ts
+// ../../../../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/node_modules/.pnpm/@erplora+module-sdk@file+..+hub+packages+module-sdk/node_modules/@erplora/module-sdk/src/index.ts
 function isEmpty(v3) {
   return v3 === null || v3 === void 0 || v3 === "";
 }
@@ -3061,7 +3065,7 @@ function centsToEuros(cents) {
   return cents == null ? "" : (cents / 100).toFixed(2);
 }
 
-// modules/inventory/ui/components/erp-inventory-categories/erp-inventory-categories.ts
+// ui/components/erp-inventory-categories/erp-inventory-categories.ts
 function erplora() {
   const c5 = globalThis.erplora;
   if (!c5) throw new Error("erplora SDK no inicializado por el shell");
@@ -3291,7 +3295,283 @@ __decorateClass([
 ], ErpInventoryCategories.prototype, "formError", 2);
 define("erp-inventory-categories", ErpInventoryCategories);
 
-// modules/inventory/ui/components/erp-inventory-dashboard/erp-inventory-dashboard.ts
+// ../../../../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/node_modules/.pnpm/@erplora+outfitkit@file+..+outfitkit/node_modules/@erplora/outfitkit/dist/ok-kpi.js
+var __defProp3 = Object.defineProperty;
+var __decorateClass3 = (decorators, target, key, kind) => {
+  var result = void 0;
+  for (var i7 = decorators.length - 1, decorator; i7 >= 0; i7--)
+    if (decorator = decorators[i7])
+      result = decorator(target, key, result) || result;
+  if (result) __defProp3(target, key, result);
+  return result;
+};
+var OkKpi = class extends i3 {
+  constructor() {
+    super(...arguments);
+    this.trend = "flat";
+  }
+  static {
+    this.styles = i`
+    :host {
+      display: block;
+      width: 100%;
+      /* Tokens propios estilo Ionic (overridables): --ok-* → --ion-* → hex. */
+      --background: var(--ok-card-background, var(--ion-card-background, var(--ion-background-color, #ffffff)));
+      --color: var(--ok-text-color, var(--ion-text-color, #1f2933));
+      --label-color: var(--ok-color-medium, var(--ion-color-medium, #92949c));
+      --border-color: var(--ok-border-color, var(--ion-border-color, rgba(0, 0, 0, 0.08)));
+      --border-radius: var(--ok-radius, 12px);
+      --box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+      --padding: 1rem 1.125rem;
+      /* Colores de tendencia. */
+      --trend-up-color: var(--ok-color-success, var(--ion-color-success, #2dd36f));
+      --trend-down-color: var(--ok-color-danger, var(--ion-color-danger, #eb445a));
+      --trend-flat-color: var(--ok-color-medium, var(--ion-color-medium, #92949c));
+    }
+
+    .card {
+      box-sizing: border-box;
+      width: 100%;
+      background: var(--background);
+      color: var(--color);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      padding: var(--padding);
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+    }
+
+    /* Fila superior: label + icono opcional. */
+    .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    .label {
+      margin: 0;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--label-color);
+    }
+
+    .label-icon {
+      font-size: 1.25rem;
+      color: var(--label-color);
+      flex: 0 0 auto;
+    }
+
+    .value {
+      margin: 0;
+      font-size: 1.75rem;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    /* Delta: flecha + texto, coloreado según tendencia. */
+    .delta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.8125rem;
+      font-weight: 600;
+    }
+    .delta ion-icon {
+      font-size: 1rem;
+    }
+    .delta.up {
+      color: var(--trend-up-color);
+    }
+    .delta.down {
+      color: var(--trend-down-color);
+    }
+    .delta.flat {
+      color: var(--trend-flat-color);
+    }
+
+    ::slotted(*) {
+      margin-top: 0.25rem;
+    }
+  `;
+  }
+  /** Devuelve el icono de flecha según la tendencia (SVG horneado, ver base/icons.ts). */
+  trendIcon() {
+    if (this.trend === "up") return iconTrendingUp;
+    if (this.trend === "down") return iconTrendingDown;
+    return iconRemove;
+  }
+  render() {
+    return b2`
+      <div class="card">
+        <div class="top">
+          ${this.label ? b2`<p class="label">${this.label}</p>` : null}
+          ${this.icon ? b2`<ion-icon class="label-icon" .icon=${okIcon(this.icon)} aria-hidden="true"></ion-icon>` : null}
+        </div>
+        ${this.value ? b2`<p class="value">${this.value}</p>` : null}
+        ${this.delta ? b2`<span class="delta ${this.trend}">
+              <ion-icon .icon=${this.trendIcon()} aria-hidden="true"></ion-icon>${this.delta}
+            </span>` : null}
+        <slot></slot>
+      </div>
+    `;
+  }
+};
+__decorateClass3([
+  n4()
+], OkKpi.prototype, "label");
+__decorateClass3([
+  n4()
+], OkKpi.prototype, "value");
+__decorateClass3([
+  n4()
+], OkKpi.prototype, "delta");
+__decorateClass3([
+  n4()
+], OkKpi.prototype, "trend");
+__decorateClass3([
+  n4()
+], OkKpi.prototype, "icon");
+define("ok-kpi", OkKpi);
+
+// locales/es.json
+var es_default = {
+  name: "Inventario",
+  navigation: {
+    dashboard: {
+      label: "Panel"
+    },
+    products: {
+      label: "Productos"
+    },
+    categories: {
+      label: "Categor\xEDas"
+    },
+    settings: {
+      label: "Ajustes"
+    }
+  },
+  ui: {
+    name: "Nombre",
+    sku: "SKU",
+    price: "Precio",
+    stock: "Stock",
+    active: "Activo",
+    category: "Categor\xEDa",
+    addProduct: "A\xF1adir producto",
+    newProduct: "Nuevo producto",
+    editProduct: "Editar producto",
+    lowStock: "Stock bajo",
+    searchProduct: "Buscar producto\u2026",
+    noProducts: "Sin productos",
+    taxRate: "Tipo de IVA / Impuesto",
+    taxDefault: "\u2014 (por defecto)",
+    taxGroup: "grupo",
+    save: "Guardar",
+    cancel: "Cancelar",
+    delete: "Borrar",
+    yes: "S\xED",
+    no: "No",
+    actionDetail: "Detalles",
+    actionEdit: "Editar",
+    actionDelete: "Eliminar",
+    importTaxTitle: "Categor\xEDas fiscales del CSV",
+    importTaxHint: "Algunos textos de categor\xEDa del CSV no se reconocen. Elige una categor\xEDa existente o crea una nueva; se recordar\xE1 para futuras importaciones.",
+    importPick: "Elegir",
+    importCreate: "Crear",
+    importSkip: "Omitir",
+    importConfirm: "Confirmar e importar",
+    btnCancel: "Cancelar",
+    colCategory: "Categor\xEDa",
+    colKey: "Clave",
+    colName: "Nombre",
+    threshold: "Umbral",
+    loading: "Cargando\u2026",
+    statsTracked: "Productos seguidos",
+    statsInStock: "En stock",
+    statsOutOfStock: "Agotados",
+    statsLowStock: "Stock bajo",
+    statsValue: "Valor de existencias",
+    statsValueAtCost: "a coste",
+    statsWithoutCost: "producto(s) sin coste registrado: el valor mostrado es parcial",
+    statsError: "No se pudieron cargar las m\xE9tricas del inventario.",
+    lowStockTitle: "Productos con stock bajo",
+    lowStockEmpty: "Sin productos en stock bajo."
+  }
+};
+
+// locales/en.json
+var en_default = {
+  name: "Inventory",
+  navigation: {
+    dashboard: {
+      label: "Dashboard"
+    },
+    products: {
+      label: "Products"
+    },
+    categories: {
+      label: "Categories"
+    },
+    settings: {
+      label: "Settings"
+    }
+  },
+  ui: {
+    name: "Name",
+    sku: "SKU",
+    price: "Price",
+    stock: "Stock",
+    active: "Active",
+    category: "Category",
+    addProduct: "Add product",
+    newProduct: "New product",
+    editProduct: "Edit product",
+    lowStock: "Low stock",
+    searchProduct: "Search product\u2026",
+    noProducts: "No products",
+    taxRate: "Tax rate",
+    taxDefault: "\u2014 (default)",
+    taxGroup: "group",
+    save: "Save",
+    cancel: "Cancel",
+    delete: "Delete",
+    yes: "Yes",
+    no: "No",
+    actionDetail: "Details",
+    actionEdit: "Edit",
+    actionDelete: "Delete",
+    importTaxTitle: "CSV tax categories",
+    importTaxHint: "Some category texts in the CSV aren't recognized. Pick an existing category or create a new one; it will be remembered for future imports.",
+    importPick: "Pick",
+    importCreate: "Create",
+    importSkip: "Skip",
+    importConfirm: "Confirm & import",
+    btnCancel: "Cancel",
+    colCategory: "Category",
+    colKey: "Key",
+    colName: "Name",
+    threshold: "Threshold",
+    loading: "Loading\u2026",
+    statsTracked: "Tracked products",
+    statsInStock: "In stock",
+    statsOutOfStock: "Out of stock",
+    statsLowStock: "Low stock",
+    statsValue: "Inventory value",
+    statsValueAtCost: "at cost",
+    statsWithoutCost: "product(s) without recorded cost: the value shown is partial",
+    statsError: "Inventory metrics could not be loaded.",
+    lowStockTitle: "Low stock products",
+    lowStockEmpty: "No products in low stock."
+  }
+};
+
+// ui/components/erp-inventory-dashboard/erp-inventory-dashboard.ts
+var CATALOG = { es: es_default, en: en_default };
 function erplora2() {
   const c5 = globalThis.erplora;
   if (!c5) throw new Error("erplora SDK no inicializado por el shell");
@@ -3300,62 +3580,78 @@ function erplora2() {
 var ErpInventoryDashboard = class extends i3 {
   constructor() {
     super(...arguments);
-    this.stats = {};
-    this.columns = [
-      { key: "name", header: "Nombre" },
-      { key: "sku", header: "SKU" },
-      { key: "stock", header: "Stock", align: "right" },
-      { key: "price", header: "Precio", align: "right", format: (r6) => Number(r6.price).toFixed(2) }
-    ];
+    this.stats = null;
+    this.statsLoading = true;
+    this.statsError = false;
   }
   static {
     this.styles = i`
     :host { display: block; height: 100%; overflow: auto; font-family: system-ui, sans-serif; color: var(--ion-text-color, #1c1b18); }
     h2 { font-size: 1rem; margin: 0 0 0.75rem; }
-    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem; margin: 0 0 1.5rem; }
-    .kpi { background: var(--ion-card-background, #fff); border: 1px solid var(--ion-border-color, #e6e2d8); border-radius: 12px; padding: 0.85rem 1rem; }
-    .kpi .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ion-color-medium, #6b6557); }
-    .kpi .value { font-size: 1.5rem; font-weight: 700; margin-top: 0.2rem; }
-    .kpi.warn .value { color: #d9700f; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem; margin: 0 0 1rem; }
+    .cards a { text-decoration: none; color: inherit; display: block; }
     .section { margin-bottom: 1.5rem; }
+    .state { color: var(--ion-color-medium, #6b6557); margin: 0 0 1rem; }
+    .state.error { color: var(--ion-color-danger, #c5000f); }
+    ion-note { display: block; margin: 0 0 1rem; font-size: 0.85rem; }
   `;
+  }
+  /** Columnas = las que `low_stock.sql` proyecta (nada de `price`: no viene, era NaN). */
+  get columns() {
+    const t5 = (k2) => erplora2().t(CATALOG, k2);
+    return [
+      { key: "name", header: t5("ui.name") },
+      { key: "sku", header: t5("ui.sku") },
+      { key: "stock", header: t5("ui.stock"), align: "right" },
+      { key: "low_stock_threshold", header: t5("ui.threshold"), align: "right" }
+    ];
   }
   async firstUpdated() {
     try {
-      this.stats = await erplora2().query("inventory.products.stats") ?? {};
+      const res = await erplora2().query("inventory.products.stats");
+      const row = Array.isArray(res) ? res[0] : res;
+      if (row && typeof row === "object") {
+        this.stats = row;
+      } else {
+        this.statsError = true;
+      }
     } catch {
-      this.stats = {};
+      this.statsError = true;
+    } finally {
+      this.statsLoading = false;
     }
     this.ctrl = createListController(erplora2(), "inventory.products.low_stock", () => this.requestUpdate(), {
       pageSize: 5
     });
     await this.ctrl.load();
   }
+  kpis() {
+    const t5 = (k2) => erplora2().t(CATALOG, k2);
+    const s5 = this.stats;
+    const n6 = (v3) => String(v3 ?? 0);
+    const productsHref = "/m/inventory/products";
+    return b2`
+      <div class="cards">
+        <a href=${productsHref}><ok-kpi label=${t5("ui.statsTracked")} value=${n6(s5.products_tracked)} icon="cube-outline"></ok-kpi></a>
+        <a href=${productsHref}><ok-kpi label=${t5("ui.statsInStock")} value=${n6(s5.products_in_stock)} icon="checkmark-circle-outline"></ok-kpi></a>
+        <a href=${productsHref}><ok-kpi label=${t5("ui.statsOutOfStock")} value=${n6(s5.products_out_of_stock)} icon="close-circle-outline" trend=${s5.products_out_of_stock > 0 ? "down" : "flat"}></ok-kpi></a>
+        <a href=${productsHref}><ok-kpi label=${t5("ui.statsLowStock")} value=${n6(s5.products_low_stock)} icon="warning-outline" trend=${s5.products_low_stock > 0 ? "down" : "flat"}></ok-kpi></a>
+        <ok-kpi label=${t5("ui.statsValue")} value=${erplora2().formatMoney(Number(s5.total_inventory_value ?? 0))} icon="pricetag-outline" delta=${t5("ui.statsValueAtCost")}></ok-kpi>
+      </div>
+      ${s5.products_without_cost > 0 ? b2`<ion-note color="warning">${s5.products_without_cost} ${t5("ui.statsWithoutCost")}</ion-note>` : A}
+    `;
+  }
   render() {
+    const t5 = (k2) => erplora2().t(CATALOG, k2);
     return b2`
       <div>
-        <div class="cards">
-          <div class="kpi">
-            <div class="label">Productos</div>
-            <div class="value">${this.stats.total_products ?? "\u2014"}</div>
-          </div>
-          <div class="kpi">
-            <div class="label">Activos</div>
-            <div class="value">${this.stats.active_products ?? "\u2014"}</div>
-          </div>
-          <div class="kpi ${this.stats.low_stock ? "warn" : ""}">
-            <div class="label">Stock bajo</div>
-            <div class="value">${this.stats.low_stock ?? "\u2014"}</div>
-          </div>
-          <div class="kpi">
-            <div class="label">Valor inventario</div>
-            <div class="value">${this.stats.total_value != null ? erplora2().formatAmount(Number(this.stats.total_value)) : "\u2014"}</div>
-          </div>
-        </div>
+        ${this.statsLoading ? b2`<p class="state">${t5("ui.loading")}</p>` : A}
+        ${this.statsError ? b2`<p class="state error">${t5("ui.statsError")}</p>` : A}
+        ${this.stats ? this.kpis() : A}
 
         <div class="section">
-          <h2>Productos con stock bajo</h2>
-          ${this.ctrl?.error ? b2`<p>${this.ctrl.error}</p>` : A}
+          <h2>${t5("ui.lowStockTitle")}</h2>
+          ${this.ctrl?.error ? b2`<p class="state error">${this.ctrl.error}</p>` : A}
           <ok-data-table
             .serverSide=${true}
             .columns=${this.columns}
@@ -3364,7 +3660,7 @@ var ErpInventoryDashboard = class extends i3 {
             .page=${this.ctrl?.state.page ?? 0}
             .pageSize=${this.ctrl?.state.pageSize ?? 5}
             .pageSizeOptions=${[]}
-            .emptyMessage=${this.ctrl?.loading ? "Cargando\u2026" : "Sin productos en stock bajo."}
+            .emptyMessage=${this.ctrl?.loading ? t5("ui.loading") : t5("ui.lowStockEmpty")}
             @pageChange=${(e5) => this.ctrl.setPage(e5.detail)}
           ></ok-data-table>
         </div>
@@ -3375,9 +3671,15 @@ var ErpInventoryDashboard = class extends i3 {
 __decorateClass([
   r5()
 ], ErpInventoryDashboard.prototype, "stats", 2);
+__decorateClass([
+  r5()
+], ErpInventoryDashboard.prototype, "statsLoading", 2);
+__decorateClass([
+  r5()
+], ErpInventoryDashboard.prototype, "statsError", 2);
 define("erp-inventory-dashboard", ErpInventoryDashboard);
 
-// modules/inventory/ui/lib/code128.ts
+// ui/lib/code128.ts
 var PATTERNS = [
   "212222",
   "222122",
@@ -3515,116 +3817,8 @@ function code128b(text, module = 2, height = 70) {
   return { width: x2, height, bars };
 }
 
-// modules/inventory/locales/es.json
-var es_default = {
-  name: "Inventario",
-  navigation: {
-    dashboard: {
-      label: "Panel"
-    },
-    products: {
-      label: "Productos"
-    },
-    categories: {
-      label: "Categor\xEDas"
-    },
-    settings: {
-      label: "Ajustes"
-    }
-  },
-  ui: {
-    name: "Nombre",
-    sku: "SKU",
-    price: "Precio",
-    stock: "Stock",
-    active: "Activo",
-    category: "Categor\xEDa",
-    addProduct: "A\xF1adir producto",
-    newProduct: "Nuevo producto",
-    editProduct: "Editar producto",
-    lowStock: "Stock bajo",
-    searchProduct: "Buscar producto\u2026",
-    noProducts: "Sin productos",
-    taxRate: "Tipo de IVA / Impuesto",
-    taxDefault: "\u2014 (por defecto)",
-    taxGroup: "grupo",
-    save: "Guardar",
-    cancel: "Cancelar",
-    delete: "Borrar",
-    yes: "S\xED",
-    no: "No",
-    actionDetail: "Detalles",
-    actionEdit: "Editar",
-    actionDelete: "Eliminar",
-    importTaxTitle: "Categor\xEDas fiscales del CSV",
-    importTaxHint: "Algunos textos de categor\xEDa del CSV no se reconocen. Elige una categor\xEDa existente o crea una nueva; se recordar\xE1 para futuras importaciones.",
-    importPick: "Elegir",
-    importCreate: "Crear",
-    importSkip: "Omitir",
-    importConfirm: "Confirmar e importar",
-    btnCancel: "Cancelar",
-    colCategory: "Categor\xEDa",
-    colKey: "Clave",
-    colName: "Nombre"
-  }
-};
-
-// modules/inventory/locales/en.json
-var en_default = {
-  name: "Inventory",
-  navigation: {
-    dashboard: {
-      label: "Dashboard"
-    },
-    products: {
-      label: "Products"
-    },
-    categories: {
-      label: "Categories"
-    },
-    settings: {
-      label: "Settings"
-    }
-  },
-  ui: {
-    name: "Name",
-    sku: "SKU",
-    price: "Price",
-    stock: "Stock",
-    active: "Active",
-    category: "Category",
-    addProduct: "Add product",
-    newProduct: "New product",
-    editProduct: "Edit product",
-    lowStock: "Low stock",
-    searchProduct: "Search product\u2026",
-    noProducts: "No products",
-    taxRate: "Tax rate",
-    taxDefault: "\u2014 (default)",
-    taxGroup: "group",
-    save: "Save",
-    cancel: "Cancel",
-    delete: "Delete",
-    yes: "Yes",
-    no: "No",
-    actionDetail: "Details",
-    actionEdit: "Edit",
-    actionDelete: "Delete",
-    importTaxTitle: "CSV tax categories",
-    importTaxHint: "Some category texts in the CSV aren't recognized. Pick an existing category or create a new one; it will be remembered for future imports.",
-    importPick: "Pick",
-    importCreate: "Create",
-    importSkip: "Skip",
-    importConfirm: "Confirm & import",
-    btnCancel: "Cancel",
-    colCategory: "Category",
-    colKey: "Key",
-    colName: "Name"
-  }
-};
-
-// modules/inventory/ui/components/erp-inventory-products/erp-inventory-products.ts
-var CATALOG = { es: es_default, en: en_default };
+// ui/components/erp-inventory-products/erp-inventory-products.ts
+var CATALOG2 = { es: es_default, en: en_default };
 function erplora3() {
   const c5 = globalThis.erplora;
   if (!c5) throw new Error("erplora SDK no inicializado por el shell");
@@ -3674,7 +3868,7 @@ var ErpInventoryProducts = class extends i3 {
   // Getter (no campo): se re-evalúa en cada render, así los textos cambian con el idioma activo
   // (ADR-0055). `connectedCallback` re-renderiza al recibir `erplora:locale-changed`.
   get columns() {
-    const t5 = (k2) => erplora3().t(CATALOG, k2);
+    const t5 = (k2) => erplora3().t(CATALOG2, k2);
     return [
       { key: "name", header: t5("ui.name"), sortable: true, filterable: true, filterType: "text" },
       { key: "sku", header: t5("ui.sku"), sortable: true, filterable: true, filterType: "text" },
@@ -3715,7 +3909,7 @@ var ErpInventoryProducts = class extends i3 {
   }
   // Acciones por fila (botones) → la tabla emite `rowAction` con { actionId, row }. Getter (i18n).
   get actions() {
-    const t5 = (k2) => erplora3().t(CATALOG, k2);
+    const t5 = (k2) => erplora3().t(CATALOG2, k2);
     return [
       { id: "detail", label: t5("ui.actionDetail"), icon: "eye-outline" },
       { id: "edit", label: t5("ui.actionEdit"), icon: "create-outline" },
@@ -3849,7 +4043,7 @@ var ErpInventoryProducts = class extends i3 {
   // Modal de resolución de categorías del importador (ADR-0085): una fila por texto sin resolver,
   // con elegir categoría existente / crear nueva / omitir; al confirmar persiste el alias.
   renderImportModal() {
-    const t5 = (k2) => erplora3().t(CATALOG, k2);
+    const t5 = (k2) => erplora3().t(CATALOG2, k2);
     const setChoice = (text, patch) => {
       this.importChoice = { ...this.importChoice, [text]: { ...this.importChoice[text], ...patch } };
     };
@@ -3949,7 +4143,7 @@ var ErpInventoryProducts = class extends i3 {
   // Opciones del ion-select: "— (sin categoría)" (valor '') + una categoría por fila.
   // Etiqueta = "Nombre (key)".
   taxOptions() {
-    const t5 = (k2) => erplora3().t(CATALOG, k2);
+    const t5 = (k2) => erplora3().t(CATALOG2, k2);
     return b2`
       <ion-select-option value="">${t5("ui.taxDefault")}</ion-select-option>
       ${this.taxCategories.map(
@@ -4051,7 +4245,7 @@ var ErpInventoryProducts = class extends i3 {
             <ion-select
               fill="outline"
               label-placement="floating"
-              label=${erplora3().t(CATALOG, "ui.taxRate")}
+              label=${erplora3().t(CATALOG2, "ui.taxRate")}
               .value=${this.newTaxCategoryKey}
               @ionChange=${(e5) => this.newTaxCategoryKey = e5.target.value}
             >
@@ -4076,7 +4270,7 @@ var ErpInventoryProducts = class extends i3 {
             ${this.detail ? b2`
                   <div class="detail">
                     <div class="drow"><span>SKU</span><b>${this.detail.sku}</b></div>
-                    <div class="drow"><span>Precio</span><b>${erplora3().formatAmount(Number(this.detail.price))}</b></div>
+                    <div class="drow"><span>Precio</span><b>${erplora3().formatMoney(Number(this.detail.price))}</b></div>
                     <div class="drow"><span>Stock</span><b>${this.detail.stock}</b></div>
                     <div class="drow"><span>Activo</span><b>${this.detail.is_active ? "S\xED" : "No"}</b></div>
                     <div class="barcode">

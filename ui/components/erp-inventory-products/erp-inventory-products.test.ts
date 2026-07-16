@@ -146,3 +146,21 @@ describe('import CSV de productos (misma frontera euros↔céntimos)', () => {
     expect(altas[0].payload.price).toBe(0);
   });
 });
+
+describe('el DETALLE de producto usa el mismo formateador que la lista (inventory#9)', () => {
+  // La lista ya formatea céntimos con `formatMoney`; el detalle seguía con `formatAmount`
+  // (no divide) → un café de 220 céntimos se pintaba «220,00 €» en la ficha.
+  it('el precio del detalle se pinta con formatMoney: 220 céntimos → 2.20 €', async () => {
+    const el = await montar();
+    const wc = el as unknown as {
+      detail: Record<string, unknown> | null;
+      updateComplete: Promise<unknown>;
+      shadowRoot: ShadowRoot;
+    };
+    wc.detail = { id: 'p1', name: 'Café solo', sku: 'CAF', price: 220, stock: 10, is_active: 1 };
+    await wc.updateComplete;
+    const texto = wc.shadowRoot.textContent ?? '';
+    expect(texto, 'el detalle pinta céntimos como euros (×100)').not.toContain('220.00 €');
+    expect(texto).toContain('2.20 €');
+  });
+});
