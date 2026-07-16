@@ -13,7 +13,7 @@
     "price": { "type": "integer", "minimum": 0 },
     "cost": { "type": "integer", "minimum": 0, "default": 0 },
     "stock": { "type": "integer", "minimum": 0, "default": 0 },
-    "low_stock_threshold": { "type": "integer", "minimum": 0, "default": 10 },
+    "low_stock_threshold": { "type": "integer", "minimum": 0, "description": "Umbral por producto (siempre manda). Ausente → hereda el umbral global de los ajustes del hub (fallback 10)." },
     "tax_category_key": { "type": ["string", "null"], "default": null },
     "image": { "type": "string", "default": "" }
   }
