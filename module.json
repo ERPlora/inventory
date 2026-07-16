@@ -502,7 +502,9 @@
       "transaction": true,
       "sql": [
         "commands/_ensure_location.sql",
-        "commands/_restock_on_void.sql"
+        "commands/_restock_on_void_movement.sql",
+        "commands/_restock_on_void.sql",
+        "commands/_restock_on_void_marker.sql"
       ]
     },
     "inventory._skip_void_restock": {
