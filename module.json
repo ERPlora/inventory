@@ -495,7 +495,7 @@
         "value": "total_inventory_value"
       },
       "options": {
-        "label": "Valor total del stock",
+        "label": "Valor del stock (a coste)",
         "icon": "cash-outline",
         "format": "currency",
         "currency": "EUR",

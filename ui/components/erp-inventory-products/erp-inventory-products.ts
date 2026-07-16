@@ -37,8 +37,11 @@ interface ErploraClientLike extends ListClient {
   /** i18n del módulo (ADR-0055): idioma activo + traducción del catálogo `ui`. */
   locale: string;
   t(catalog: Record<string, unknown>, key: string, params?: Record<string, unknown>): string;
-  /** Moneda del hub + formateo de dinero (ADR-0059). */
+  /** Moneda del hub + formateo de dinero (ADR-0059). `formatMoney` recibe CÉNTIMOS y divide;
+   *  `formatAmount` recibe unidades enteras (euros) y NO divide. Precios de BD = céntimos
+   *  (ADR-0007) → SIEMPRE `formatMoney`. */
   currency: string;
+  formatMoney(cents: number, opts?: { currency?: string; locale?: string }): string;
   formatAmount(units: number, opts?: { currency?: string; locale?: string }): string;
 }
 
@@ -572,7 +575,7 @@ export class ErpInventoryProducts extends LitElement {
               ? html`
                   <div class="detail">
                     <div class="drow"><span>SKU</span><b>${this.detail.sku}</b></div>
-                    <div class="drow"><span>Precio</span><b>${erplora().formatAmount(Number(this.detail.price))}</b></div>
+                    <div class="drow"><span>Precio</span><b>${erplora().formatMoney(Number(this.detail.price))}</b></div>
                     <div class="drow"><span>Stock</span><b>${this.detail.stock}</b></div>
                     <div class="drow"><span>Activo</span><b>${this.detail.is_active ? 'Sí' : 'No'}</b></div>
                     <div class="barcode">

@@ -47,6 +47,18 @@
     "btnCancel": "Cancel",
     "colCategory": "Category",
     "colKey": "Key",
-    "colName": "Name"
+    "colName": "Name",
+    "threshold": "Threshold",
+    "loading": "Loading…",
+    "statsTracked": "Tracked products",
+    "statsInStock": "In stock",
+    "statsOutOfStock": "Out of stock",
+    "statsLowStock": "Low stock",
+    "statsValue": "Inventory value",
+    "statsValueAtCost": "at cost",
+    "statsWithoutCost": "product(s) without recorded cost: the value shown is partial",
+    "statsError": "Inventory metrics could not be loaded.",
+    "lowStockTitle": "Low stock products",
+    "lowStockEmpty": "No products in low stock."
   }
 }
