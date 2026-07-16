@@ -91,10 +91,26 @@ export class ErpInventoryProducts extends LitElement {
     .bccode { font:14px ui-monospace,monospace; margin-top:.4rem; letter-spacing:.08em; }
   `;
 
-  @state() private newName = '';
-  @state() private newSku = '';
-  @state() private newPrice = '';
+  @state() newName = '';
+  @state() newSku = '';
+  @state() newPrice = '';
   @state() private newTaxCategoryKey = ''; // '' = sin categoría (se envía null)
+  // Ficha completa (inventory#8): el form de alta/edición cubre TODOS los campos del dominio.
+  @state() newCost = '';
+  @state() newStock = '';
+  @state() newThreshold = '';
+  @state() newEan = '';
+  @state() newDescription = '';
+  @state() newType: 'physical' | 'service' = 'physical';
+  @state() newActive = true;
+  // Edición REAL (inventory#8): id en edición (null = alta). Estado técnico Y visible
+  // (el form cambia de título/botón). El submit decide create vs update por esto.
+  @state() editingId: string | null = null;
+  // Categorías del producto (M2M): marcadas en el form; initial = las de BD al abrir la
+  // edición, para sincronizar solo las diferencias (add/remove).
+  @state() selectedCategoryIds: Set<string> = new Set();
+  initialCategoryIds: Set<string> = new Set();
+  @state() private productCategories: { id: string; name: string }[] = [];
   @state() private taxCategories: TaxCategory[] = [];
   @state() private saving = false;
   @state() private formError = '';
@@ -110,6 +126,9 @@ export class ErpInventoryProducts extends LitElement {
   @state() private importUnresolved: string[] = []; // textos a decidir
   // Decisión por texto: 'skip' (sin categoría), 'pick' (key existente), 'create' (nueva key+name).
   @state() private importChoice: Record<string, { mode: 'skip' | 'pick' | 'create'; key: string; newKey: string; newName: string }> = {};
+  // Informe del import (inventory#13): visible al terminar, copiable; null = sin import reciente.
+  @state() importReport: { total: number; created: number; skipped: number;
+    failed: { line: number; sku: string; reason: string }[] } | null = null;
 
   private ctrl!: ListController<Product>;
   private unsub?: () => void;
@@ -239,13 +258,31 @@ export class ErpInventoryProducts extends LitElement {
       this.countValue = '';
       this.countReason = '';
     } else if (actionId === 'edit') {
-      this.newName = p.name;
-      this.newSku = p.sku;
-      // La fila viene en CÉNTIMOS y el form edita EUROS (ADR-0123): sin esta frontera, editar un
-      // producto de 2,20 € mostraba «220» en el input.
-      this.newPrice = centsToEuros(p.price);
-      this.newTaxCategoryKey = p.tax_category_key ?? ''; // pre-selecciona la categoría fiscal (ADR-0085)
-      this.dataTable()?.open('create'); // abre el panel lateral con el form pre-rellenado
+      // Edición REAL (inventory#8): carga la ficha COMPLETA desde products.get (la fila de la
+      // lista no proyecta description/ean13) + las categorías M2M actuales, y fija editingId.
+      this.editingId = p.id;
+      try {
+        const full = (await erplora().query<Product[]>('inventory.products.get', { product_id: p.id }))?.[0] ?? p;
+        this.newName = full.name ?? '';
+        this.newSku = full.sku ?? '';
+        // La BD guarda CÉNTIMOS y el form edita EUROS (ADR-0123).
+        this.newPrice = centsToEuros(full.price);
+        this.newCost = centsToEuros((full as unknown as { cost?: number }).cost ?? 0);
+        this.newThreshold = String((full as unknown as { low_stock_threshold?: number }).low_stock_threshold ?? 10);
+        this.newEan = String((full as unknown as { ean13?: string | null }).ean13 ?? '');
+        this.newDescription = String((full as unknown as { description?: string }).description ?? '');
+        this.newType = ((full as unknown as { product_type?: string }).product_type === 'service' ? 'service' : 'physical');
+        this.newActive = Number((full as unknown as { is_active?: number }).is_active ?? 1) === 1;
+        this.newTaxCategoryKey = full.tax_category_key ?? '';
+        const links = await erplora().query<{ product_id: string; category_id: string }[]>('inventory.product_categories');
+        const mine = (Array.isArray(links) ? links : []).filter((l) => l.product_id === p.id).map((l) => l.category_id);
+        this.initialCategoryIds = new Set(mine);
+        this.selectedCategoryIds = new Set(mine);
+      } catch {
+        this.initialCategoryIds = new Set();
+        this.selectedCategoryIds = new Set();
+      }
+      this.dataTable()?.open('create'); // abre el panel lateral con la ficha pre-rellenada
     } else if (actionId === 'delete') {
       try {
         await erplora().command('inventory.products.delete', { product_id: p.id });
@@ -259,14 +296,18 @@ export class ErpInventoryProducts extends LitElement {
   private async toggleActive(p: Product, ev: Event): Promise<void> {
     const checked = (ev.target as HTMLInputElement).checked;
     try {
-      // El command exige el conjunto completo de campos editables (schemas/product_update.json):
-      // se reenvían los valores actuales de la fila y solo cambia is_active.
+      // El command exige el conjunto COMPLETO de campos editables (schemas/product_update.json,
+      // inventory#8): la fila de la lista no proyecta description/ean13, así que se lee la
+      // ficha completa antes — reenviar un subconjunto BORRARÍA esos campos.
+      const full = (await erplora().query<Record<string, unknown>[]>('inventory.products.get', { product_id: p.id }))?.[0] ?? {};
       await erplora().command('inventory.products.update', {
         product_id: p.id,
         name: p.name,
         price: p.price,
         cost: p.cost ?? 0,
         low_stock_threshold: p.low_stock_threshold ?? 10,
+        ean13: (full.ean13 as string | null) ?? null,
+        description: (full.description as string) ?? '',
         tax_category_key: p.tax_category_key ?? null,
         is_active: checked ? 1 : 0,
       });
@@ -347,18 +388,46 @@ export class ErpInventoryProducts extends LitElement {
   }
 
   // Crea un producto por fila enlazando su tax_category_key resuelto (o null = sin categoría).
-  private async finalizeImport(rows: Record<string, string>[], map: Map<string, string>): Promise<void> {
-    let linked = 0;
-    for (const r of rows) {
-      if (!r.name && !r.sku) continue;
+  // Importa fila a fila con VALIDACIÓN previa e informe VISIBLE (inventory#13): nada de
+  // `catch {}` — cada fila acaba en creada / omitida (duplicado en BD, política definida:
+  // se salta y se cuenta, reintentable) / fallida (con línea FÍSICA del fichero y motivo).
+  // El resumen se enseña en un modal y es copiable para corregir y reintentar.
+  async finalizeImport(rows: Record<string, string>[], map: Map<string, string>): Promise<void> {
+    const t = (k: string): string => erplora().t(CATALOG, k);
+    const failed: { line: number; sku: string; reason: string }[] = [];
+    let created = 0;
+    let skipped = 0;
+    const seenSkus = new Set<string>();
+
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      const line = i + 2; // línea física del CSV (la cabecera es la 1)
+      const sku = (r.sku ?? '').trim();
+      const name = (r.name ?? '').trim();
+
+      // Validación por fila ANTES de tocar el dispatcher.
+      if (!name || !sku) {
+        failed.push({ line, sku, reason: t('ui.importErrNameSku') });
+        continue;
+      }
+      const price = eurosToCents(r.price);
+      if (r.price !== undefined && r.price.trim() !== '' && !Number.isFinite(Number(r.price))) {
+        failed.push({ line, sku, reason: t('ui.importErrPrice') });
+        continue;
+      }
+      if (seenSkus.has(sku)) {
+        failed.push({ line, sku, reason: t('ui.importErrDupFile') });
+        continue;
+      }
+      seenSkus.add(sku);
+
       const taxValue = pickTaxValue(r);
       const taxCategoryKey = taxValue ? (map.get(normalizeAlias(taxValue)) ?? null) : null;
-      if (taxCategoryKey) linked++;
       try {
         await erplora().command('inventory.products.create', {
-          name: r.name ?? '',
-          sku: r.sku ?? '',
-          price: eurosToCents(r.price),
+          name,
+          sku,
+          price,
           stock: Number(r.stock) || 0,
           cost: eurosToCents(r.cost),
           low_stock_threshold: Number(r.low_stock_threshold) || 10,
@@ -368,14 +437,31 @@ export class ErpInventoryProducts extends LitElement {
           tax_category_key: taxCategoryKey,
           image: '',
         });
-      } catch {
-        /* ignora filas inválidas (incl. categoría inválida rechazada por el runtime) */
+        created++;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        // Política de duplicados en BD: OMITIR (contado, reintentable tras corregir).
+        if (/unique|duplicate/i.test(msg)) {
+          skipped++;
+        } else {
+          failed.push({ line, sku, reason: msg });
+        }
       }
     }
-    console.info(`[inventory] Import CSV: ${linked} productos enlazados por categoría.`);
+
+    this.importReport = { total: rows.length, created, skipped, failed };
     this.importRows = [];
     this.importUnresolved = [];
     await this.ctrl.load();
+  }
+
+  /** Informe copiable: una línea por fila fallida (`línea N · SKU · motivo`). */
+  importReportText(): string {
+    const rep = this.importReport;
+    if (!rep) return '';
+    const head = `total=${rep.total} created=${rep.created} skipped=${rep.skipped} failed=${rep.failed.length}`;
+    const lines = rep.failed.map((f) => `línea ${f.line} · ${f.sku || '—'} · ${f.reason}`);
+    return [head, ...lines].join('\n');
   }
 
   // Modal de resolución de categorías del importador (ADR-0085): una fila por texto sin resolver,
@@ -469,6 +555,7 @@ export class ErpInventoryProducts extends LitElement {
     );
     await this.ctrl.load();
     void this.loadTaxCategories();
+    void this.loadProductCategories();
     // Reactividad: al cambiar stock o crearse un producto, recargamos la página actual.
     try {
       const reload = () => this.ctrl.load();
@@ -516,35 +603,103 @@ export class ErpInventoryProducts extends LitElement {
     `;
   }
 
-  private async createProduct(ev: Event): Promise<void> {
+  /** Categorías de producto del hub (para el multi-select de la ficha, inventory#8). */
+  private async loadProductCategories(): Promise<void> {
+    try {
+      const rows = await erplora().queryAll<{ id: string; name: string }>('inventory.categories.list');
+      this.productCategories = Array.isArray(rows) ? rows : [];
+    } catch {
+      this.productCategories = [];
+    }
+  }
+
+  /** Vuelve al modo ALTA limpio (inventory#8): tras editar, el siguiente «+» no hereda datos. */
+  cancelEdit(): void {
+    this.editingId = null;
+    this.newName = '';
+    this.newSku = '';
+    this.newPrice = '';
+    this.newCost = '';
+    this.newStock = '';
+    this.newThreshold = '';
+    this.newEan = '';
+    this.newDescription = '';
+    this.newType = 'physical';
+    this.newActive = true;
+    this.newTaxCategoryKey = '';
+    this.initialCategoryIds = new Set();
+    this.selectedCategoryIds = new Set();
+    this.formError = '';
+  }
+
+  // Submit del form (alta O edición — decide `editingId`, inventory#8). El nombre se
+  // conserva por compatibilidad con el template/tests históricos.
+  async createProduct(ev: Event): Promise<void> {
     ev.preventDefault();
     if (!this.newName.trim() || !this.newSku.trim()) return;
     this.saving = true;
     this.formError = '';
+    const t = (k: string): string => erplora().t(CATALOG, k);
     try {
-      await erplora().command('inventory.products.create', {
-        name: this.newName.trim(),
-        sku: this.newSku.trim(),
-        // El input es EUROS (`step="0.01"`); la columna es INTEGER de céntimos (ADR-0007).
-        // Sin esta frontera, teclear «2,20» guardaba 2 céntimos.
-        price: eurosToCents(this.newPrice),
-        cost: 0,
-        stock: 0,
-        low_stock_threshold: 10,
-        product_type: 'physical',
-        ean13: null,
-        description: '',
-        tax_category_key: this.newTaxCategoryKey || null,
-        image: '',
-      });
-      this.newName = '';
-      this.newSku = '';
-      this.newPrice = '';
-      this.newTaxCategoryKey = '';
-      this.dataTable()?.close(); // cierra el panel lateral tras crear
+      if (this.editingId) {
+        // EDICIÓN real: update conservando la identidad (el stock NO se edita aquí —
+        // es autoridad del ledger #7: recuento/recepción).
+        await erplora().command('inventory.products.update', {
+          product_id: this.editingId,
+          name: this.newName.trim(),
+          price: eurosToCents(this.newPrice),
+          cost: eurosToCents(this.newCost),
+          low_stock_threshold: Number(this.newThreshold) || 10,
+          ean13: this.newEan.trim() || null,
+          description: this.newDescription,
+          tax_category_key: this.newTaxCategoryKey || null,
+          is_active: this.newActive ? 1 : 0,
+        });
+        // Sincroniza el M2M por diferencias (solo lo que cambió).
+        for (const cid of this.selectedCategoryIds) {
+          if (!this.initialCategoryIds.has(cid)) {
+            await erplora().command('inventory.products.add_category', {
+              product_id: this.editingId, category_id: cid,
+            });
+          }
+        }
+        for (const cid of this.initialCategoryIds) {
+          if (!this.selectedCategoryIds.has(cid)) {
+            await erplora().command('inventory.products.remove_category', {
+              product_id: this.editingId, category_id: cid,
+            });
+          }
+        }
+      } else {
+        // ALTA. El input es EUROS (`step="0.01"`); la columna es INTEGER de céntimos
+        // (ADR-0007). Sin esta frontera, teclear «2,20» guardaba 2 céntimos.
+        await erplora().command('inventory.products.create', {
+          name: this.newName.trim(),
+          sku: this.newSku.trim(),
+          price: eurosToCents(this.newPrice),
+          cost: eurosToCents(this.newCost),
+          stock: Number(this.newStock) || 0,
+          low_stock_threshold: Number(this.newThreshold) || 10,
+          product_type: this.newType,
+          ean13: this.newEan.trim() || null,
+          description: this.newDescription,
+          tax_category_key: this.newTaxCategoryKey || null,
+          image: '',
+        });
+      }
+      this.cancelEdit();
+      this.dataTable()?.close(); // cierra el panel lateral tras guardar
       await this.ctrl.load(); // refresco inmediato (además del evento)
     } catch (e) {
-      this.formError = e instanceof Error ? e.message : 'No se pudo crear';
+      const msg = e instanceof Error ? e.message : String(e);
+      // Errores de unicidad explicados JUNTO al campo (inventory#8), no genéricos.
+      if (/unique|duplicate/i.test(msg) && /sku/i.test(msg)) {
+        this.formError = t('ui.errSkuTaken');
+      } else if (/unique|duplicate/i.test(msg) && /ean/i.test(msg)) {
+        this.formError = t('ui.errEanTaken');
+      } else {
+        this.formError = msg || 'No se pudo guardar';
+      }
     } finally {
       this.saving = false;
     }
@@ -587,6 +742,14 @@ export class ErpInventoryProducts extends LitElement {
         >
           <!-- Formulario de alta: el botón "+" del data-table despliega este acordeón. -->
           <form slot="create" class="form" @submit=${(e: Event) => this.createProduct(e)}>
+            ${this.editingId
+              ? html`<div class="drow" style="align-items:center;">
+                  <b>${erplora().t(CATALOG, 'ui.editingTitle')}</b>
+                  <ion-button size="small" fill="clear" @click=${() => this.cancelEdit()}>
+                    ${erplora().t(CATALOG, 'ui.editingCancel')}
+                  </ion-button>
+                </div>`
+              : nothing}
             <ion-input
               fill="outline"
               label="Nombre"
@@ -599,6 +762,8 @@ export class ErpInventoryProducts extends LitElement {
               label="SKU"
               label-placement="floating"
               .value=${this.newSku}
+              .disabled=${!!this.editingId}
+              helper-text=${this.editingId ? erplora().t(CATALOG, 'ui.skuIdentity') : ''}
               @ionInput=${(e: Event) => (this.newSku = (e.target as HTMLInputElement).value)}
             ></ion-input>
             <ion-input
@@ -610,6 +775,59 @@ export class ErpInventoryProducts extends LitElement {
               .value=${this.newPrice}
               @ionInput=${(e: Event) => (this.newPrice = (e.target as HTMLInputElement).value)}
             ></ion-input>
+            <ion-input
+              fill="outline"
+              label=${erplora().t(CATALOG, 'ui.fieldCost')}
+              label-placement="floating"
+              type="number" step="0.01" min="0"
+              .value=${this.newCost}
+              @ionInput=${(e: Event) => (this.newCost = (e.target as HTMLInputElement).value)}
+            ></ion-input>
+            ${!this.editingId
+              ? html`<ion-input
+                  fill="outline"
+                  label=${erplora().t(CATALOG, 'ui.fieldInitialStock')}
+                  label-placement="floating"
+                  type="number" step="0.001" min="0"
+                  .value=${this.newStock}
+                  @ionInput=${(e: Event) => (this.newStock = (e.target as HTMLInputElement).value)}
+                ></ion-input>`
+              : nothing}
+            <ion-input
+              fill="outline"
+              label=${erplora().t(CATALOG, 'ui.fieldThreshold')}
+              label-placement="floating"
+              type="number" step="1" min="0"
+              .value=${this.newThreshold}
+              @ionInput=${(e: Event) => (this.newThreshold = (e.target as HTMLInputElement).value)}
+            ></ion-input>
+            <ion-input
+              fill="outline"
+              label="EAN-13"
+              label-placement="floating"
+              maxlength="13"
+              .value=${this.newEan}
+              @ionInput=${(e: Event) => (this.newEan = (e.target as HTMLInputElement).value)}
+            ></ion-input>
+            <ion-input
+              fill="outline"
+              label=${erplora().t(CATALOG, 'ui.fieldDescription')}
+              label-placement="floating"
+              .value=${this.newDescription}
+              @ionInput=${(e: Event) => (this.newDescription = (e.target as HTMLInputElement).value)}
+            ></ion-input>
+            ${!this.editingId
+              ? html`<ion-select
+                  fill="outline"
+                  label-placement="floating"
+                  label=${erplora().t(CATALOG, 'ui.fieldType')}
+                  .value=${this.newType}
+                  @ionChange=${(e: Event) => (this.newType = ((e.target as HTMLInputElement).value === 'service' ? 'service' : 'physical'))}
+                >
+                  <ion-select-option value="physical">${erplora().t(CATALOG, 'ui.typePhysical')}</ion-select-option>
+                  <ion-select-option value="service">${erplora().t(CATALOG, 'ui.typeService')}</ion-select-option>
+                </ion-select>`
+              : nothing}
             <ion-select
               fill="outline"
               label-placement="floating"
@@ -619,8 +837,29 @@ export class ErpInventoryProducts extends LitElement {
             >
               ${this.taxOptions()}
             </ion-select>
+            ${this.productCategories.length
+              ? html`<ion-select
+                  fill="outline"
+                  label-placement="floating"
+                  label=${erplora().t(CATALOG, 'ui.fieldCategories')}
+                  .multiple=${true}
+                  .value=${[...this.selectedCategoryIds]}
+                  @ionChange=${(e: CustomEvent) => {
+                    const v = (e.detail as { value?: string[] }).value ?? [];
+                    this.selectedCategoryIds = new Set(v);
+                  }}
+                >
+                  ${this.productCategories.map(
+                    (c) => html`<ion-select-option .value=${c.id}>${c.name}</ion-select-option>`,
+                  )}
+                </ion-select>`
+              : nothing}
             <ion-button type="submit" ?disabled=${this.saving || !this.newName || !this.newSku}>
-              ${this.saving ? 'Guardando…' : 'Guardar'}
+              ${this.saving
+                ? 'Guardando…'
+                : this.editingId
+                  ? erplora().t(CATALOG, 'ui.saveChanges')
+                  : 'Guardar'}
             </ion-button>
           </form>
         </ok-data-table>
@@ -657,7 +896,56 @@ export class ErpInventoryProducts extends LitElement {
         ${this.renderCountModal()}
         ${this.renderReceiveModal()}
         ${this.renderImportModal()}
+        ${this.renderImportReportModal()}
       </div>
+    `;
+  }
+
+  // Informe del import CSV (inventory#13): total/creadas/omitidas/fallidas con línea y
+  // motivo, copiable al portapapeles para corregir el fichero y reintentar.
+  private renderImportReportModal() {
+    const t = (k: string): string => erplora().t(CATALOG, k);
+    const rep = this.importReport;
+    return html`
+      <ion-modal .isOpen=${!!rep} @ionModalDidDismiss=${() => (this.importReport = null)}>
+        <ion-header class="ion-no-border">
+          <ion-toolbar>
+            <ion-title>${t('ui.importReportTitle')}</ion-title>
+            <ion-buttons slot="end">
+              <ion-button @click=${() => (this.importReport = null)}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content class="ion-padding">
+          ${rep
+            ? html`
+                <div class="detail">
+                  <div class="drow"><span>${t('ui.importTotal')}</span><b>${rep.total}</b></div>
+                  <div class="drow"><span>${t('ui.importCreated')}</span><b>${rep.created}</b></div>
+                  <div class="drow"><span>${t('ui.importSkipped')}</span><b>${rep.skipped}</b></div>
+                  <div class="drow"><span>${t('ui.importFailed')}</span><b>${rep.failed.length}</b></div>
+                  ${rep.failed.length
+                    ? html`
+                        <ion-list>
+                          ${rep.failed.map(
+                            (f) => html`<ion-item lines="none">
+                              <ion-label class="ion-text-wrap">
+                                <b>${t('ui.importLine')} ${f.line}</b> · ${f.sku || '—'} — ${f.reason}
+                              </ion-label>
+                            </ion-item>`,
+                          )}
+                        </ion-list>
+                        <ion-button expand="block" fill="outline"
+                          @click=${() => navigator.clipboard?.writeText(this.importReportText())}>
+                          <ion-icon name="copy-outline" slot="start"></ion-icon>${t('ui.importCopy')}
+                        </ion-button>
+                      `
+                    : nothing}
+                </div>
+              `
+            : nothing}
+        </ion-content>
+      </ion-modal>
     `;
   }
 

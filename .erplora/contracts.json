@@ -4,6 +4,8 @@
   "consumes": {
     "queries": [
       "inventory.categories.list",
+      "inventory.product_categories",
+      "inventory.products.get",
       "inventory.products.list",
       "inventory.products.low_stock",
       "inventory.products.stats",
@@ -15,8 +17,11 @@
     "commands": [
       "inventory.categories.create",
       "inventory.categories.delete",
+      "inventory.categories.update",
+      "inventory.products.add_category",
       "inventory.products.create",
       "inventory.products.delete",
+      "inventory.products.remove_category",
       "inventory.products.update",
       "inventory.stock.adjust",
       "inventory.stock.receive",

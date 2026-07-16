@@ -1,6 +1,10 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { state } from 'lit/decorators.js';
 import { resolveTaxCategories, pickTaxValue, normalizeAlias } from '../../lib/tax-resolve';
+// Catálogo i18n del módulo (ADR-0055): esbuild inlinea estos JSON en el dist del WC.
+import esLocale from '../../../locales/es.json';
+import enLocale from '../../../locales/en.json';
+const CATALOG: Record<string, unknown> = { es: esLocale, en: enLocale };
 import { define } from '@erplora/outfitkit/define';
 import '@erplora/outfitkit/ok-data-table';
 import type { DataTableColumn, DataTableAction } from '@erplora/outfitkit';
@@ -19,6 +23,8 @@ interface ErploraClientLike extends ListClient {
   queryPage<R = unknown>(name: string, params: ListParams): Promise<ListPage<R>>;
   command<T = unknown>(name: string, payload?: Record<string, unknown>): Promise<T>;
   on(event: string, cb: (payload: unknown) => void): () => void;
+  /** i18n del módulo (ADR-0055). */
+  t(catalog: Record<string, unknown>, key: string): string;
 }
 
 interface Category {
@@ -53,12 +59,20 @@ export class ErpInventoryCategories extends LitElement {
     .err { color: #d9480f; font-weight: 600; margin: 0; }
   `;
 
-  @state() private newName = '';
+  @state() newName = '';
   @state() private newSlug = '';
   @state() private newTaxRateId = ''; // '' = tipo por defecto del hub (se envía null)
   @state() private taxRates: TaxCategory[] = [];
   @state() private saving = false;
   @state() private formError = '';
+  // Edición REAL (inventory#8): id en edición (null = alta); el submit decide create/update.
+  @state() editingId: string | null = null;
+  // Fila completa en edición: preserva los campos que el form no expone (icon/color/order).
+  private editRow: Record<string, unknown> | null = null;
+  // Borrado con impacto (inventory#8): la confirmación enseña cuántos productos quedan
+  // desvinculados (política: DESVINCULAR — los productos siguen, pierden la categoría).
+  @state() deleteTarget: Category | null = null;
+  @state() deleteImpact = 0;
 
   private ctrl!: ListController<Category>;
 
@@ -108,18 +122,52 @@ export class ErpInventoryCategories extends LitElement {
     const { actionId, row } = ev.detail;
     const c = row as unknown as Category;
     if (actionId === 'edit') {
+      this.editingId = c.id; // edición REAL (inventory#8): el submit hará update
+      // Guarda la fila completa: el update envía el conjunto entero y los campos que el
+      // form no edita (icon/color/order/description) se REENVÍAN tal cual — si se omiten,
+      // los defaults del schema los machacarían (icon volvería a 'cube-outline').
+      this.editRow = row;
       this.newName = c.name;
       this.newSlug = c.slug;
       this.newTaxRateId = c.tax_category_key ?? ''; // pre-selecciona el tipo de IVA actual
       this.dataTable()?.open('create');
     } else if (actionId === 'delete') {
+      // Nunca borra directo (inventory#8): confirma enseñando el IMPACTO (productos
+      // vinculados que quedarán sin esta categoría).
+      let impact = 0;
       try {
-        await erplora().command('inventory.categories.delete', { category_id: c.id });
-        await this.ctrl.load();
-      } catch (e) {
-        this.formError = e instanceof Error ? e.message : 'No se pudo eliminar';
+        const links = await erplora().query<{ product_id: string; category_id: string }[]>('inventory.product_categories');
+        impact = (Array.isArray(links) ? links : []).filter((l) => l.category_id === c.id).length;
+      } catch {
+        impact = 0;
       }
+      this.deleteImpact = impact;
+      this.deleteTarget = c;
     }
+  }
+
+  /** Ejecuta el borrado confirmado (política definida: DESVINCULAR; los productos siguen). */
+  async confirmDelete(): Promise<void> {
+    if (!this.deleteTarget) return;
+    try {
+      await erplora().command('inventory.categories.delete', { category_id: this.deleteTarget.id });
+      this.deleteTarget = null;
+      this.deleteImpact = 0;
+      await this.ctrl.load();
+    } catch (e) {
+      this.formError = e instanceof Error ? e.message : 'No se pudo eliminar';
+      this.deleteTarget = null;
+    }
+  }
+
+  /** Vuelve al modo ALTA limpio (inventory#8). */
+  cancelEdit(): void {
+    this.editingId = null;
+    this.editRow = null;
+    this.newName = '';
+    this.newSlug = '';
+    this.newTaxRateId = '';
+    this.formError = '';
   }
 
   private dataTable(): { open(p?: 'filters' | 'create'): void; close(): void } | null {
@@ -174,24 +222,42 @@ export class ErpInventoryCategories extends LitElement {
     await this.ctrl.load();
   }
 
-  private async create(ev: Event): Promise<void> {
+  // Submit del form: alta O edición según `editingId` (inventory#8 — antes editar
+  // llamaba a create y duplicaba la categoría en silencio).
+  async create(ev: Event): Promise<void> {
     ev.preventDefault();
     if (!this.newName.trim()) return;
     this.saving = true;
     this.formError = '';
     try {
-      await erplora().command('inventory.categories.create', {
-        name: this.newName.trim(),
-        slug: this.newSlug.trim() || this.newName.trim().toLowerCase().replace(/\s+/g, '-'),
-        tax_category_key: this.newTaxRateId || null,
-      });
-      this.newName = '';
-      this.newSlug = '';
-      this.newTaxRateId = '';
+      const slug = this.newSlug.trim() || this.newName.trim().toLowerCase().replace(/\s+/g, '-');
+      if (this.editingId) {
+        const r = this.editRow ?? {};
+        await erplora().command('inventory.categories.update', {
+          category_id: this.editingId,
+          name: this.newName.trim(),
+          slug,
+          // Campos no editados en el form: se reenvían para que los defaults del schema
+          // no los machaquen (inventory#8).
+          icon: (r.icon as string) ?? 'cube-outline',
+          color: (r.color as string) ?? '#3880ff',
+          description: (r.description as string) ?? '',
+          order: Number(r.order ?? 0),
+          is_active: Number((r as { is_active?: number }).is_active ?? 1),
+          tax_category_key: this.newTaxRateId || null,
+        });
+      } else {
+        await erplora().command('inventory.categories.create', {
+          name: this.newName.trim(),
+          slug,
+          tax_category_key: this.newTaxRateId || null,
+        });
+      }
+      this.cancelEdit();
       this.dataTable()?.close();
       await this.ctrl.load();
     } catch (e) {
-      this.formError = e instanceof Error ? e.message : 'No se pudo crear';
+      this.formError = e instanceof Error ? e.message : 'No se pudo guardar';
     } finally {
       this.saving = false;
     }
@@ -256,11 +322,41 @@ export class ErpInventoryCategories extends LitElement {
             >
               ${this.taxOptions()}
             </ion-select>
+            ${this.editingId
+              ? html`<ion-button size="small" fill="clear" @click=${() => this.cancelEdit()}>
+                  ${erplora().t(CATALOG, 'ui.editingCancel')}
+                </ion-button>`
+              : nothing}
             <ion-button type="submit" ?disabled=${this.saving || !this.newName}>
-              ${this.saving ? 'Guardando…' : 'Guardar'}
+              ${this.saving
+                ? 'Guardando…'
+                : this.editingId
+                  ? erplora().t(CATALOG, 'ui.saveChanges')
+                  : 'Guardar'}
             </ion-button>
           </form>
         </ok-data-table>
+
+        <!-- Confirmación de borrado con IMPACTO (inventory#8): política = desvincular. -->
+        <ion-modal .isOpen=${!!this.deleteTarget} @ionModalDidDismiss=${() => (this.deleteTarget = null)}>
+          <ion-header class="ion-no-border">
+            <ion-toolbar>
+              <ion-title>${erplora().t(CATALOG, 'ui.deleteCatTitle')}</ion-title>
+            </ion-toolbar>
+          </ion-header>
+          <ion-content class="ion-padding">
+            <p>
+              <b>${this.deleteTarget?.name ?? ''}</b> —
+              ${this.deleteImpact} ${erplora().t(CATALOG, 'ui.deleteCatImpact')}
+            </p>
+            <ion-button expand="block" color="danger" @click=${() => this.confirmDelete()}>
+              ${erplora().t(CATALOG, 'ui.deleteCatConfirm')}
+            </ion-button>
+            <ion-button expand="block" fill="outline" @click=${() => (this.deleteTarget = null)}>
+              ${erplora().t(CATALOG, 'ui.btnCancel')}
+            </ion-button>
+          </ion-content>
+        </ion-modal>
       </div>
     `;
   }
