@@ -115,5 +115,19 @@
     "deleteCatTitle": "Eliminar categoría",
     "deleteCatImpact": "producto(s) quedarán sin esta categoría (se desvinculan; los productos no se borran)",
     "deleteCatConfirm": "Eliminar y desvincular"
+  },
+  "widgets": {
+    "inventory.low_stock_count": {
+      "title": "Stock bajo"
+    },
+    "inventory.value": {
+      "title": "Valor de inventario"
+    },
+    "inventory.in_stock": {
+      "title": "Productos en stock"
+    },
+    "inventory.low_stock_products": {
+      "title": "Productos con menos stock"
+    }
   }
 }

@@ -515,7 +515,7 @@
   },
   "widgets": {
     "inventory.low_stock_count": {
-      "title": "Stock bajo",
+      "title": "Low stock",
       "icon": "alert-circle-outline",
       "category": "Inventario",
       "size": "sm",
@@ -538,7 +538,7 @@
       }
     },
     "inventory.value": {
-      "title": "Valor de inventario",
+      "title": "Inventory value",
       "icon": "cash-outline",
       "category": "Inventario",
       "size": "sm",
@@ -563,7 +563,7 @@
       }
     },
     "inventory.in_stock": {
-      "title": "Productos en stock",
+      "title": "Products in stock",
       "icon": "cube-outline",
       "category": "Inventario",
       "size": "sm",
@@ -586,7 +586,7 @@
       }
     },
     "inventory.low_stock_products": {
-      "title": "Productos con menos stock",
+      "title": "Lowest-stock products",
       "icon": "trending-down-outline",
       "category": "Inventario",
       "size": "md",
