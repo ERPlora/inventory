@@ -536,7 +536,7 @@
         "value": "products_low_stock"
       },
       "options": {
-        "label": "Productos en stock bajo",
+        "label": "Low-stock products",
         "icon": "alert-circle-outline",
         "format": "number"
       }
@@ -564,7 +564,7 @@
         "value": "total_inventory_value"
       },
       "options": {
-        "label": "Valor del stock (a coste)",
+        "label": "Stock value (at cost)",
         "icon": "cash-outline",
         "format": "currency",
         "currency": "EUR",
@@ -593,7 +593,7 @@
         "value": "products_in_stock"
       },
       "options": {
-        "label": "Productos con existencias",
+        "label": "Products with stock",
         "icon": "cube-outline",
         "format": "number"
       }
