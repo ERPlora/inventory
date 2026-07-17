@@ -527,6 +527,7 @@
       "default": true,
       "kind": "kpi",
       "query": "inventory.products.stats",
+      "refresh_on": ["inventory.stock_changed", "inventory.product.created", "inventory.product.deleted"],
       "map": {
         "value": "products_low_stock"
       },
@@ -549,6 +550,7 @@
       "default": true,
       "kind": "kpi",
       "query": "inventory.products.stats",
+      "refresh_on": ["inventory.stock_changed", "inventory.product.created", "inventory.product.updated", "inventory.product.deleted"],
       "map": {
         "value": "total_inventory_value"
       },
@@ -573,6 +575,7 @@
       "default": false,
       "kind": "stat",
       "query": "inventory.products.stats",
+      "refresh_on": ["inventory.stock_changed", "inventory.product.created", "inventory.product.deleted"],
       "map": {
         "value": "products_in_stock"
       },
@@ -595,6 +598,7 @@
       "default": true,
       "kind": "bar-list",
       "query": "inventory.products.low_stock",
+      "refresh_on": ["inventory.stock_changed", "inventory.product.created", "inventory.product.deleted"],
       "map": {
         "label": "name",
         "value": "stock"
