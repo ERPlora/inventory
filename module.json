@@ -1,7 +1,7 @@
 {
   "id": "inventory",
   "name": "Inventory",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "agent": {
     "description": "Product catalog and basic stock control: check availability, adjust stock, receive goods, create or remove products and categories.",
     "keywords": [
@@ -527,7 +527,11 @@
       "default": true,
       "kind": "kpi",
       "query": "inventory.products.stats",
-      "refresh_on": ["inventory.stock_changed", "inventory.product.created", "inventory.product.deleted"],
+      "refresh_on": [
+        "inventory.stock_changed",
+        "inventory.product.created",
+        "inventory.product.deleted"
+      ],
       "map": {
         "value": "products_low_stock"
       },
@@ -550,7 +554,12 @@
       "default": true,
       "kind": "kpi",
       "query": "inventory.products.stats",
-      "refresh_on": ["inventory.stock_changed", "inventory.product.created", "inventory.product.updated", "inventory.product.deleted"],
+      "refresh_on": [
+        "inventory.stock_changed",
+        "inventory.product.created",
+        "inventory.product.updated",
+        "inventory.product.deleted"
+      ],
       "map": {
         "value": "total_inventory_value"
       },
@@ -575,7 +584,11 @@
       "default": false,
       "kind": "stat",
       "query": "inventory.products.stats",
-      "refresh_on": ["inventory.stock_changed", "inventory.product.created", "inventory.product.deleted"],
+      "refresh_on": [
+        "inventory.stock_changed",
+        "inventory.product.created",
+        "inventory.product.deleted"
+      ],
       "map": {
         "value": "products_in_stock"
       },
@@ -598,7 +611,11 @@
       "default": true,
       "kind": "bar-list",
       "query": "inventory.products.low_stock",
-      "refresh_on": ["inventory.stock_changed", "inventory.product.created", "inventory.product.deleted"],
+      "refresh_on": [
+        "inventory.stock_changed",
+        "inventory.product.created",
+        "inventory.product.deleted"
+      ],
       "map": {
         "label": "name",
         "value": "stock"
