@@ -10,6 +10,7 @@
       "inventory.products.low_stock",
       "inventory.products.stats",
       "inventory.stock.movements",
+      "inventory.units.list",
       "taxes.aliases.resolve",
       "taxes.categories.list"
     ],

@@ -66,6 +66,15 @@ interface TaxCategory {
   is_system?: number;
 }
 
+// Fila de `inventory.units.list` (registro de unidades, ADR-0147). El selector de la ficha
+// solo necesita el código y los nombres; factor/incremento los valida Rust.
+interface Unit {
+  id: string;
+  code: string;
+  name: string;
+  name_es: string;
+}
+
 
 function erplora(): ErploraClientLike {
   const c = (globalThis as { erplora?: ErploraClientLike }).erplora;
@@ -103,6 +112,10 @@ export class ErpInventoryProducts extends LitElement {
   @state() newDescription = '';
   @state() newType: 'physical' | 'service' = 'physical';
   @state() newActive = true;
+  // Unidad maestra de inventario (ADR-0147): default 'ud' (la unidad suelta). Se envía SIEMPRE
+  // (create y update): tras el COALESCE del comando, reenviar la actual es idempotente.
+  @state() newUnitCode = 'ud';
+  @state() private units: Unit[] = [];
   // Edición REAL (inventory#8): id en edición (null = alta). Estado técnico Y visible
   // (el form cambia de título/botón). El submit decide create vs update por esto.
   @state() editingId: string | null = null;
@@ -273,6 +286,7 @@ export class ErpInventoryProducts extends LitElement {
         this.newDescription = String((full as unknown as { description?: string }).description ?? '');
         this.newType = ((full as unknown as { product_type?: string }).product_type === 'service' ? 'service' : 'physical');
         this.newActive = Number((full as unknown as { is_active?: number }).is_active ?? 1) === 1;
+        this.newUnitCode = String((full as unknown as { unit_code?: string }).unit_code || 'ud');
         this.newTaxCategoryKey = full.tax_category_key ?? '';
         const links = await erplora().query<{ product_id: string; category_id: string }[]>('inventory.product_categories');
         const mine = (Array.isArray(links) ? links : []).filter((l) => l.product_id === p.id).map((l) => l.category_id);
@@ -556,6 +570,7 @@ export class ErpInventoryProducts extends LitElement {
     await this.ctrl.load();
     void this.loadTaxCategories();
     void this.loadProductCategories();
+    void this.loadUnits();
     // Reactividad: al cambiar stock o crearse un producto, recargamos la página actual.
     try {
       const reload = () => this.ctrl.load();
@@ -603,6 +618,32 @@ export class ErpInventoryProducts extends LitElement {
     `;
   }
 
+  // Registro de unidades (ADR-0147) para el selector de la ficha. Best-effort como el de
+  // categorías fiscales: si la query falla, el select se queda con 'ud' y el alta sigue.
+  private async loadUnits(): Promise<void> {
+    try {
+      const rows = await erplora().queryAll<Unit>('inventory.units.list');
+      this.units = Array.isArray(rows) ? rows : [];
+    } catch {
+      this.units = [];
+    }
+  }
+
+  /** Etiqueta del selector: «Kilogramo (kg)» / «Kilogram (kg)» según locale (ADR-0055). */
+  unitLabel(u: Unit): string {
+    const es = (erplora().locale ?? '').startsWith('es');
+    return `${(es && u.name_es) || u.name} (${u.code})`;
+  }
+
+  // Opciones del ion-select de unidad. Sin registro cargado (query fallida) queda al menos la
+  // unidad suelta, que es el default del contrato.
+  private unitOptions() {
+    const list: Unit[] = this.units.length
+      ? this.units
+      : [{ id: '', code: 'ud', name: 'Unit', name_es: 'Unidad' }];
+    return list.map((u) => html`<ion-select-option .value=${u.code}>${this.unitLabel(u)}</ion-select-option>`);
+  }
+
   /** Categorías de producto del hub (para el multi-select de la ficha, inventory#8). */
   private async loadProductCategories(): Promise<void> {
     try {
@@ -628,6 +669,7 @@ export class ErpInventoryProducts extends LitElement {
     this.newDescription = '';
     this.newType = 'physical';
     this.newActive = true;
+    this.newUnitCode = 'ud';
     this.newTaxCategoryKey = '';
     this.initialCategoryIds = new Set();
     this.selectedCategoryIds = new Set();
@@ -656,6 +698,9 @@ export class ErpInventoryProducts extends LitElement {
           description: this.newDescription,
           tax_category_key: this.newTaxCategoryKey || null,
           is_active: this.newActive ? 1 : 0,
+          // Se envía SIEMPRE (no solo si cambió): el comando hace COALESCE y reenviar la
+          // actual es idempotente; omitirla también sería válido (se conservaría).
+          unit_code: this.newUnitCode,
         });
         // Sincroniza el M2M por diferencias (solo lo que cambió).
         for (const cid of this.selectedCategoryIds) {
@@ -686,6 +731,7 @@ export class ErpInventoryProducts extends LitElement {
           ean13: this.newEan.trim() || null,
           description: this.newDescription,
           tax_category_key: this.newTaxCategoryKey || null,
+          unit_code: this.newUnitCode,
           image: '',
         });
       }
@@ -830,6 +876,16 @@ export class ErpInventoryProducts extends LitElement {
                   <ion-select-option value="service">${erplora().t(CATALOG, 'ui.typeService')}</ion-select-option>
                 </ion-select>`
               : nothing}
+            <ion-select
+              fill="outline"
+              label-placement="floating"
+              interface="popover"
+              label=${erplora().t(CATALOG, 'ui.fieldUnit')}
+              .value=${this.newUnitCode}
+              @ionChange=${(e: Event) => (this.newUnitCode = (e.target as HTMLInputElement).value || 'ud')}
+            >
+              ${this.unitOptions()}
+            </ion-select>
             <ion-select
               fill="outline"
               label-placement="floating"
