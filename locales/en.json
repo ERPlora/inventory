@@ -108,6 +108,7 @@
     "fieldType": "Type",
     "typePhysical": "Physical",
     "typeService": "Service",
+    "fieldUnit": "Unit of measure",
     "fieldCategories": "Categories",
     "saveChanges": "Save changes",
     "errSkuTaken": "That SKU already exists in the catalog",

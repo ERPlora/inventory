@@ -384,6 +384,91 @@ describe('edición REAL de productos (inventory#8)', () => {
   });
 });
 
+describe('selector de unidad maestra en la ficha (ADR-0147)', () => {
+  // La incidencia: el registro de unidades existía (inventory.units.list) pero la ficha de
+  // producto no lo exponía — la unidad solo podía fijarse por API. El selector es best-effort
+  // como el de categorías fiscales: si units.list falla, el alta sigue con 'ud'.
+  const unidades = [
+    { id: 'u1', code: 'ud', name: 'Unit', name_es: 'Unidad', increment_value: 1_000_000 },
+    { id: 'u2', code: 'kg', name: 'Kilogram', name_es: 'Kilogramo', increment_value: 1_000 },
+  ];
+
+  it('las unidades se cargan de inventory.units.list (queryAll) y la etiqueta es «Nombre (code)» según locale', async () => {
+    (globalThis as Record<string, unknown>).erplora = {
+      ...(globalThis as { erplora: object }).erplora,
+      locale: 'es',
+      queryAll: async (name: string) => (name === 'inventory.units.list' ? unidades : []),
+    };
+    const el = await montar();
+    const wc = el as unknown as {
+      units: { code: string }[];
+      unitLabel: (u: Record<string, unknown>) => string;
+    };
+    expect(wc.units.map((u) => u.code)).toEqual(['ud', 'kg']);
+    expect(wc.unitLabel(unidades[1]), 'locale es → name_es').toBe('Kilogramo (kg)');
+    (globalThis as Record<string, { locale?: string }>).erplora.locale = 'en';
+    expect(wc.unitLabel(unidades[1]), 'otro locale → name canónico').toBe('Kilogram (kg)');
+  });
+
+  it('ALTA: sin tocar el selector se envía unit_code "ud" (el default del contrato)', async () => {
+    const el = await montar();
+    const wc = el as unknown as { newName: string; newSku: string; newPrice: string;
+                                  createProduct: (ev: Event) => Promise<void> };
+    wc.newName = 'Caña';
+    wc.newSku = 'CANA';
+    wc.newPrice = '2.20';
+    await wc.createProduct(new Event('submit'));
+    const alta = comandos.find((c) => c.name === 'inventory.products.create');
+    expect(alta!.payload.unit_code, 'el default explícito es ud').toBe('ud');
+  });
+
+  it('ALTA: elegir kg envía unit_code "kg"', async () => {
+    const el = await montar();
+    const wc = el as unknown as { newName: string; newSku: string; newPrice: string;
+                                  newUnitCode: string; createProduct: (ev: Event) => Promise<void> };
+    wc.newName = 'Gambas';
+    wc.newSku = 'GAM';
+    wc.newPrice = '12.00';
+    wc.newUnitCode = 'kg';
+    await wc.createProduct(new Event('submit'));
+    expect(comandos.find((c) => c.name === 'inventory.products.create')!.payload.unit_code).toBe('kg');
+  });
+
+  it('EDICIÓN: la ficha carga la unidad actual y el update la envía SIEMPRE (seguro tras el COALESCE)', async () => {
+    (globalThis as Record<string, unknown>).erplora = {
+      ...(globalThis as { erplora: object }).erplora,
+      query: async (name: string) =>
+        name === 'inventory.products.get'
+          ? [{ id: 'p1', name: 'Gambas', sku: 'GAM', price: 1200, cost: 0, stock: 0,
+               low_stock_threshold: 5, ean13: null, description: '', tax_category_key: null,
+               is_active: 1, product_type: 'physical', unit_code: 'kg' }]
+          : [],
+    };
+    const el = await montar();
+    const wc = el as unknown as {
+      onRowAction: (ev: CustomEvent) => Promise<void>;
+      newUnitCode: string; createProduct: (ev: Event) => Promise<void>; updateComplete: Promise<unknown>;
+    };
+    await wc.onRowAction(new CustomEvent('rowAction', {
+      detail: { actionId: 'edit', row: { id: 'p1', name: 'Gambas', sku: 'GAM', price: 1200 } },
+    }) as CustomEvent);
+    await wc.updateComplete;
+    expect(wc.newUnitCode, 'la ficha pre-carga la unidad de BD').toBe('kg');
+
+    await wc.createProduct(new Event('submit'));
+    const upd = comandos.find((c) => c.name === 'inventory.products.update');
+    expect(upd!.payload.unit_code, 'el update la envía (cambiada o no: es idempotente)').toBe('kg');
+  });
+
+  it('EDICIÓN: cancelar limpia la unidad al default (el siguiente alta no hereda kg)', async () => {
+    const el = await montar();
+    const wc = el as unknown as { newUnitCode: string; cancelEdit: () => void };
+    wc.newUnitCode = 'kg';
+    wc.cancelEdit();
+    expect(wc.newUnitCode).toBe('ud');
+  });
+});
+
 describe('hallazgos del QA en navegador (07-16)', () => {
   it('cancelar la edición CIERRA el panel lateral (no lo deja abierto vacío)', async () => {
     const el = await montar();
