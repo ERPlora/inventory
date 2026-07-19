@@ -4,11 +4,11 @@
 -- siempre manda; el GLOBAL de settings es su semilla de creación — un alta sin
 -- `low_stock_threshold` explícito (bind NULL) hereda el global del hub (fallback 10).
 INSERT INTO inventory_product
-  (id, hub_id, name, sku, ean13, description, product_type, price, cost, stock,
+  (id, hub_id, name, sku, ean13, description, product_type, price, cost, stock, unit_code, price_quantity_value, pricing_unit_code,
    low_stock_threshold, tax_category_key, image, is_active,
    is_deleted, created_by, updated_by, created_at, updated_at)
 VALUES
-  (:new_id, :hub_id, :name, :sku, :ean13, :description, :product_type, :price, :cost, :stock,
+  (:new_id, :hub_id, :name, :sku, :ean13, :description, :product_type, :price, :cost, :stock, COALESCE(:unit_code,'ud'), COALESCE(:price_quantity_value,1000000), COALESCE(:pricing_unit_code,'ud'),
    COALESCE(:low_stock_threshold,
             (SELECT s.low_stock_threshold FROM inventory_settings s
              WHERE s.hub_id = :hub_id AND s.is_deleted = 0), 10),

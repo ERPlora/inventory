@@ -95,14 +95,16 @@
       "migrations/sqlite/002_tax_rate_id.sql",
       "migrations/sqlite/003_void_restock.sql",
       "migrations/sqlite/004_tax_category_key.sql",
-      "migrations/sqlite/005_stock_ledger.sql"
+      "migrations/sqlite/005_stock_ledger.sql",
+      "migrations/sqlite/006_quantity_fixed_point.sql"
     ],
     "postgres": [
       "migrations/postgres/001_init.sql",
       "migrations/postgres/002_tax_rate_id.sql",
       "migrations/postgres/003_void_restock.sql",
       "migrations/postgres/004_tax_category_key.sql",
-      "migrations/postgres/005_stock_ledger.sql"
+      "migrations/postgres/005_stock_ledger.sql",
+      "migrations/postgres/006_quantity_fixed_point.sql"
     ]
   },
   "queries": {
@@ -259,6 +261,13 @@
       },
       "ai": {
         "description": "Immutable stock movement ledger: receptions, sales, voids, counts — with delta, resulting balance, reason and source document reference."
+      }
+    },
+    "inventory.units.list": {
+      "permission": "inventory.view_product",
+      "sql": "queries/units_list.sql",
+      "ai": {
+        "description": "Lists the units of measure available in this hub (code, category, exact conversion factor and minimum increment)"
       }
     }
   },
@@ -638,5 +647,13 @@
   },
   "ui": {
     "entry": "dist/inventory.esm.js"
+  },
+  "seed": {
+    "sqlite": [
+      "seed/install.sqlite.sql"
+    ],
+    "postgres": [
+      "seed/install.postgres.sql"
+    ]
   }
 }
