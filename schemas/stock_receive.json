@@ -25,7 +25,7 @@
             "minLength": 1
           },
           "qty": {
-            "type": "number",
+            "type": "integer",
             "exclusiveMinimum": 0
           },
           "unit_cost": {

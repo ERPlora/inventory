@@ -66,25 +66,19 @@ fn as_i64(v: &Value, default: i64) -> i64 {
     }
 }
 
-/// Cantidad DECIMAL (#10): número o string numérico → f64 redondeado HALF_UP a 3
-/// decimales. Sustituye al truncado float→i64 que convertía 2,5 kg vendidos en 2.
-/// La exactitud plena (milli-unidades enteras) queda como decisión futura; el redondeo
-/// controlado en la frontera evita errores silenciosos.
-fn as_qty(v: &Value) -> f64 {
-    let raw = match v {
-        Value::Number(n) => n.as_f64().unwrap_or(0.0),
-        Value::String(s) => s.trim().parse::<f64>().unwrap_or(0.0),
-        _ => 0.0,
-    };
-    (raw * 1000.0).round() / 1000.0
-}
-
-/// Serializa una cantidad como JSON number sin ruido flotante (3 decimales máx).
-fn qty_json(q: f64) -> Value {
-    if q.fract() == 0.0 && q.abs() < 9.0e15 {
-        json!(q as i64)
-    } else {
-        json!(q)
+/// Cantidad en PUNTO FIJO, escala global 10⁶ (ADR-0147). Un entero: 0,5 kg es `500000`.
+///
+/// Sustituye a `as_qty` (#10), que redondeaba a 3 decimales sobre `f64`. Aquello tapaba el truncado
+/// (`as_i64(0.5)` = 0, que hacía que vender al peso no descontara stock en silencio) pero dejaba la
+/// coma flotante dentro del contrato, y con ella `2.675 == 2.6749999999999998`.
+///
+/// Un decimal que llegue hasta aquí es un error de quien llama —la conversión va en la frontera,
+/// donde el humano teclea—, así que el esquema lo declara `integer` y esto no lo repesca.
+fn as_qty(v: &Value) -> i64 {
+    match v {
+        Value::Number(n) => n.as_i64().unwrap_or(0),
+        Value::String(s) => s.trim().parse::<i64>().unwrap_or(0),
+        _ => 0,
     }
 }
 
@@ -159,14 +153,14 @@ pub fn receive_stock_pure(input: Value) -> Output {
 
     let mut ops: Vec<Operation> = Vec::new();
     for item in items.iter().take(MAX_RECEIVE) {
-        let qty = as_qty(item.get("qty").unwrap_or(&Value::Null)); // decimal (#10)
+        let qty = as_qty(item.get("qty").unwrap_or(&Value::Null)); // escala 10⁶ (ADR-0147)
         let product_id = item.get("product_id").cloned().unwrap_or(Value::Null);
-        if qty <= 0.0 || product_id.is_null() {
+        if qty <= 0 || product_id.is_null() {
             continue; // líneas inválidas se omiten (el legacy las reporta; aquí se saltan)
         }
         let mut p = Map::new();
         p.insert("product_id".into(), product_id);
-        p.insert("qty".into(), qty_json(qty));
+        p.insert("qty".into(), json!(qty));
         p.insert("unit_cost".into(), item.get("unit_cost").cloned().unwrap_or(Value::Null));
         p.insert("reference".into(), reference.clone());
         ops.push(Operation::sql("inventory._receive_line", p));
@@ -229,13 +223,13 @@ pub fn decrease_on_sale_pure(input: Value) -> Output {
         if is_service || product_id.is_null() {
             continue;
         }
-        let qty = as_qty(it.get("quantity").unwrap_or(&Value::Null)); // decimal (#10)
-        if qty <= 0.0 {
+        let qty = as_qty(it.get("quantity").unwrap_or(&Value::Null)); // escala 10⁶ (ADR-0147)
+        if qty <= 0 {
             continue;
         }
         let mut p = Map::new();
         p.insert("product_id".into(), product_id);
-        p.insert("qty".into(), qty_json(qty));
+        p.insert("qty".into(), json!(qty));
         p.insert("sale_id".into(), sale_id.clone());
         ops.push(Operation::sql("inventory.stock.decrease", p));
     }
