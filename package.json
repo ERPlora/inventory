@@ -1,7 +1,7 @@
 {
   "name": "@erplora/module-inventory",
   "private": true,
-  "version": "1.2.8",
+  "version": "1.2.9",
   "type": "module",
   "description": "Módulo inventory (manifest declarativo + Web Component Lit). Se compila con @erplora/module-cli (bundle auto-contenido: lit + ok-data-table dentro).",
   "dependencies": {
