@@ -3,6 +3,10 @@
 --     ADR-0135/#9: FIFO/coste medio/por-almacén = warehouse, no aquí). Fórmula:
 --     Σ (cost × stock) de productos FÍSICOS activos con stock > 0 — los servicios
 --     no valoran y un stock negativo (sobreventa, inventory#6) no RESTA valor.
+--     OJO a la ESCALA (ADR-0147): `cost` va en céntimos y `stock` en punto fijo 10⁶, así que
+--     el producto de los dos hay que dividirlo por 10⁶ para volver a céntimos. Sin esa
+--     división el inventario valía un MILLÓN de veces de más — es el precio de mezclar dos
+--     magnitudes: la aritmética de cantidades no sabe de escala, pero cantidad × dinero SÍ.
 --   * `products_without_cost` — físicos que valoran a 0 por no tener coste
 --     registrado; la UI muestra esa limitación en vez de callarla.
 --   * Contadores de existencias (seguidos/en stock/agotados/bajo umbral) SOLO
@@ -21,6 +25,6 @@ SELECT
   COALESCE(SUM(CASE WHEN product_type != 'service' AND cost <= 0
                     THEN 1 ELSE 0 END), 0)                                    AS products_without_cost,
   COALESCE(SUM(CASE WHEN product_type != 'service' AND stock > 0
-                    THEN cost * stock ELSE 0 END), 0)                         AS total_inventory_value
+                    THEN cost * stock / 1000000 ELSE 0 END), 0)               AS total_inventory_value
 FROM inventory_product
 WHERE hub_id = :hub_id AND is_deleted = 0 AND is_active = 1;

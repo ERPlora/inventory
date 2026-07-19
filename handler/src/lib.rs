@@ -30,6 +30,15 @@ pub fn bulk_create(input: Json<erplora_guest_sdk::Input>) -> FnResult<Json<Outpu
 /// Recepción de stock batch. Exporta `receive_stock`.
 #[cfg(feature = "guest")]
 #[plugin_fn]
+pub fn decrease_stock(input: Json<erplora_guest_sdk::Input>) -> FnResult<Json<Output>> {
+    match decrease_stock_pure(input.into_inner().into_value()) {
+        Ok(out) => Ok(Json(out)),
+        Err(e) => Err(Error::msg(e).into()),
+    }
+}
+
+#[cfg(feature = "guest")]
+#[plugin_fn]
 pub fn receive_stock(input: Json<erplora_guest_sdk::Input>) -> FnResult<Json<Output>> {
     Ok(Json(receive_stock_pure(input.into_inner().into_value())))
 }
@@ -234,6 +243,77 @@ pub fn decrease_on_sale_pure(input: Value) -> Output {
         ops.push(Operation::sql("inventory.stock.decrease", p));
     }
     Output { operations: ops, events: vec![] }
+}
+
+
+/// El INCREMENTO de la unidad del producto, pre-cargado por el host en
+/// `context.reads["inventory.products.unit_of"]` (ADR-0069 fase 2 — reads CON parámetros).
+/// `None` si no hay read, si el producto no tiene unidad en el registro, o si el incremento no es
+/// positivo: en esos casos no se valida rejilla y se sigue, que es preferible a bloquear una venta
+/// por un registro incompleto.
+fn increment_for_product(input: &Value) -> Option<i64> {
+    let inc = input
+        .get("context")?
+        .get("reads")?
+        .get("inventory.products.unit_of")?
+        .as_array()?
+        .first()?
+        .get("increment_value")?;
+    match inc {
+        Value::Number(n) => n.as_i64().filter(|v| *v > 0),
+        _ => None,
+    }
+}
+
+/// `inventory.stock.decrease` — descuento de stock de UN producto, con VALIDACIÓN DE REJILLA.
+///
+/// Era Tier-0 (SQL directo). Pasa a handler por una sola razón: ADR-0147 §2.2 exige **rechazar**
+/// una cantidad que no cae en el escalón de la unidad, y el SQL no puede rechazar — un `WHERE` que
+/// no casa ninguna fila responde `ok`. Medio gramo en un producto con escalón de gramo se aceptaba
+/// en silencio y modificaba el stock y las estadísticas sin que nadie lo viera.
+///
+/// El redondeo NO es una opción: pasar 0,0005 kg a 0,001 kg cambia lo vendido. Se rechaza y el
+/// error nombra el incremento, para que la UI pueda decir «no vale en una unidad configurada en
+/// escalones de 1 g».
+///
+/// Las tres operaciones son las mismas que ejecutaba el Tier-0; el guard de sobreventa y el de
+/// `track_stock` siguen en el SQL (inventory#6), que es donde deben estar: dentro de la transacción.
+pub fn decrease_stock_pure(input: Value) -> Result<Output, String> {
+    let (payload, ids) = payload_context(&input);
+    let product_id = payload.get("product_id").cloned().unwrap_or(Value::Null);
+    let qty = as_qty(payload.get("qty").unwrap_or(&Value::Null));
+    if product_id.is_null() || qty <= 0 {
+        return Err("invalid_decrease: falta product_id o la cantidad no es positiva".to_string());
+    }
+
+    if let Some(increment) = increment_for_product(&input) {
+        if qty % increment != 0 {
+            return Err(format!(
+                "off_grid: {qty} no es válida para una unidad con incrementos de {increment} \
+                 (ambas en escala 10^6). Ajusta la cantidad al escalón; no se redondea sola porque \
+                 eso cambiaría lo vendido."
+            ));
+        }
+    }
+
+    let new_id = ids.first().cloned().unwrap_or_default();
+    let mut ops: Vec<Operation> = Vec::new();
+    ops.push(Operation::sql("inventory._ensure_location", Map::new()));
+
+    let mut mov = Map::new();
+    mov.insert("new_id".into(), json!(new_id));
+    mov.insert("product_id".into(), product_id.clone());
+    mov.insert("qty".into(), json!(qty));
+    mov.insert("reason".into(), payload.get("reason").cloned().unwrap_or(Value::Null));
+    mov.insert("sale_id".into(), payload.get("sale_id").cloned().unwrap_or(Value::Null));
+    ops.push(Operation::sql("inventory._movement_on_decrease", mov));
+
+    let mut dec = Map::new();
+    dec.insert("product_id".into(), product_id);
+    dec.insert("qty".into(), json!(qty));
+    ops.push(Operation::sql("inventory._decrease_stock", dec));
+
+    Ok(Output { operations: ops, events: vec![] })
 }
 
 #[cfg(test)]
