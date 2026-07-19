@@ -269,6 +269,13 @@
       "ai": {
         "description": "Lists the units of measure available in this hub (code, category, exact conversion factor and minimum increment)"
       }
+    },
+    "inventory.products.unit_of": {
+      "permission": "inventory.view_product",
+      "sql": "queries/product_unit_of.sql",
+      "ai": {
+        "description": "Returns a product's unit of measure and its minimum increment."
+      }
     }
   },
   "commands": {
@@ -375,16 +382,24 @@
       "permission": "inventory.change_product",
       "schema": "schemas/stock_decrease.json",
       "transaction": true,
-      "sql": [
-        "commands/_ensure_location.sql",
-        "commands/_movement_on_decrease.sql",
-        "commands/stock_decrease.sql"
+      "handler": {
+        "type": "wasm",
+        "file": "dist/handler.wasm",
+        "function": "decrease_stock"
+      },
+      "reads": [
+        {
+          "query": "inventory.products.unit_of",
+          "params": {
+            "product_id": "payload.product_id"
+          }
+        }
       ],
       "emit": [
         "inventory.stock_changed"
       ],
       "ai": {
-        "description": "Decreases a product's stock by a given quantity."
+        "description": "Decreases a product's stock. Rejects quantities that do not fall on the unit's minimum increment (ADR-0147)."
       }
     },
     "inventory.stock.receive": {
@@ -519,6 +534,24 @@
       "transaction": true,
       "sql": [
         "commands/_skip_void_restock.sql"
+      ]
+    },
+    "inventory._ensure_location": {
+      "permission": "inventory.change_product",
+      "sql": [
+        "commands/_ensure_location.sql"
+      ]
+    },
+    "inventory._movement_on_decrease": {
+      "permission": "inventory.change_product",
+      "sql": [
+        "commands/_movement_on_decrease.sql"
+      ]
+    },
+    "inventory._decrease_stock": {
+      "permission": "inventory.change_product",
+      "sql": [
+        "commands/stock_decrease.sql"
       ]
     }
   },
