@@ -6,6 +6,7 @@ import { resolveTaxCategories, pickTaxValue, normalizeAlias, learnAlias, createC
 // secundarios) el registro de TODOS los ok-* al bundle del módulo. `ok-data-table` se importa por
 // su efecto secundario (se auto-registra). Tipos desde el barrel (se borran en build).
 import { define } from '@erplora/outfitkit/define';
+import '@erplora/outfitkit/ok-inline-feedback';
 import '@erplora/outfitkit/ok-data-table';
 import type { DataTableColumn, DataTableAction } from '@erplora/outfitkit';
 // La frontera EUROS ↔ CÉNTIMOS vive en el SDK (ADR-0123), no copiada en cada WC: tenerla copiada es
@@ -95,7 +96,7 @@ export class ErpInventoryProducts extends LitElement {
     .detail { display:flex; flex-direction:column; gap:.6rem; }
     .drow { display:flex; justify-content:space-between; border-bottom:1px solid var(--ion-border-color,#eee); padding:.4rem 0; }
     .drow span { color:var(--ion-color-medium,#6b6557); }
-    .barcode { text-align:center; margin:1rem 0; padding:1rem; border:1px solid var(--ion-border-color,#e6e2d8); border-radius:10px; }
+    .barcode { text-align:center; margin:1rem 0; padding:1rem; border:1px solid var(--ion-border-color,#e6e2d8); border-radius: var(--ok-radius-sm, 10px); }
     .barcode .bc { max-width:100%; height:auto; }
     .bccode { font:14px ui-monospace,monospace; margin-top:.4rem; letter-spacing:.08em; }
   `;
@@ -756,8 +757,8 @@ export class ErpInventoryProducts extends LitElement {
   render() {
     return html`
       <div class="page">
-        ${this.formError ? html`<p class="err">${this.formError}</p>` : nothing}
-        ${this.ctrl?.error ? html`<p class="err">${this.ctrl.error}</p>` : nothing}
+        ${this.formError ? html`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.formError}</ok-inline-feedback>` : nothing}
+        ${this.ctrl?.error ? html`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : nothing}
 
         <ok-data-table
           .serverSide=${true}
@@ -779,7 +780,7 @@ export class ErpInventoryProducts extends LitElement {
           .sortDir=${this.ctrl?.state.dir ?? 'asc'}
           .searchable=${true}
           .searchPlaceholder=${'Buscar nombre o SKU…'}
-          .emptyMessage=${this.ctrl?.loading ? 'Cargando…' : 'Sin productos.'}
+          .emptyMessage=${this.ctrl?.loading ? erplora().t(CATALOG, 'ui.loading') : erplora().t(CATALOG, 'ui.noProducts')}
           @pageChange=${(e: CustomEvent<number>) => this.ctrl.setPage(e.detail)}
           @pageSizeChange=${(e: CustomEvent<number>) => this.ctrl.setPageSize(e.detail)}
           @sortChange=${(e: CustomEvent<{ sort: string; dir: 'asc' | 'desc' }>) =>
