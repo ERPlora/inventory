@@ -9,7 +9,7 @@ import { define } from '@erplora/outfitkit/define';
 import '@erplora/outfitkit/ok-inline-feedback';
 import '@erplora/outfitkit/ok-data-table';
 import type { DataTableColumn, DataTableAction } from '@erplora/outfitkit';
-import { createListController } from '@erplora/module-sdk';
+import { createListController, dataTableLabels } from '@erplora/module-sdk';
 import type { ListController, ListClient, ListParams, ListPage } from '@erplora/module-sdk';
 
 // Vista "Categories" del módulo inventory: segundo data-table (categorías de producto).
@@ -24,6 +24,8 @@ interface ErploraClientLike extends ListClient {
   queryPage<R = unknown>(name: string, params: ListParams): Promise<ListPage<R>>;
   command<T = unknown>(name: string, payload?: Record<string, unknown>): Promise<T>;
   on(event: string, cb: (payload: unknown) => void): () => void;
+  hasPermission?(permission: string): boolean;
+  locale: string;
   /** i18n del módulo (ADR-0055). */
   t(catalog: Record<string, unknown>, key: string): string;
 }
@@ -48,6 +50,12 @@ function erplora(): ErploraClientLike {
   const c = (globalThis as { erplora?: ErploraClientLike }).erplora;
   if (!c) throw new Error('erplora SDK no inicializado por el shell');
   return c;
+}
+
+/** Visibilidad de UI; el runtime vuelve a validar el permiso en cada command. */
+function can(permission: string): boolean {
+  const client = erplora();
+  return typeof client.hasPermission === 'function' ? client.hasPermission(permission) : true;
 }
 
 export class ErpInventoryCategories extends LitElement {
@@ -77,16 +85,33 @@ export class ErpInventoryCategories extends LitElement {
 
   private ctrl!: ListController<Category>;
 
-  private columns: DataTableColumn[] = [
-    { key: 'name', header: 'Nombre', sortable: true, filterable: true, filterType: 'text' },
-    { key: 'slug', header: 'Slug', sortable: true, filterable: true, filterType: 'text' },
-    { key: 'product_count', header: 'Productos', align: 'right', sortable: true, filterable: true, filterType: 'range' },
-  ];
+  private get columns(): DataTableColumn[] {
+    const t = (key: string): string => erplora().t(CATALOG, key);
+    return [
+      { key: 'name', header: t('ui.name'), sortable: true, filterable: true, filterType: 'text' },
+      { key: 'slug', header: 'Slug', sortable: true, filterable: true, filterType: 'text' },
+      { key: 'product_count', header: t('ui.products'), align: 'right', sortable: true, filterable: true, filterType: 'range' },
+    ];
+  }
 
-  private actions: DataTableAction[] = [
-    { id: 'edit', label: 'Editar', icon: 'create-outline' },
-    { id: 'delete', label: 'Eliminar', icon: 'trash-outline', color: 'danger' },
-  ];
+  private get actions(): DataTableAction[] {
+    const t = (key: string): string => erplora().t(CATALOG, key);
+    return [
+      ...(can('inventory.change_category')
+        ? [{ id: 'edit', label: t('ui.actionEdit'), icon: 'create-outline' }]
+        : []),
+      ...(can('inventory.delete_category')
+        ? [{ id: 'delete', label: t('ui.actionDelete'), icon: 'trash-outline', color: 'danger' }]
+        : []),
+    ];
+  }
+
+  private readonly onLocaleChange = (): void => this.requestUpdate();
+
+  connectedCallback(): void {
+    super.connectedCallback();
+    window.addEventListener('erplora:locale-changed', this.onLocaleChange);
+  }
 
   async firstUpdated(): Promise<void> {
     this.ctrl = createListController<Category>(erplora(), 'inventory.categories.list', () => this.requestUpdate(), {
@@ -96,6 +121,11 @@ export class ErpInventoryCategories extends LitElement {
     });
     await this.ctrl.load();
     void this.loadTaxRates();
+  }
+
+  disconnectedCallback(): void {
+    window.removeEventListener('erplora:locale-changed', this.onLocaleChange);
+    super.disconnectedCallback();
   }
 
   // Carga los tipos de IVA/impuesto para el selector del formulario (ADR-0066/0069). Best-effort:
@@ -112,7 +142,7 @@ export class ErpInventoryCategories extends LitElement {
   // Opciones del ion-select: "— (sin categoría)" (valor '') + una categoría por fila (value = key).
   private taxOptions() {
     return html`
-      <ion-select-option value="">— (sin categoría)</ion-select-option>
+      <ion-select-option value="">${erplora().t(CATALOG, 'ui.taxDefault')}</ion-select-option>
       ${this.taxRates.map(
         (c) => html`<ion-select-option .value=${c.key}>${c.name} (${c.key})</ion-select-option>`,
       )}
@@ -122,7 +152,7 @@ export class ErpInventoryCategories extends LitElement {
   private async onRowAction(ev: CustomEvent<{ actionId: string; row: Record<string, unknown> }>): Promise<void> {
     const { actionId, row } = ev.detail;
     const c = row as unknown as Category;
-    if (actionId === 'edit') {
+    if (actionId === 'edit' && can('inventory.change_category')) {
       this.editingId = c.id; // edición REAL (inventory#8): el submit hará update
       // Guarda la fila completa: el update envía el conjunto entero y los campos que el
       // form no edita (icon/color/order/description) se REENVÍAN tal cual — si se omiten,
@@ -132,7 +162,7 @@ export class ErpInventoryCategories extends LitElement {
       this.newSlug = c.slug;
       this.newTaxRateId = c.tax_category_key ?? ''; // pre-selecciona el tipo de IVA actual
       this.dataTable()?.open('create');
-    } else if (actionId === 'delete') {
+    } else if (actionId === 'delete' && can('inventory.delete_category')) {
       // Nunca borra directo (inventory#8): confirma enseñando el IMPACTO (productos
       // vinculados que quedarán sin esta categoría).
       let impact = 0;
@@ -149,14 +179,14 @@ export class ErpInventoryCategories extends LitElement {
 
   /** Ejecuta el borrado confirmado (política definida: DESVINCULAR; los productos siguen). */
   async confirmDelete(): Promise<void> {
-    if (!this.deleteTarget) return;
+    if (!can('inventory.delete_category') || !this.deleteTarget) return;
     try {
       await erplora().command('inventory.categories.delete', { category_id: this.deleteTarget.id });
       this.deleteTarget = null;
       this.deleteImpact = 0;
       await this.ctrl.load();
     } catch (e) {
-      this.formError = e instanceof Error ? e.message : 'No se pudo eliminar';
+      this.formError = e instanceof Error ? e.message : erplora().t(CATALOG, 'ui.errDeleteCategory');
       this.deleteTarget = null;
     }
   }
@@ -183,6 +213,7 @@ export class ErpInventoryCategories extends LitElement {
   // falten (con un % real) se crean en bloque, y la categoría enlaza por `tax_category_key`. Vacío / sin
   // columna → null = tipo por defecto del hub. NO se convierten precios.
   private async onCsvImport(ev: CustomEvent<{ rows: Record<string, string>[] }>): Promise<void> {
+    if (!can('inventory.add_category')) return;
     const rows = ev.detail.rows ?? [];
 
     // 1) Resolver la CATEGORÍA fiscal de cada fila (ADR-0085) ANTES del bucle de creación.
@@ -227,7 +258,10 @@ export class ErpInventoryCategories extends LitElement {
   // llamaba a create y duplicaba la categoría en silencio).
   async create(ev: Event): Promise<void> {
     ev.preventDefault();
-    if (!this.newName.trim()) return;
+    const requiredPermission = this.editingId
+      ? 'inventory.change_category'
+      : 'inventory.add_category';
+    if (!can(requiredPermission) || !this.newName.trim()) return;
     this.saving = true;
     this.formError = '';
     try {
@@ -258,7 +292,7 @@ export class ErpInventoryCategories extends LitElement {
       this.dataTable()?.close();
       await this.ctrl.load();
     } catch (e) {
-      this.formError = e instanceof Error ? e.message : 'No se pudo guardar';
+      this.formError = e instanceof Error ? e.message : erplora().t(CATALOG, 'ui.errSaveCategory');
     } finally {
       this.saving = false;
     }
@@ -273,12 +307,15 @@ export class ErpInventoryCategories extends LitElement {
         <ok-data-table
           .serverSide=${true}
           .fill=${true}
+          .labels=${dataTableLabels(erplora().locale)}
           .columns=${this.columns}
           .actions=${this.actions}
-          .addable=${true}
+          .addable=${can('inventory.add_category')}
           .views=${true}
+          .cardTitle=${(row: Record<string, unknown>) => String(row.name ?? '')}
           .columnPicker=${true}
-          .csv=${true}
+          .importable=${can('inventory.add_category')}
+          .exportable=${can('inventory.export_product')}
           .csvName=${'inventory-categories.csv'}
           @csvImport=${(e: CustomEvent<{ rows: Record<string, string>[] }>) => this.onCsvImport(e)}
           @rowAction=${(e: CustomEvent<{ actionId: string; row: Record<string, unknown> }>) => this.onRowAction(e)}
@@ -289,8 +326,8 @@ export class ErpInventoryCategories extends LitElement {
           .sort=${this.ctrl?.state.sort}
           .sortDir=${this.ctrl?.state.dir ?? 'asc'}
           .searchable=${true}
-          .searchPlaceholder=${'Buscar categoría…'}
-          .emptyMessage=${this.ctrl?.loading ? 'Cargando…' : 'Sin categorías.'}
+          .searchPlaceholder=${erplora().t(CATALOG, 'ui.searchCategory')}
+          .emptyMessage=${this.ctrl?.loading ? erplora().t(CATALOG, 'ui.loading') : erplora().t(CATALOG, 'ui.noCategories')}
           @pageChange=${(e: CustomEvent<number>) => this.ctrl.setPage(e.detail)}
           @pageSizeChange=${(e: CustomEvent<number>) => this.ctrl.setPageSize(e.detail)}
           @sortChange=${(e: CustomEvent<{ sort: string; dir: 'asc' | 'desc' }>) =>
@@ -302,14 +339,14 @@ export class ErpInventoryCategories extends LitElement {
           <form slot="create" class="form" @submit=${(e: Event) => this.create(e)}>
             <ion-input
               fill="outline"
-              label="Nombre"
+              label=${erplora().t(CATALOG, 'ui.name')}
               label-placement="floating"
               .value=${this.newName}
               @ionInput=${(e: Event) => (this.newName = (e.target as HTMLInputElement).value)}
             ></ion-input>
             <ion-input
               fill="outline"
-              label="Slug (opcional)"
+              label=${erplora().t(CATALOG, 'ui.slugOptional')}
               label-placement="floating"
               .value=${this.newSlug}
               @ionInput=${(e: Event) => (this.newSlug = (e.target as HTMLInputElement).value)}
@@ -317,7 +354,7 @@ export class ErpInventoryCategories extends LitElement {
             <ion-select
               fill="outline"
               label-placement="floating"
-              label="Tipo de IVA / Impuesto"
+              label=${erplora().t(CATALOG, 'ui.taxRate')}
               .value=${this.newTaxRateId}
               @ionChange=${(e: Event) => (this.newTaxRateId = (e.target as HTMLInputElement).value)}
             >
@@ -330,10 +367,10 @@ export class ErpInventoryCategories extends LitElement {
               : nothing}
             <ion-button type="submit" ?disabled=${this.saving || !this.newName}>
               ${this.saving
-                ? 'Guardando…'
+                ? erplora().t(CATALOG, 'ui.saving')
                 : this.editingId
                   ? erplora().t(CATALOG, 'ui.saveChanges')
-                  : 'Guardar'}
+                  : erplora().t(CATALOG, 'ui.save')}
             </ion-button>
           </form>
         </ok-data-table>

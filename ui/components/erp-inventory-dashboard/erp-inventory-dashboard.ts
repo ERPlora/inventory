@@ -5,7 +5,7 @@ import '@erplora/outfitkit/ok-data-table';
 import '@erplora/outfitkit/ok-kpi';
 import '@erplora/outfitkit/ok-inline-feedback';
 import type { DataTableColumn } from '@erplora/outfitkit';
-import { createListController } from '@erplora/module-sdk';
+import { createListController, dataTableLabels } from '@erplora/module-sdk';
 import type { ListController, ListClient, ListParams, ListPage } from '@erplora/module-sdk';
 
 // Catálogo i18n del módulo (ADR-0055): esbuild inlinea estos JSON en el `dist` del WC.
@@ -25,6 +25,7 @@ interface ErploraClientLike extends ListClient {
   currency: string;
   formatMoney(cents: number, opts?: { currency?: string; locale?: string }): string;
   /** i18n del módulo (ADR-0055). */
+  locale: string;
   t(catalog: Record<string, unknown>, key: string): string;
 }
 
@@ -69,6 +70,17 @@ export class ErpInventoryDashboard extends LitElement {
   @state() private statsLoading = true;
   @state() private statsError = false;
   private ctrl!: ListController<LowStockRow>;
+  private readonly onLocaleChange = (): void => this.requestUpdate();
+
+  connectedCallback(): void {
+    super.connectedCallback();
+    window.addEventListener('erplora:locale-changed', this.onLocaleChange);
+  }
+
+  disconnectedCallback(): void {
+    window.removeEventListener('erplora:locale-changed', this.onLocaleChange);
+    super.disconnectedCallback();
+  }
 
   /** Columnas = las que `low_stock.sql` proyecta (nada de `price`: no viene, era NaN). */
   get columns(): DataTableColumn[] {
@@ -135,7 +147,10 @@ export class ErpInventoryDashboard extends LitElement {
           ${this.ctrl?.error ? html`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : nothing}
           <ok-data-table
             .serverSide=${true}
+            .labels=${dataTableLabels(erplora().locale)}
             .columns=${this.columns}
+            .views=${true}
+            .cardTitle=${(row: Record<string, unknown>) => String(row.name ?? row.sku ?? '')}
             .rows=${this.ctrl?.rows ?? []}
             .total=${this.ctrl?.total ?? 0}
             .page=${this.ctrl?.state.page ?? 0}

@@ -39,6 +39,7 @@ beforeEach(() => {
       comandos.push({ name, payload });
       return {};
     },
+    hasPermission: () => true,
     currency: 'EUR',
     // Contrato REAL del SDK: formatMoney recibe CÉNTIMOS y divide; formatAmount recibe EUROS.
     formatMoney: (cents: number) => `${((cents || 0) / 100).toFixed(2)} €`,
@@ -73,6 +74,24 @@ describe('el selector de categoría fiscal es best-effort (ADR-0085)', () => {
     const el = await montar();
     expect(el.shadowRoot, 'el componente ha renderizado pese a la respuesta rara').not.toBeNull();
     expect((el as unknown as { taxCategories: unknown }).taxCategories).toEqual([]);
+  });
+});
+
+describe('permisos visibles del CRUD', () => {
+  it('la lectura sola oculta altas, importación, exportación y mutaciones de fila', async () => {
+    const sdk = (globalThis as Record<string, unknown>).erplora as Record<string, unknown>;
+    sdk.hasPermission = () => false;
+    const el = await montar();
+    const table = el.shadowRoot?.querySelector('ok-data-table') as HTMLElement & {
+      addable: boolean;
+      importable: boolean;
+      exportable: boolean;
+      actions: Array<{ id: string }>;
+    };
+    expect(table.addable).toBe(false);
+    expect(table.importable).toBe(false);
+    expect(table.exportable).toBe(false);
+    expect(table.actions.map((action) => action.id)).toEqual(['detail']);
   });
 });
 
