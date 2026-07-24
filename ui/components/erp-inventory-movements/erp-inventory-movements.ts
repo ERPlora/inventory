@@ -5,6 +5,7 @@ import '@erplora/outfitkit/ok-inline-feedback';
 import type { DataTableColumn } from '@erplora/outfitkit';
 import { createListController, dataTableLabels } from '@erplora/module-sdk';
 import type { ListController, ListClient, ListParams, ListPage } from '@erplora/module-sdk';
+import { formatQuantity, fromMicro } from '../../lib/quantity';
 
 // Catálogo i18n del módulo (ADR-0055).
 import esLocale from '../../../locales/es.json';
@@ -53,8 +54,8 @@ function formatDate(v: string, locale: string): string {
 
 /** Delta firmado: las entradas llevan `+` explícito; Postgres sirve NUMERIC como string. */
 function formatQty(v: number | string): string {
-  const n = Number(v);
-  return n > 0 ? `+${n}` : String(n);
+  const logical = fromMicro(Number(v));
+  return logical > 0 ? `+${logical}` : String(logical);
 }
 
 export class ErpInventoryMovements extends LitElement {
@@ -98,7 +99,7 @@ export class ErpInventoryMovements extends LitElement {
       { key: 'qty', header: t('ui.mvQty'), align: 'right', sortable: true,
         format: (r) => formatQty((r as unknown as MovementRow).qty) },
       { key: 'stock_after', header: t('ui.mvStockAfter'), align: 'right', sortable: true,
-        format: (r) => String(Number((r as unknown as MovementRow).stock_after)) },
+        format: (r) => formatQuantity((r as unknown as MovementRow).stock_after) },
       { key: 'reason', header: t('ui.mvReason') },
       { key: 'reference', header: t('ui.mvReference'), filterable: true, filterType: 'text' },
     ];

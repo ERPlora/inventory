@@ -7,6 +7,7 @@ import '@erplora/outfitkit/ok-inline-feedback';
 import type { DataTableColumn } from '@erplora/outfitkit';
 import { createListController, dataTableLabels } from '@erplora/module-sdk';
 import type { ListController, ListClient, ListParams, ListPage } from '@erplora/module-sdk';
+import { formatQuantity } from '../../lib/quantity';
 
 // Catálogo i18n del módulo (ADR-0055): esbuild inlinea estos JSON en el `dist` del WC.
 import esLocale from '../../../locales/es.json';
@@ -88,8 +89,18 @@ export class ErpInventoryDashboard extends LitElement {
     return [
       { key: 'name', header: t('ui.name') },
       { key: 'sku', header: t('ui.sku') },
-      { key: 'stock', header: t('ui.stock'), align: 'right' },
-      { key: 'low_stock_threshold', header: t('ui.threshold'), align: 'right' },
+      {
+        key: 'stock',
+        header: t('ui.stock'),
+        align: 'right',
+        format: (r) => formatQuantity(Number(r.stock)),
+      },
+      {
+        key: 'low_stock_threshold',
+        header: t('ui.threshold'),
+        align: 'right',
+        format: (r) => formatQuantity(Number(r.low_stock_threshold)),
+      },
     ];
   }
 

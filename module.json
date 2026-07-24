@@ -1,7 +1,7 @@
 {
   "id": "inventory",
   "name": "Inventory",
-  "version": "1.2.10",
+  "version": "1.2.11",
   "agent": {
     "description": "Product catalog and basic stock control: check availability, adjust stock, receive goods, create or remove products and categories.",
     "keywords": [
@@ -96,7 +96,8 @@
       "migrations/sqlite/003_void_restock.sql",
       "migrations/sqlite/004_tax_category_key.sql",
       "migrations/sqlite/005_stock_ledger.sql",
-      "migrations/sqlite/006_quantity_fixed_point.sql"
+      "migrations/sqlite/006_quantity_fixed_point.sql",
+      "migrations/sqlite/007_quantity_threshold.sql"
     ],
     "postgres": [
       "migrations/postgres/001_init.sql",
@@ -104,7 +105,8 @@
       "migrations/postgres/003_void_restock.sql",
       "migrations/postgres/004_tax_category_key.sql",
       "migrations/postgres/005_stock_ledger.sql",
-      "migrations/postgres/006_quantity_fixed_point.sql"
+      "migrations/postgres/006_quantity_fixed_point.sql",
+      "migrations/postgres/007_quantity_threshold.sql"
     ]
   },
   "queries": {
@@ -664,6 +666,7 @@
       },
       "options": {
         "valueFormat": "number",
+        "valueDivisor": 1000000,
         "max": 10
       }
     }

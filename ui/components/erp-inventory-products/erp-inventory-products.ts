@@ -1,6 +1,7 @@
 import { LitElement, html, css, nothing, svg } from 'lit';
 import { state } from 'lit/decorators.js';
 import { code128b } from '../../lib/code128';
+import { formatQuantity, fromMicro, onGrid, parseQuantity } from '../../lib/quantity';
 import { resolveTaxCategories, pickTaxValue, normalizeAlias, learnAlias, createCategoryWithAlias } from '../../lib/tax-resolve';
 // `define` por su subpath ligero: importar el barrel '@erplora/outfitkit' arrastraría (efectos
 // secundarios) el registro de TODOS los ok-* al bundle del módulo. `ok-data-table` se importa por
@@ -55,6 +56,7 @@ interface Product {
   cost: number;
   stock: number;
   low_stock_threshold: number;
+  unit_code?: string;
   tax_category_key: string | null;
   is_active: number;
 }
@@ -75,6 +77,7 @@ interface Unit {
   code: string;
   name: string;
   name_es: string;
+  increment_value?: number;
 }
 
 
@@ -172,7 +175,15 @@ export class ErpInventoryProducts extends LitElement {
       // un café de 220 céntimos se pintaba «220,00 €».
       format: (r) => erplora().formatMoney(Number(r.price)),
     },
-    { key: 'stock', header: t('ui.stock'), align: 'right', sortable: true, filterable: true, filterType: 'range' },
+    {
+      key: 'stock',
+      header: t('ui.stock'),
+      align: 'right',
+      sortable: true,
+      filterable: true,
+      filterType: 'range',
+      format: (r) => formatQuantity(Number(r.stock)),
+    },
     {
       key: 'is_active',
       header: t('ui.active'),
@@ -215,19 +226,26 @@ export class ErpInventoryProducts extends LitElement {
   /** Diferencia del recuento (nuevo − actual), o null si aún no hay valor tecleado. */
   get countDifference(): number | null {
     if (!this.countTarget || this.countValue.trim() === '') return null;
-    const v = Number(this.countValue);
-    if (!Number.isFinite(v)) return null;
-    return Math.round((v - Number(this.countTarget.stock)) * 1000) / 1000;
+    const raw = parseQuantity(this.countValue);
+    if (raw === null || !this.quantityMatchesUnit(raw, this.countTarget.unit_code)) return null;
+    return fromMicro(raw - Number(this.countTarget.stock));
   }
 
   async submitCount(): Promise<void> {
     if (!can('inventory.adjust_stock') || !this.countTarget || this.countValue.trim() === '' || this.countReason.trim() === '') return;
-    const v = Number(this.countValue);
-    if (!Number.isFinite(v) || v < 0) return;
+    const raw = parseQuantity(this.countValue);
+    if (raw === null) {
+      this.formError = erplora().t(CATALOG, 'ui.errQuantity');
+      return;
+    }
+    if (!this.quantityMatchesUnit(raw, this.countTarget.unit_code)) {
+      this.formError = erplora().t(CATALOG, 'ui.errQuantityGrid');
+      return;
+    }
     try {
       await erplora().command('inventory.stock.adjust', {
         product_id: this.countTarget.id,
-        stock: v,
+        stock: raw,
         reason: this.countReason.trim(),
       });
       this.countTarget = null;
@@ -241,8 +259,15 @@ export class ErpInventoryProducts extends LitElement {
 
   async submitReceive(): Promise<void> {
     if (!can('inventory.adjust_stock') || !this.receiveTarget || this.receiveQty.trim() === '') return;
-    const qty = Number(this.receiveQty);
-    if (!Number.isFinite(qty) || qty <= 0) return;
+    const qty = parseQuantity(this.receiveQty);
+    if (qty === null || qty <= 0) {
+      this.formError = erplora().t(CATALOG, 'ui.errQuantity');
+      return;
+    }
+    if (!this.quantityMatchesUnit(qty, this.receiveTarget.unit_code)) {
+      this.formError = erplora().t(CATALOG, 'ui.errQuantityGrid');
+      return;
+    }
     // El coste se teclea en EUROS y se guarda en CÉNTIMOS (ADR-0007/0123).
     const cost = this.receiveCost.trim() === '' ? null : Math.round(Number(this.receiveCost) * 100);
     try {
@@ -300,7 +325,9 @@ export class ErpInventoryProducts extends LitElement {
         // La BD guarda CÉNTIMOS y el form edita EUROS (ADR-0123).
         this.newPrice = centsToEuros(full.price);
         this.newCost = centsToEuros((full as unknown as { cost?: number }).cost ?? 0);
-        this.newThreshold = String((full as unknown as { low_stock_threshold?: number }).low_stock_threshold ?? 10);
+        this.newThreshold = formatQuantity(
+          (full as unknown as { low_stock_threshold?: number }).low_stock_threshold ?? 10_000_000,
+        );
         this.newEan = String((full as unknown as { ean13?: string | null }).ean13 ?? '');
         this.newDescription = String((full as unknown as { description?: string }).description ?? '');
         this.newType = ((full as unknown as { product_type?: string }).product_type === 'service' ? 'service' : 'physical');
@@ -458,18 +485,30 @@ export class ErpInventoryProducts extends LitElement {
 
       const taxValue = pickTaxValue(r);
       const taxCategoryKey = taxValue ? (map.get(normalizeAlias(taxValue)) ?? null) : null;
+      const unitCode = (r.unit_code ?? 'ud').trim() || 'ud';
+      const stock = r.stock?.trim() ? parseQuantity(r.stock) : 0;
+      const threshold = r.low_stock_threshold?.trim() ? parseQuantity(r.low_stock_threshold) : 10_000_000;
+      if (stock === null || threshold === null) {
+        failed.push({ line, sku, reason: t('ui.errQuantity') });
+        continue;
+      }
+      if (!this.quantityMatchesUnit(stock, unitCode) || !this.quantityMatchesUnit(threshold, unitCode)) {
+        failed.push({ line, sku, reason: t('ui.errQuantityGrid') });
+        continue;
+      }
       try {
         await erplora().command('inventory.products.create', {
           name,
           sku,
           price,
-          stock: Number(r.stock) || 0,
+          stock,
           cost: eurosToCents(r.cost),
-          low_stock_threshold: Number(r.low_stock_threshold) || 10,
+          low_stock_threshold: threshold,
           product_type: 'physical',
           ean13: r.ean13 || null,
           description: r.description ?? '',
           tax_category_key: taxCategoryKey,
+          unit_code: unitCode,
           image: '',
         });
         created++;
@@ -650,6 +689,33 @@ export class ErpInventoryProducts extends LitElement {
     }
   }
 
+  /** Incremento exacto de la unidad. Sin catálogo, `ud` conserva su rejilla natural de 1. */
+  private unitIncrement(code: string | undefined): number {
+    const normalized = code || 'ud';
+    const configured = this.units.find((unit) => unit.code === normalized)?.increment_value;
+    return Number(configured ?? (normalized === 'ud' ? 1_000_000 : 0));
+  }
+
+  private quantityMatchesUnit(raw: number, unitCode: string | undefined): boolean {
+    return onGrid(raw, this.unitIncrement(unitCode));
+  }
+
+  private quantityStep(unitCode: string | undefined): string {
+    const increment = this.unitIncrement(unitCode);
+    return increment > 0 ? formatQuantity(increment) : '0.000001';
+  }
+
+  /** Los filtros de la tabla también son entrada humana; el servidor espera los extremos en µ. */
+  private stockFilterValue(value: unknown): unknown {
+    if (typeof value !== 'object' || value === null) return value;
+    const scaled: Record<string, unknown> = {};
+    for (const [edge, logical] of Object.entries(value as Record<string, unknown>)) {
+      if (logical === '' || logical == null) scaled[edge] = logical;
+      else scaled[edge] = parseQuantity(String(logical)) ?? logical;
+    }
+    return scaled;
+  }
+
   /** Etiqueta del selector: «Kilogramo (kg)» / «Kilogram (kg)» según locale (ADR-0055). */
   unitLabel(u: Unit): string {
     const es = (erplora().locale ?? '').startsWith('es');
@@ -709,6 +775,13 @@ export class ErpInventoryProducts extends LitElement {
     this.formError = '';
     const t = (k: string): string => erplora().t(CATALOG, k);
     try {
+      const threshold = this.newThreshold.trim() === ''
+        ? 10_000_000
+        : parseQuantity(this.newThreshold);
+      if (threshold === null) throw new Error(t('ui.errQuantity'));
+      if (!this.quantityMatchesUnit(threshold, this.newUnitCode)) {
+        throw new Error(t('ui.errQuantityGrid'));
+      }
       if (this.editingId) {
         // EDICIÓN real: update conservando la identidad (el stock NO se edita aquí —
         // es autoridad del ledger #7: recuento/recepción).
@@ -717,7 +790,7 @@ export class ErpInventoryProducts extends LitElement {
           name: this.newName.trim(),
           price: eurosToCents(this.newPrice),
           cost: eurosToCents(this.newCost),
-          low_stock_threshold: Number(this.newThreshold) || 10,
+          low_stock_threshold: threshold,
           ean13: this.newEan.trim() || null,
           description: this.newDescription,
           tax_category_key: this.newTaxCategoryKey || null,
@@ -742,6 +815,11 @@ export class ErpInventoryProducts extends LitElement {
           }
         }
       } else {
+        const stock = this.newStock.trim() === '' ? 0 : parseQuantity(this.newStock);
+        if (stock === null) throw new Error(t('ui.errQuantity'));
+        if (!this.quantityMatchesUnit(stock, this.newUnitCode)) {
+          throw new Error(t('ui.errQuantityGrid'));
+        }
         // ALTA. El input es EUROS (`step="0.01"`); la columna es INTEGER de céntimos
         // (ADR-0007). Sin esta frontera, teclear «2,20» guardaba 2 céntimos.
         await erplora().command('inventory.products.create', {
@@ -749,8 +827,8 @@ export class ErpInventoryProducts extends LitElement {
           sku: this.newSku.trim(),
           price: eurosToCents(this.newPrice),
           cost: eurosToCents(this.newCost),
-          stock: Number(this.newStock) || 0,
-          low_stock_threshold: Number(this.newThreshold) || 10,
+          stock,
+          low_stock_threshold: threshold,
           product_type: this.newType,
           ean13: this.newEan.trim() || null,
           description: this.newDescription,
@@ -813,7 +891,10 @@ export class ErpInventoryProducts extends LitElement {
             this.ctrl.setSort(e.detail.sort, e.detail.dir)}
           @searchChange=${(e: CustomEvent<string>) => this.ctrl.setSearch(e.detail)}
           @filterChange=${(e: CustomEvent<{ col: string; value: unknown }>) =>
-            this.ctrl.setFilter(e.detail.col, e.detail.value)}
+            this.ctrl.setFilter(
+              e.detail.col,
+              e.detail.col === 'stock' ? this.stockFilterValue(e.detail.value) : e.detail.value,
+            )}
         >
           <!-- Formulario de alta: el botón "+" del data-table despliega este acordeón. -->
           <form slot="create" class="form" @submit=${(e: Event) => this.createProduct(e)}>
@@ -863,7 +944,7 @@ export class ErpInventoryProducts extends LitElement {
                   fill="outline"
                   label=${erplora().t(CATALOG, 'ui.fieldInitialStock')}
                   label-placement="floating"
-                  type="number" step="0.001" min="0"
+                  type="number" .step=${this.quantityStep(this.newUnitCode)} min="0"
                   .value=${this.newStock}
                   @ionInput=${(e: Event) => (this.newStock = (e.target as HTMLInputElement).value)}
                 ></ion-input>`
@@ -872,7 +953,7 @@ export class ErpInventoryProducts extends LitElement {
               fill="outline"
               label=${erplora().t(CATALOG, 'ui.fieldThreshold')}
               label-placement="floating"
-              type="number" step="1" min="0"
+              type="number" .step=${this.quantityStep(this.newUnitCode)} min="0"
               .value=${this.newThreshold}
               @ionInput=${(e: Event) => (this.newThreshold = (e.target as HTMLInputElement).value)}
             ></ion-input>
@@ -964,7 +1045,7 @@ export class ErpInventoryProducts extends LitElement {
                   <div class="detail">
                     <div class="drow"><span>SKU</span><b>${this.detail.sku}</b></div>
                     <div class="drow"><span>${erplora().t(CATALOG, 'ui.price')}</span><b>${erplora().formatMoney(Number(this.detail.price))}</b></div>
-                    <div class="drow"><span>${erplora().t(CATALOG, 'ui.stock')}</span><b>${this.detail.stock}</b></div>
+                    <div class="drow"><span>${erplora().t(CATALOG, 'ui.stock')}</span><b>${formatQuantity(this.detail.stock)}</b></div>
                     <div class="drow"><span>${erplora().t(CATALOG, 'ui.active')}</span><b>${this.detail.is_active ? erplora().t(CATALOG, 'ui.yes') : erplora().t(CATALOG, 'ui.no')}</b></div>
                     <div class="barcode">
                       ${this.renderBarcode(this.detail.sku)}
@@ -1051,9 +1132,9 @@ export class ErpInventoryProducts extends LitElement {
         </ion-header>
         <ion-content class="ion-padding">
           <div class="detail">
-            <div class="drow"><span>${t('ui.countCurrent')}</span><b>${Number(this.countTarget?.stock ?? 0)}</b></div>
+            <div class="drow"><span>${t('ui.countCurrent')}</span><b>${formatQuantity(this.countTarget?.stock ?? 0)}</b></div>
             <ion-input fill="outline" label-placement="floating" label=${t('ui.countNew')}
-              type="number" step="0.001" min="0" inputmode="decimal"
+              type="number" .step=${this.quantityStep(this.countTarget?.unit_code)} min="0" inputmode="decimal"
               .value=${this.countValue}
               @ionInput=${(e: CustomEvent) => (this.countValue = String((e.detail as { value?: string }).value ?? ''))}
             ></ion-input>
@@ -1091,9 +1172,9 @@ export class ErpInventoryProducts extends LitElement {
         </ion-header>
         <ion-content class="ion-padding">
           <div class="detail">
-            <div class="drow"><span>${t('ui.countCurrent')}</span><b>${Number(this.receiveTarget?.stock ?? 0)}</b></div>
+            <div class="drow"><span>${t('ui.countCurrent')}</span><b>${formatQuantity(this.receiveTarget?.stock ?? 0)}</b></div>
             <ion-input fill="outline" label-placement="floating" label=${t('ui.receiveQty')}
-              type="number" step="0.001" min="0.001" inputmode="decimal"
+              type="number" .step=${this.quantityStep(this.receiveTarget?.unit_code)} min="0.000001" inputmode="decimal"
               .value=${this.receiveQty}
               @ionInput=${(e: CustomEvent) => (this.receiveQty = String((e.detail as { value?: string }).value ?? ''))}
             ></ion-input>

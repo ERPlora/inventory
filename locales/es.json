@@ -123,6 +123,8 @@
     "errDeleteProduct": "No se pudo eliminar el producto",
     "errUpdateProduct": "No se pudo actualizar el producto",
     "errSaveProduct": "No se pudo guardar el producto",
+    "errQuantity": "Introduce una cantidad válida con un máximo de 6 decimales",
+    "errQuantityGrid": "La cantidad no respeta el incremento permitido para esta unidad",
     "errDeleteCategory": "No se pudo eliminar la categoría",
     "errSaveCategory": "No se pudo guardar la categoría",
     "saving": "Guardando…",

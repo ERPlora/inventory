@@ -34,7 +34,8 @@
     },
     "low_stock_threshold": {
       "type": "integer",
-      "minimum": 0
+      "minimum": 0,
+      "description": "Umbral de stock bajo en punto fijo de escala 10⁶ (ADR-0147)."
     },
     "tax_category_key": {
       "type": [

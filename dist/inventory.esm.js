@@ -1462,6 +1462,8 @@ var es_default = {
     errDeleteProduct: "No se pudo eliminar el producto",
     errUpdateProduct: "No se pudo actualizar el producto",
     errSaveProduct: "No se pudo guardar el producto",
+    errQuantity: "Introduce una cantidad v\xE1lida con un m\xE1ximo de 6 decimales",
+    errQuantityGrid: "La cantidad no respeta el incremento permitido para esta unidad",
     errDeleteCategory: "No se pudo eliminar la categor\xEDa",
     errSaveCategory: "No se pudo guardar la categor\xEDa",
     saving: "Guardando\u2026",
@@ -1615,6 +1617,8 @@ var en_default = {
     errDeleteProduct: "The product could not be deleted",
     errUpdateProduct: "The product could not be updated",
     errSaveProduct: "The product could not be saved",
+    errQuantity: "Enter a valid quantity with no more than 6 decimal places",
+    errQuantityGrid: "The quantity does not match the increment allowed for this unit",
     errDeleteCategory: "The category could not be deleted",
     errSaveCategory: "The category could not be saved",
     saving: "Saving\u2026",
@@ -4185,6 +4189,25 @@ __decorateClass4([
 ], OkKpi.prototype, "icon");
 define("ok-kpi", OkKpi);
 
+// modules/inventory/ui/lib/quantity.ts
+var QUANTITY_SCALE = 1e6;
+function fromMicro(raw) {
+  return raw / QUANTITY_SCALE;
+}
+function parseQuantity(text) {
+  const normalized = text.trim().replace(",", ".");
+  if (!/^\d+(\.\d{1,6})?$/.test(normalized)) return null;
+  const raw = Math.round(Number(normalized) * QUANTITY_SCALE);
+  return Number.isSafeInteger(raw) && raw >= 0 ? raw : null;
+}
+function formatQuantity(raw) {
+  const value = Number(raw);
+  return Number.isFinite(value) ? String(fromMicro(value)) : String(raw);
+}
+function onGrid(raw, increment) {
+  return !Number.isFinite(increment) || increment <= 0 || raw % increment === 0;
+}
+
 // modules/inventory/ui/components/erp-inventory-dashboard/erp-inventory-dashboard.ts
 var CATALOG2 = { es: es_default, en: en_default };
 function erplora2() {
@@ -4225,8 +4248,18 @@ var ErpInventoryDashboard = class extends i3 {
     return [
       { key: "name", header: t5("ui.name") },
       { key: "sku", header: t5("ui.sku") },
-      { key: "stock", header: t5("ui.stock"), align: "right" },
-      { key: "low_stock_threshold", header: t5("ui.threshold"), align: "right" }
+      {
+        key: "stock",
+        header: t5("ui.stock"),
+        align: "right",
+        format: (r6) => formatQuantity(Number(r6.stock))
+      },
+      {
+        key: "low_stock_threshold",
+        header: t5("ui.threshold"),
+        align: "right",
+        format: (r6) => formatQuantity(Number(r6.low_stock_threshold))
+      }
     ];
   }
   async firstUpdated() {
@@ -4318,8 +4351,8 @@ function formatDate(v3, locale) {
   return d3.toLocaleString(locale || "es", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 function formatQty(v3) {
-  const n6 = Number(v3);
-  return n6 > 0 ? `+${n6}` : String(n6);
+  const logical = fromMicro(Number(v3));
+  return logical > 0 ? `+${logical}` : String(logical);
 }
 var ErpInventoryMovements = class extends i3 {
   constructor() {
@@ -4381,7 +4414,7 @@ var ErpInventoryMovements = class extends i3 {
         header: t5("ui.mvStockAfter"),
         align: "right",
         sortable: true,
-        format: (r6) => String(Number(r6.stock_after))
+        format: (r6) => formatQuantity(r6.stock_after)
       },
       { key: "reason", header: t5("ui.mvReason") },
       { key: "reference", header: t5("ui.mvReference"), filterable: true, filterType: "text" }
@@ -4647,7 +4680,15 @@ var ErpInventoryProducts = class extends i3 {
         // un café de 220 céntimos se pintaba «220,00 €».
         format: (r6) => erplora4().formatMoney(Number(r6.price))
       },
-      { key: "stock", header: t5("ui.stock"), align: "right", sortable: true, filterable: true, filterType: "range" },
+      {
+        key: "stock",
+        header: t5("ui.stock"),
+        align: "right",
+        sortable: true,
+        filterable: true,
+        filterType: "range",
+        format: (r6) => formatQuantity(Number(r6.stock))
+      },
       {
         key: "is_active",
         header: t5("ui.active"),
@@ -4675,18 +4716,25 @@ var ErpInventoryProducts = class extends i3 {
   /** Diferencia del recuento (nuevo − actual), o null si aún no hay valor tecleado. */
   get countDifference() {
     if (!this.countTarget || this.countValue.trim() === "") return null;
-    const v3 = Number(this.countValue);
-    if (!Number.isFinite(v3)) return null;
-    return Math.round((v3 - Number(this.countTarget.stock)) * 1e3) / 1e3;
+    const raw = parseQuantity(this.countValue);
+    if (raw === null || !this.quantityMatchesUnit(raw, this.countTarget.unit_code)) return null;
+    return fromMicro(raw - Number(this.countTarget.stock));
   }
   async submitCount() {
     if (!can2("inventory.adjust_stock") || !this.countTarget || this.countValue.trim() === "" || this.countReason.trim() === "") return;
-    const v3 = Number(this.countValue);
-    if (!Number.isFinite(v3) || v3 < 0) return;
+    const raw = parseQuantity(this.countValue);
+    if (raw === null) {
+      this.formError = erplora4().t(CATALOG4, "ui.errQuantity");
+      return;
+    }
+    if (!this.quantityMatchesUnit(raw, this.countTarget.unit_code)) {
+      this.formError = erplora4().t(CATALOG4, "ui.errQuantityGrid");
+      return;
+    }
     try {
       await erplora4().command("inventory.stock.adjust", {
         product_id: this.countTarget.id,
-        stock: v3,
+        stock: raw,
         reason: this.countReason.trim()
       });
       this.countTarget = null;
@@ -4699,8 +4747,15 @@ var ErpInventoryProducts = class extends i3 {
   }
   async submitReceive() {
     if (!can2("inventory.adjust_stock") || !this.receiveTarget || this.receiveQty.trim() === "") return;
-    const qty = Number(this.receiveQty);
-    if (!Number.isFinite(qty) || qty <= 0) return;
+    const qty = parseQuantity(this.receiveQty);
+    if (qty === null || qty <= 0) {
+      this.formError = erplora4().t(CATALOG4, "ui.errQuantity");
+      return;
+    }
+    if (!this.quantityMatchesUnit(qty, this.receiveTarget.unit_code)) {
+      this.formError = erplora4().t(CATALOG4, "ui.errQuantityGrid");
+      return;
+    }
     const cost = this.receiveCost.trim() === "" ? null : Math.round(Number(this.receiveCost) * 100);
     try {
       await erplora4().command("inventory.stock.receive", {
@@ -4746,7 +4801,9 @@ var ErpInventoryProducts = class extends i3 {
         this.newSku = full.sku ?? "";
         this.newPrice = centsToEuros(full.price);
         this.newCost = centsToEuros(full.cost ?? 0);
-        this.newThreshold = String(full.low_stock_threshold ?? 10);
+        this.newThreshold = formatQuantity(
+          full.low_stock_threshold ?? 1e7
+        );
         this.newEan = String(full.ean13 ?? "");
         this.newDescription = String(full.description ?? "");
         this.newType = full.product_type === "service" ? "service" : "physical";
@@ -4882,18 +4939,30 @@ var ErpInventoryProducts = class extends i3 {
       seenSkus.add(sku);
       const taxValue = pickTaxValue(r6);
       const taxCategoryKey = taxValue ? map.get(normalizeAlias(taxValue)) ?? null : null;
+      const unitCode = (r6.unit_code ?? "ud").trim() || "ud";
+      const stock = r6.stock?.trim() ? parseQuantity(r6.stock) : 0;
+      const threshold = r6.low_stock_threshold?.trim() ? parseQuantity(r6.low_stock_threshold) : 1e7;
+      if (stock === null || threshold === null) {
+        failed.push({ line, sku, reason: t5("ui.errQuantity") });
+        continue;
+      }
+      if (!this.quantityMatchesUnit(stock, unitCode) || !this.quantityMatchesUnit(threshold, unitCode)) {
+        failed.push({ line, sku, reason: t5("ui.errQuantityGrid") });
+        continue;
+      }
       try {
         await erplora4().command("inventory.products.create", {
           name,
           sku,
           price,
-          stock: Number(r6.stock) || 0,
+          stock,
           cost: eurosToCents(r6.cost),
-          low_stock_threshold: Number(r6.low_stock_threshold) || 10,
+          low_stock_threshold: threshold,
           product_type: "physical",
           ean13: r6.ean13 || null,
           description: r6.description ?? "",
           tax_category_key: taxCategoryKey,
+          unit_code: unitCode,
           image: ""
         });
         created++;
@@ -5042,6 +5111,29 @@ var ErpInventoryProducts = class extends i3 {
       this.units = [];
     }
   }
+  /** Incremento exacto de la unidad. Sin catálogo, `ud` conserva su rejilla natural de 1. */
+  unitIncrement(code) {
+    const normalized = code || "ud";
+    const configured = this.units.find((unit) => unit.code === normalized)?.increment_value;
+    return Number(configured ?? (normalized === "ud" ? 1e6 : 0));
+  }
+  quantityMatchesUnit(raw, unitCode) {
+    return onGrid(raw, this.unitIncrement(unitCode));
+  }
+  quantityStep(unitCode) {
+    const increment = this.unitIncrement(unitCode);
+    return increment > 0 ? formatQuantity(increment) : "0.000001";
+  }
+  /** Los filtros de la tabla también son entrada humana; el servidor espera los extremos en µ. */
+  stockFilterValue(value) {
+    if (typeof value !== "object" || value === null) return value;
+    const scaled = {};
+    for (const [edge, logical] of Object.entries(value)) {
+      if (logical === "" || logical == null) scaled[edge] = logical;
+      else scaled[edge] = parseQuantity(String(logical)) ?? logical;
+    }
+    return scaled;
+  }
   /** Etiqueta del selector: «Kilogramo (kg)» / «Kilogram (kg)» según locale (ADR-0055). */
   unitLabel(u5) {
     const es = (erplora4().locale ?? "").startsWith("es");
@@ -5093,13 +5185,18 @@ var ErpInventoryProducts = class extends i3 {
     this.formError = "";
     const t5 = (k2) => erplora4().t(CATALOG4, k2);
     try {
+      const threshold = this.newThreshold.trim() === "" ? 1e7 : parseQuantity(this.newThreshold);
+      if (threshold === null) throw new Error(t5("ui.errQuantity"));
+      if (!this.quantityMatchesUnit(threshold, this.newUnitCode)) {
+        throw new Error(t5("ui.errQuantityGrid"));
+      }
       if (this.editingId) {
         await erplora4().command("inventory.products.update", {
           product_id: this.editingId,
           name: this.newName.trim(),
           price: eurosToCents(this.newPrice),
           cost: eurosToCents(this.newCost),
-          low_stock_threshold: Number(this.newThreshold) || 10,
+          low_stock_threshold: threshold,
           ean13: this.newEan.trim() || null,
           description: this.newDescription,
           tax_category_key: this.newTaxCategoryKey || null,
@@ -5125,13 +5222,18 @@ var ErpInventoryProducts = class extends i3 {
           }
         }
       } else {
+        const stock = this.newStock.trim() === "" ? 0 : parseQuantity(this.newStock);
+        if (stock === null) throw new Error(t5("ui.errQuantity"));
+        if (!this.quantityMatchesUnit(stock, this.newUnitCode)) {
+          throw new Error(t5("ui.errQuantityGrid"));
+        }
         await erplora4().command("inventory.products.create", {
           name: this.newName.trim(),
           sku: this.newSku.trim(),
           price: eurosToCents(this.newPrice),
           cost: eurosToCents(this.newCost),
-          stock: Number(this.newStock) || 0,
-          low_stock_threshold: Number(this.newThreshold) || 10,
+          stock,
+          low_stock_threshold: threshold,
           product_type: this.newType,
           ean13: this.newEan.trim() || null,
           description: this.newDescription,
@@ -5190,7 +5292,10 @@ var ErpInventoryProducts = class extends i3 {
           @pageSizeChange=${(e5) => this.ctrl.setPageSize(e5.detail)}
           @sortChange=${(e5) => this.ctrl.setSort(e5.detail.sort, e5.detail.dir)}
           @searchChange=${(e5) => this.ctrl.setSearch(e5.detail)}
-          @filterChange=${(e5) => this.ctrl.setFilter(e5.detail.col, e5.detail.value)}
+          @filterChange=${(e5) => this.ctrl.setFilter(
+      e5.detail.col,
+      e5.detail.col === "stock" ? this.stockFilterValue(e5.detail.value) : e5.detail.value
+    )}
         >
           <!-- Formulario de alta: el botón "+" del data-table despliega este acordeón. -->
           <form slot="create" class="form" @submit=${(e5) => this.createProduct(e5)}>
@@ -5237,7 +5342,7 @@ var ErpInventoryProducts = class extends i3 {
                   fill="outline"
                   label=${erplora4().t(CATALOG4, "ui.fieldInitialStock")}
                   label-placement="floating"
-                  type="number" step="0.001" min="0"
+                  type="number" .step=${this.quantityStep(this.newUnitCode)} min="0"
                   .value=${this.newStock}
                   @ionInput=${(e5) => this.newStock = e5.target.value}
                 ></ion-input>` : A}
@@ -5245,7 +5350,7 @@ var ErpInventoryProducts = class extends i3 {
               fill="outline"
               label=${erplora4().t(CATALOG4, "ui.fieldThreshold")}
               label-placement="floating"
-              type="number" step="1" min="0"
+              type="number" .step=${this.quantityStep(this.newUnitCode)} min="0"
               .value=${this.newThreshold}
               @ionInput=${(e5) => this.newThreshold = e5.target.value}
             ></ion-input>
@@ -5328,7 +5433,7 @@ var ErpInventoryProducts = class extends i3 {
                   <div class="detail">
                     <div class="drow"><span>SKU</span><b>${this.detail.sku}</b></div>
                     <div class="drow"><span>${erplora4().t(CATALOG4, "ui.price")}</span><b>${erplora4().formatMoney(Number(this.detail.price))}</b></div>
-                    <div class="drow"><span>${erplora4().t(CATALOG4, "ui.stock")}</span><b>${this.detail.stock}</b></div>
+                    <div class="drow"><span>${erplora4().t(CATALOG4, "ui.stock")}</span><b>${formatQuantity(this.detail.stock)}</b></div>
                     <div class="drow"><span>${erplora4().t(CATALOG4, "ui.active")}</span><b>${this.detail.is_active ? erplora4().t(CATALOG4, "ui.yes") : erplora4().t(CATALOG4, "ui.no")}</b></div>
                     <div class="barcode">
                       ${this.renderBarcode(this.detail.sku)}
@@ -5408,9 +5513,9 @@ var ErpInventoryProducts = class extends i3 {
         </ion-header>
         <ion-content class="ion-padding">
           <div class="detail">
-            <div class="drow"><span>${t5("ui.countCurrent")}</span><b>${Number(this.countTarget?.stock ?? 0)}</b></div>
+            <div class="drow"><span>${t5("ui.countCurrent")}</span><b>${formatQuantity(this.countTarget?.stock ?? 0)}</b></div>
             <ion-input fill="outline" label-placement="floating" label=${t5("ui.countNew")}
-              type="number" step="0.001" min="0" inputmode="decimal"
+              type="number" .step=${this.quantityStep(this.countTarget?.unit_code)} min="0" inputmode="decimal"
               .value=${this.countValue}
               @ionInput=${(e5) => this.countValue = String(e5.detail.value ?? "")}
             ></ion-input>
@@ -5445,9 +5550,9 @@ var ErpInventoryProducts = class extends i3 {
         </ion-header>
         <ion-content class="ion-padding">
           <div class="detail">
-            <div class="drow"><span>${t5("ui.countCurrent")}</span><b>${Number(this.receiveTarget?.stock ?? 0)}</b></div>
+            <div class="drow"><span>${t5("ui.countCurrent")}</span><b>${formatQuantity(this.receiveTarget?.stock ?? 0)}</b></div>
             <ion-input fill="outline" label-placement="floating" label=${t5("ui.receiveQty")}
-              type="number" step="0.001" min="0.001" inputmode="decimal"
+              type="number" .step=${this.quantityStep(this.receiveTarget?.unit_code)} min="0.000001" inputmode="decimal"
               .value=${this.receiveQty}
               @ionInput=${(e5) => this.receiveQty = String(e5.detail.value ?? "")}
             ></ion-input>

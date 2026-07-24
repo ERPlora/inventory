@@ -143,7 +143,13 @@ pub fn bulk_create_pure(input: Value) -> Output {
         p.insert("price".into(), item.get("price").cloned().unwrap_or(json!(0)));
         p.insert("cost".into(), item.get("cost").cloned().unwrap_or(json!(0)));
         p.insert("stock".into(), item.get("stock").cloned().unwrap_or(json!(0)));
-        p.insert("low_stock_threshold".into(), item.get("low_stock_threshold").cloned().unwrap_or(json!(10)));
+        p.insert(
+            "low_stock_threshold".into(),
+            item
+                .get("low_stock_threshold")
+                .cloned()
+                .unwrap_or(json!(10_000_000)),
+        );
         p.insert("tax_category_key".into(), opt_str(item, "tax_category_key"));
         p.insert("image".into(), json!(as_str(item.get("image").unwrap_or(&Value::Null))));
         ops.push(Operation::sql("inventory._insert_product", p));

@@ -1,6 +1,6 @@
 [
-  { "id": "p-3", "name": "Azúcar blanca 1kg", "sku": "AZU-1000", "stock": 8, "low_stock_threshold": 10 },
-  { "id": "p-6", "name": "Croissant congelado (caja)", "sku": "CRO-0050", "stock": 6, "low_stock_threshold": 10 },
-  { "id": "p-10", "name": "Sirope vainilla 750ml", "sku": "SIR-0750", "stock": 9, "low_stock_threshold": 12 },
-  { "id": "p-8", "name": "Bolsa take-away (100u)", "sku": "BOL-0100", "stock": 0, "low_stock_threshold": 5 }
+  { "id": "p-3", "name": "Azúcar blanca 1kg", "sku": "AZU-1000", "stock": 8000000, "low_stock_threshold": 10000000 },
+  { "id": "p-6", "name": "Croissant congelado (caja)", "sku": "CRO-0050", "stock": 6000000, "low_stock_threshold": 10000000 },
+  { "id": "p-10", "name": "Sirope vainilla 750ml", "sku": "SIR-0750", "stock": 9000000, "low_stock_threshold": 12000000 },
+  { "id": "p-8", "name": "Bolsa take-away (100u)", "sku": "BOL-0100", "stock": 0, "low_stock_threshold": 5000000 }
 ]

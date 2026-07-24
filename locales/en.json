@@ -123,6 +123,8 @@
     "errDeleteProduct": "The product could not be deleted",
     "errUpdateProduct": "The product could not be updated",
     "errSaveProduct": "The product could not be saved",
+    "errQuantity": "Enter a valid quantity with no more than 6 decimal places",
+    "errQuantityGrid": "The quantity does not match the increment allowed for this unit",
     "errDeleteCategory": "The category could not be deleted",
     "errSaveCategory": "The category could not be saved",
     "saving": "Saving…",
