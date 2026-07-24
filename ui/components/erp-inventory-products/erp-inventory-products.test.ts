@@ -24,12 +24,12 @@ beforeEach(() => {
   (globalThis as Record<string, unknown>).erplora = {
     query: async (name: string) =>
       name === 'inventory.products.list'
-        ? [{ id: 'p1', name: 'Café solo', sku: 'CAF', price: 220, stock: 10, is_active: 1 }]
+        ? [{ id: 'p1', name: 'Café solo', sku: 'CAF', price: 220, stock: 10_000_000, unit_code: 'ud', is_active: 1 }]
         : [],
     queryPage: async (name: string) =>
       name === 'inventory.products.list'
         ? {
-            rows: [{ id: 'p1', name: 'Café solo', sku: 'CAF', price: 220, stock: 10, is_active: 1 }],
+            rows: [{ id: 'p1', name: 'Café solo', sku: 'CAF', price: 220, stock: 10_000_000, unit_code: 'ud', is_active: 1 }],
             total: 1,
             limit: 50,
             offset: 0,
@@ -39,6 +39,7 @@ beforeEach(() => {
       comandos.push({ name, payload });
       return {};
     },
+    hasPermission: () => true,
     currency: 'EUR',
     // Contrato REAL del SDK: formatMoney recibe CÉNTIMOS y divide; formatAmount recibe EUROS.
     formatMoney: (cents: number) => `${((cents || 0) / 100).toFixed(2)} €`,
@@ -67,12 +68,30 @@ describe('el selector de categoría fiscal es best-effort (ADR-0085)', () => {
       ...(globalThis as Record<string, { erplora: unknown }> & { erplora: object }).erplora,
       query: async (name: string) =>
         name === 'inventory.products.list'
-          ? [{ id: 'p1', name: 'Café solo', sku: 'CAF', price: 220, stock: 10, is_active: 1 }]
+          ? [{ id: 'p1', name: 'Café solo', sku: 'CAF', price: 220, stock: 10_000_000, unit_code: 'ud', is_active: 1 }]
           : ({ error: 'unknown_query' } as unknown), // taxes no instalado → NO es un array
     };
     const el = await montar();
     expect(el.shadowRoot, 'el componente ha renderizado pese a la respuesta rara').not.toBeNull();
     expect((el as unknown as { taxCategories: unknown }).taxCategories).toEqual([]);
+  });
+});
+
+describe('permisos visibles del CRUD', () => {
+  it('la lectura sola oculta altas, importación, exportación y mutaciones de fila', async () => {
+    const sdk = (globalThis as Record<string, unknown>).erplora as Record<string, unknown>;
+    sdk.hasPermission = () => false;
+    const el = await montar();
+    const table = el.shadowRoot?.querySelector('ok-data-table') as HTMLElement & {
+      addable: boolean;
+      importable: boolean;
+      exportable: boolean;
+      actions: Array<{ id: string }>;
+    };
+    expect(table.addable).toBe(false);
+    expect(table.importable).toBe(false);
+    expect(table.exportable).toBe(false);
+    expect(table.actions.map((action) => action.id)).toEqual(['detail']);
   });
 });
 
@@ -136,9 +155,9 @@ describe('import CSV de productos (misma frontera euros↔céntimos)', () => {
     expect(altas[0].payload.price).toBe(30);
   });
 
-  it('la CANTIDAD no es dinero: el stock del CSV no se multiplica por 100', async () => {
+  it('la CANTIDAD usa su propia escala 10⁶ (no céntimos)', async () => {
     const altas = await importar([{ name: 'Café solo', sku: 'CAF', price: '2.20', stock: '10' }]);
-    expect(altas[0].payload.stock, 'stock es una cantidad, no céntimos').toBe(10);
+    expect(altas[0].payload.stock, '10 unidades viajan como 10.000.000 µ').toBe(10_000_000);
   });
 
   it('un precio vacío o basura entra como 0, no como NaN', async () => {
@@ -157,7 +176,7 @@ describe('el DETALLE de producto usa el mismo formateador que la lista (inventor
       updateComplete: Promise<unknown>;
       shadowRoot: ShadowRoot;
     };
-    wc.detail = { id: 'p1', name: 'Café solo', sku: 'CAF', price: 220, stock: 10, is_active: 1 };
+    wc.detail = { id: 'p1', name: 'Café solo', sku: 'CAF', price: 220, stock: 10_000_000, is_active: 1 };
     await wc.updateComplete;
     const texto = wc.shadowRoot.textContent ?? '';
     expect(texto, 'el detalle pinta céntimos como euros (×100)').not.toContain('220.00 €');
@@ -180,7 +199,7 @@ describe('recepción y recuento desde la tabla (inventory#7)', () => {
       countDifference: number | null;
       submitCount: () => Promise<void>; updateComplete: Promise<unknown>;
     };
-    wc.countTarget = { id: 'p1', name: 'Café solo', sku: 'CAF', stock: 10 };
+    wc.countTarget = { id: 'p1', name: 'Café solo', sku: 'CAF', stock: 10_000_000, unit_code: 'ud' };
     wc.countValue = '7';
     await wc.updateComplete;
     expect(wc.countDifference, 'la diferencia se enseña ANTES de aplicar (#7)').toBe(-3);
@@ -189,7 +208,7 @@ describe('recepción y recuento desde la tabla (inventory#7)', () => {
     await wc.submitCount();
     const adj = comandos.find((c) => c.name === 'inventory.stock.adjust');
     expect(adj, 'no se mandó el ajuste').toBeTruthy();
-    expect(adj!.payload.stock, 'el ajuste es ABSOLUTO (valor contado)').toBe(7);
+    expect(adj!.payload.stock, 'el ajuste es ABSOLUTO en escala 10⁶').toBe(7_000_000);
     expect(adj!.payload.reason).toBe('recuento semanal');
   });
 
@@ -199,20 +218,20 @@ describe('recepción y recuento desde la tabla (inventory#7)', () => {
       countTarget: Record<string, unknown> | null; countValue: string; countReason: string;
       submitCount: () => Promise<void>;
     };
-    wc.countTarget = { id: 'p1', stock: 10 };
+    wc.countTarget = { id: 'p1', stock: 10_000_000, unit_code: 'ud' };
     wc.countValue = '7';
     wc.countReason = '';
     await wc.submitCount();
     expect(comandos.find((c) => c.name === 'inventory.stock.adjust')).toBeFalsy();
   });
 
-  it('recibir mercancía manda stock.receive con qty DECIMAL y coste en céntimos', async () => {
+  it('recibir mercancía manda qty en escala 10⁶ y coste en céntimos', async () => {
     const el = await montar();
     const wc = el as unknown as {
       receiveTarget: Record<string, unknown> | null; receiveQty: string; receiveCost: string;
       submitReceive: () => Promise<void>;
     };
-    wc.receiveTarget = { id: 'p1', name: 'Café', sku: 'CAF', stock: 10 };
+    wc.receiveTarget = { id: 'p1', name: 'Café', sku: 'CAF', stock: 10_000_000, unit_code: 'kg' };
     wc.receiveQty = '2.5';
     wc.receiveCost = '1.80'; // euros tecleados → céntimos guardados (ADR-0007)
     await wc.submitReceive();
@@ -220,8 +239,61 @@ describe('recepción y recuento desde la tabla (inventory#7)', () => {
     expect(rec, 'no se mandó la recepción').toBeTruthy();
     const item = (rec!.payload.items as Record<string, unknown>[])[0];
     expect(item.product_id).toBe('p1');
-    expect(item.qty, 'cantidad decimal intacta (#10)').toBe(2.5);
+    expect(item.qty, '2,5 unidades → 2.500.000 µ').toBe(2_500_000);
     expect(item.unit_cost, '1,80 € → 180 céntimos').toBe(180);
+  });
+});
+
+describe('cantidades de la UI en punto fijo 10⁶ (inventory#25)', () => {
+  it('la lista convierte el valor persistido antes de pintarlo', async () => {
+    const el = await montar();
+    const cols = (el as unknown as {
+      columns: { key: string; format?: (row: Record<string, unknown>) => string }[];
+    }).columns;
+    const stock = cols.find((column) => column.key === 'stock')!;
+    expect(stock.format?.({ stock: 2_500_000 })).toBe('2.5');
+  });
+
+  it('el alta convierte stock y umbral lógicos a µ', async () => {
+    const el = await montar();
+    const wc = el as unknown as {
+      newName: string; newSku: string; newPrice: string; newStock: string; newThreshold: string;
+      newUnitCode: string; units: Record<string, unknown>[];
+      createProduct: (ev: Event) => Promise<void>;
+    };
+    wc.newName = 'Harina';
+    wc.newSku = 'HAR';
+    wc.newPrice = '1.20';
+    wc.newStock = '2.5';
+    wc.newThreshold = '0.75';
+    wc.newUnitCode = 'kg';
+    wc.units = [{ code: 'kg', increment_value: 1_000, name: 'Kilogram', name_es: 'Kilogramo' }];
+    await wc.createProduct(new Event('submit'));
+
+    const alta = comandos.find((command) => command.name === 'inventory.products.create')!;
+    expect(alta.payload.stock).toBe(2_500_000);
+    expect(alta.payload.low_stock_threshold).toBe(750_000);
+  });
+
+  it('rechaza más de seis decimales y cantidades fuera del incremento sin redondear', async () => {
+    const el = await montar();
+    const wc = el as unknown as {
+      receiveTarget: Record<string, unknown> | null; receiveQty: string; receiveCost: string;
+      units: Record<string, unknown>[]; formError: string;
+      submitReceive: () => Promise<void>;
+    };
+    wc.units = [{ code: 'kg', increment_value: 250_000, name: 'Kilogram', name_es: 'Kilogramo' }];
+    wc.receiveTarget = { id: 'p1', stock: 1_000_000, unit_code: 'kg' };
+
+    wc.receiveQty = '0.1234567';
+    await wc.submitReceive();
+    expect(comandos.find((command) => command.name === 'inventory.stock.receive')).toBeFalsy();
+    expect(wc.formError).toBe('ui.errQuantity');
+
+    wc.receiveQty = '0.2';
+    await wc.submitReceive();
+    expect(comandos.find((command) => command.name === 'inventory.stock.receive')).toBeFalsy();
+    expect(wc.formError).toBe('ui.errQuantityGrid');
   });
 });
 
@@ -301,8 +373,8 @@ describe('edición REAL de productos (inventory#8)', () => {
       ...(globalThis as { erplora: object }).erplora,
       query: async (name: string) =>
         name === 'inventory.products.get'
-          ? [{ id: 'p1', name: 'Café solo', sku: 'CAF', price: 220, cost: 90, stock: 10,
-               low_stock_threshold: 5, ean13: '8412345678905', description: 'café de casa',
+          ? [{ id: 'p1', name: 'Café solo', sku: 'CAF', price: 220, cost: 90, stock: 10_000_000,
+               low_stock_threshold: 5_000_000, ean13: '8412345678905', description: 'café de casa',
                tax_category_key: null, is_active: 1, product_type: 'physical', image: '' }]
           : name === 'inventory.product_categories'
             ? [{ product_id: 'p1', category_id: 'c1' }]
@@ -440,7 +512,7 @@ describe('selector de unidad maestra en la ficha (ADR-0147)', () => {
       query: async (name: string) =>
         name === 'inventory.products.get'
           ? [{ id: 'p1', name: 'Gambas', sku: 'GAM', price: 1200, cost: 0, stock: 0,
-               low_stock_threshold: 5, ean13: null, description: '', tax_category_key: null,
+               low_stock_threshold: 5_000_000, ean13: null, description: '', tax_category_key: null,
                is_active: 1, product_type: 'physical', unit_code: 'kg' }]
           : [],
     };

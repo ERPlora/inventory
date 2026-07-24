@@ -9,7 +9,7 @@ var __decorateClass = (decorators, target, key, kind) => {
   return result;
 };
 
-// ../../../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/element-internals.js
+// ../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/element-internals.js
 var ElementInternalsShim = class ElementInternals {
   get shadowRoot() {
     return this.__host.__shadowRoot;
@@ -88,7 +88,7 @@ var ElementInternalsShim = class ElementInternals {
   }
 };
 
-// ../../../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/events.js
+// ../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/events.js
 var __classPrivateFieldSet = function(receiver, state, value, kind, f3) {
   if (kind === "m") throw new TypeError("Private method is not writable");
   if (kind === "a" && !f3) throw new TypeError("Private accessor was defined without a setter");
@@ -246,7 +246,7 @@ Object.defineProperties(CustomEventShim.prototype, {
 var EventShimWithRealType = EventShim;
 var CustomEventShimWithRealType = CustomEventShim;
 
-// ../../../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/css.js
+// ../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/css.js
 var _a2;
 var CSSRuleShim = (_a2 = class CSSRule {
   constructor() {
@@ -277,7 +277,7 @@ var CSSRuleShim = (_a2 = class CSSRule {
   }
 }, _a2.STYLE_RULE = 1, _a2.CHARSET_RULE = 2, _a2.IMPORT_RULE = 3, _a2.MEDIA_RULE = 4, _a2.FONT_FACE_RULE = 5, _a2.PAGE_RULE = 6, _a2.NAMESPACE_RULE = 10, _a2.KEYFRAMES_RULE = 7, _a2.KEYFRAME_RULE = 8, _a2.SUPPORTS_RULE = 12, _a2.COUNTER_STYLE_RULE = 11, _a2.FONT_FEATURE_VALUES_RULE = 14, _a2.MARGIN_RULE = 9, _a2);
 
-// ../../../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/index.js
+// ../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/index.js
 globalThis.Event ??= EventShimWithRealType;
 globalThis.CustomEvent ??= CustomEventShimWithRealType;
 var constructionToken = Symbol();
@@ -674,7 +674,7 @@ var CustomElementRegistryShimWithRealType = CustomElementRegistry;
 var customElements2 = new CustomElementRegistryShimWithRealType();
 var windowShim = new WindowShim(constructionToken);
 
-// ../../../module-toolkit/node_modules/@lit/reactive-element/node/css-tag.js
+// ../module-toolkit/node_modules/@lit/reactive-element/node/css-tag.js
 var t = globalThis;
 var e = t.ShadowRoot && (void 0 === t.ShadyCSS || t.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype;
 var s = Symbol();
@@ -719,7 +719,7 @@ var c = e || void 0 === t.CSSStyleSheet ? (t5) => t5 : (t5) => t5 instanceof CSS
   return r(e5);
 })(t5) : t5;
 
-// ../../../module-toolkit/node_modules/@lit/reactive-element/node/reactive-element.js
+// ../module-toolkit/node_modules/@lit/reactive-element/node/reactive-element.js
 var { is: h, defineProperty: r2, getOwnPropertyDescriptor: o2, getOwnPropertyNames: n2, getOwnPropertySymbols: a, getPrototypeOf: c2 } = Object;
 var l = globalThis;
 l.customElements ??= customElements2;
@@ -942,7 +942,7 @@ var g = class extends (globalThis.HTMLElement ?? HTMLElementShimWithRealType) {
 };
 g.elementStyles = [], g.shadowRootOptions = { mode: "open" }, g[f("elementProperties")] = /* @__PURE__ */ new Map(), g[f("finalized")] = /* @__PURE__ */ new Map(), u?.({ ReactiveElement: g }), (l.reactiveElementVersions ??= []).push("2.1.2");
 
-// ../../../module-toolkit/node_modules/lit-html/lit-html.js
+// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/lit-html.js
 var t2 = globalThis;
 var i2 = (t5) => t5;
 var s2 = t2.trustedTypes;
@@ -1197,7 +1197,7 @@ var D = (t5, i7, s5) => {
   return h4._$AI(t5), h4;
 };
 
-// ../../../module-toolkit/node_modules/lit-element/lit-element.js
+// node_modules/.pnpm/lit-element@4.2.2/node_modules/lit-element/lit-element.js
 var s3 = globalThis;
 var i3 = class extends g {
   constructor() {
@@ -1226,7 +1226,7 @@ var o4 = s3.litElementPolyfillSupport;
 o4?.({ LitElement: i3 });
 (s3.litElementVersions ??= []).push("4.2.2");
 
-// ../../../module-toolkit/node_modules/@lit/reactive-element/node/decorators/property.js
+// ../module-toolkit/node_modules/@lit/reactive-element/node/decorators/property.js
 var o5 = { attribute: true, type: String, converter: b, reflect: false, hasChanged: m };
 var r4 = (t5 = o5, e5, r6) => {
   const { kind: n6, metadata: i7 } = r6;
@@ -1256,12 +1256,12 @@ function n4(t5) {
   })(t5, e5, o7);
 }
 
-// ../../../module-toolkit/node_modules/@lit/reactive-element/node/decorators/state.js
+// ../module-toolkit/node_modules/@lit/reactive-element/node/decorators/state.js
 function r5(r6) {
   return n4({ ...r6, state: true, attribute: false });
 }
 
-// ui/lib/tax-resolve.ts
+// modules/inventory/ui/lib/tax-resolve.ts
 var TAX_HEADERS = [
   "tax_category",
   "tax_category_key",
@@ -1336,7 +1336,7 @@ async function createCategoryWithAlias(client, key, name, aliasText) {
   return key;
 }
 
-// locales/es.json
+// modules/inventory/locales/es.json
 var es_default = {
   name: "Inventario",
   navigation: {
@@ -1363,6 +1363,10 @@ var es_default = {
     stock: "Stock",
     active: "Activo",
     category: "Categor\xEDa",
+    products: "Productos",
+    slugOptional: "Slug (opcional)",
+    searchCategory: "Buscar categor\xEDa\u2026",
+    noCategories: "Sin categor\xEDas.",
     addProduct: "A\xF1adir producto",
     newProduct: "Nuevo producto",
     editProduct: "Editar producto",
@@ -1387,6 +1391,7 @@ var es_default = {
     importSkip: "Omitir",
     importConfirm: "Confirmar e importar",
     btnCancel: "Cancelar",
+    btnClose: "Cerrar",
     colCategory: "Categor\xEDa",
     colKey: "Clave",
     colName: "Nombre",
@@ -1412,7 +1417,7 @@ var es_default = {
     countApply: "Aplicar recuento",
     receiveTitle: "Recepci\xF3n",
     receiveQty: "Cantidad recibida",
-    receiveCost: "Coste unitario (\u20AC)",
+    receiveCost: "Coste unitario",
     receiveApply: "Registrar recepci\xF3n",
     mvDate: "Fecha",
     mvType: "Tipo",
@@ -1440,7 +1445,7 @@ var es_default = {
     editingTitle: "Editando producto",
     editingCancel: "Cancelar edici\xF3n",
     skuIdentity: "El SKU es la identidad del producto: no se edita",
-    fieldCost: "Coste (\u20AC)",
+    fieldCost: "Coste",
     fieldInitialStock: "Stock inicial",
     fieldThreshold: "Umbral stock bajo",
     fieldDescription: "Descripci\xF3n",
@@ -1452,6 +1457,17 @@ var es_default = {
     saveChanges: "Guardar cambios",
     errSkuTaken: "Ese SKU ya existe en el cat\xE1logo",
     errEanTaken: "Ese EAN ya existe en el cat\xE1logo",
+    errCount: "No se pudo aplicar el recuento",
+    errReceive: "No se pudo registrar la recepci\xF3n",
+    errDeleteProduct: "No se pudo eliminar el producto",
+    errUpdateProduct: "No se pudo actualizar el producto",
+    errSaveProduct: "No se pudo guardar el producto",
+    errQuantity: "Introduce una cantidad v\xE1lida con un m\xE1ximo de 6 decimales",
+    errQuantityGrid: "La cantidad no respeta el incremento permitido para esta unidad",
+    errDeleteCategory: "No se pudo eliminar la categor\xEDa",
+    errSaveCategory: "No se pudo guardar la categor\xEDa",
+    saving: "Guardando\u2026",
+    printBarcode: "Imprimir c\xF3digo de barras",
     deleteCatTitle: "Eliminar categor\xEDa",
     deleteCatImpact: "producto(s) quedar\xE1n sin esta categor\xEDa (se desvinculan; los productos no se borran)",
     deleteCatConfirm: "Eliminar y desvincular"
@@ -1475,7 +1491,7 @@ var es_default = {
   }
 };
 
-// locales/en.json
+// modules/inventory/locales/en.json
 var en_default = {
   name: "Inventory",
   navigation: {
@@ -1502,6 +1518,10 @@ var en_default = {
     stock: "Stock",
     active: "Active",
     category: "Category",
+    products: "Products",
+    slugOptional: "Slug (optional)",
+    searchCategory: "Search category\u2026",
+    noCategories: "No categories.",
     addProduct: "Add product",
     newProduct: "New product",
     editProduct: "Edit product",
@@ -1526,6 +1546,7 @@ var en_default = {
     importSkip: "Skip",
     importConfirm: "Confirm & import",
     btnCancel: "Cancel",
+    btnClose: "Close",
     colCategory: "Category",
     colKey: "Key",
     colName: "Name",
@@ -1551,7 +1572,7 @@ var en_default = {
     countApply: "Apply count",
     receiveTitle: "Goods receipt",
     receiveQty: "Quantity received",
-    receiveCost: "Unit cost (\u20AC)",
+    receiveCost: "Unit cost",
     receiveApply: "Record receipt",
     mvDate: "Date",
     mvType: "Type",
@@ -1579,7 +1600,7 @@ var en_default = {
     editingTitle: "Editing product",
     editingCancel: "Cancel editing",
     skuIdentity: "SKU is the product identity: not editable",
-    fieldCost: "Cost (\u20AC)",
+    fieldCost: "Cost",
     fieldInitialStock: "Initial stock",
     fieldThreshold: "Low stock threshold",
     fieldDescription: "Description",
@@ -1591,155 +1612,31 @@ var en_default = {
     saveChanges: "Save changes",
     errSkuTaken: "That SKU already exists in the catalog",
     errEanTaken: "That EAN already exists in the catalog",
+    errCount: "The stock count could not be applied",
+    errReceive: "The goods receipt could not be recorded",
+    errDeleteProduct: "The product could not be deleted",
+    errUpdateProduct: "The product could not be updated",
+    errSaveProduct: "The product could not be saved",
+    errQuantity: "Enter a valid quantity with no more than 6 decimal places",
+    errQuantityGrid: "The quantity does not match the increment allowed for this unit",
+    errDeleteCategory: "The category could not be deleted",
+    errSaveCategory: "The category could not be saved",
+    saving: "Saving\u2026",
+    printBarcode: "Print barcode",
     deleteCatTitle: "Delete category",
     deleteCatImpact: "product(s) will lose this category (unlinked; products are kept)",
     deleteCatConfirm: "Delete and unlink"
   }
 };
 
-// ../../../outfitkit/dist/define.js
+// ../outfitkit/dist/define.js
 function define(tag, ctor) {
   if (typeof customElements !== "undefined" && !customElements.get(tag)) {
     customElements.define(tag, ctor);
   }
 }
 
-// ../../../module-toolkit/node_modules/lit-html/directive.js
-var t3 = { ATTRIBUTE: 1, CHILD: 2, PROPERTY: 3, BOOLEAN_ATTRIBUTE: 4, EVENT: 5, ELEMENT: 6 };
-var e4 = (t5) => (...e5) => ({ _$litDirective$: t5, values: e5 });
-var i4 = class {
-  constructor(t5) {
-  }
-  get _$AU() {
-    return this._$AM._$AU;
-  }
-  _$AT(t5, e5, i7) {
-    this._$Ct = t5, this._$AM = e5, this._$Ci = i7;
-  }
-  _$AS(t5, e5) {
-    return this.update(t5, e5);
-  }
-  update(t5, e5) {
-    return this.render(...e5);
-  }
-};
-
-// ../../../module-toolkit/node_modules/lit-html/directive-helpers.js
-var { I: t4 } = j;
-var i5 = (o7) => o7;
-var s4 = () => document.createComment("");
-var v2 = (o7, n6, e5) => {
-  const l3 = o7._$AA.parentNode, d3 = void 0 === n6 ? o7._$AB : n6._$AA;
-  if (void 0 === e5) {
-    const i7 = l3.insertBefore(s4(), d3), n7 = l3.insertBefore(s4(), d3);
-    e5 = new t4(i7, n7, o7, o7.options);
-  } else {
-    const t5 = e5._$AB.nextSibling, n7 = e5._$AM, c5 = n7 !== o7;
-    if (c5) {
-      let t6;
-      e5._$AQ?.(o7), e5._$AM = o7, void 0 !== e5._$AP && (t6 = o7._$AU) !== n7._$AU && e5._$AP(t6);
-    }
-    if (t5 !== d3 || c5) {
-      let o8 = e5._$AA;
-      for (; o8 !== t5; ) {
-        const t6 = i5(o8).nextSibling;
-        i5(l3).insertBefore(o8, d3), o8 = t6;
-      }
-    }
-  }
-  return e5;
-};
-var u3 = (o7, t5, i7 = o7) => (o7._$AI(t5, i7), o7);
-var m3 = {};
-var p3 = (o7, t5 = m3) => o7._$AH = t5;
-var M2 = (o7) => o7._$AH;
-var h3 = (o7) => {
-  o7._$AR(), o7._$AA.remove();
-};
-
-// ../../../module-toolkit/node_modules/lit-html/directives/repeat.js
-var u4 = (e5, s5, t5) => {
-  const r6 = /* @__PURE__ */ new Map();
-  for (let l3 = s5; l3 <= t5; l3++) r6.set(e5[l3], l3);
-  return r6;
-};
-var c4 = e4(class extends i4 {
-  constructor(e5) {
-    if (super(e5), e5.type !== t3.CHILD) throw Error("repeat() can only be used in text expressions");
-  }
-  dt(e5, s5, t5) {
-    let r6;
-    void 0 === t5 ? t5 = s5 : void 0 !== s5 && (r6 = s5);
-    const l3 = [], o7 = [];
-    let i7 = 0;
-    for (const s6 of e5) l3[i7] = r6 ? r6(s6, i7) : i7, o7[i7] = t5(s6, i7), i7++;
-    return { values: o7, keys: l3 };
-  }
-  render(e5, s5, t5) {
-    return this.dt(e5, s5, t5).values;
-  }
-  update(s5, [t5, r6, c5]) {
-    const d3 = M2(s5), { values: p4, keys: a3 } = this.dt(t5, r6, c5);
-    if (!Array.isArray(d3)) return this.ut = a3, p4;
-    const h4 = this.ut ??= [], v3 = [];
-    let m4, y3, x2 = 0, j2 = d3.length - 1, k2 = 0, w2 = p4.length - 1;
-    for (; x2 <= j2 && k2 <= w2; ) if (null === d3[x2]) x2++;
-    else if (null === d3[j2]) j2--;
-    else if (h4[x2] === a3[k2]) v3[k2] = u3(d3[x2], p4[k2]), x2++, k2++;
-    else if (h4[j2] === a3[w2]) v3[w2] = u3(d3[j2], p4[w2]), j2--, w2--;
-    else if (h4[x2] === a3[w2]) v3[w2] = u3(d3[x2], p4[w2]), v2(s5, v3[w2 + 1], d3[x2]), x2++, w2--;
-    else if (h4[j2] === a3[k2]) v3[k2] = u3(d3[j2], p4[k2]), v2(s5, d3[x2], d3[j2]), j2--, k2++;
-    else if (void 0 === m4 && (m4 = u4(a3, k2, w2), y3 = u4(h4, x2, j2)), m4.has(h4[x2])) if (m4.has(h4[j2])) {
-      const e5 = y3.get(a3[k2]), t6 = void 0 !== e5 ? d3[e5] : null;
-      if (null === t6) {
-        const e6 = v2(s5, d3[x2]);
-        u3(e6, p4[k2]), v3[k2] = e6;
-      } else v3[k2] = u3(t6, p4[k2]), v2(s5, d3[x2], t6), d3[e5] = null;
-      k2++;
-    } else h3(d3[j2]), j2--;
-    else h3(d3[x2]), x2++;
-    for (; k2 <= w2; ) {
-      const e5 = v2(s5, v3[w2 + 1]);
-      u3(e5, p4[k2]), v3[k2++] = e5;
-    }
-    for (; x2 <= j2; ) {
-      const e5 = d3[x2++];
-      null !== e5 && h3(e5);
-    }
-    return this.ut = a3, p3(s5, v3), E;
-  }
-});
-
-// ../../../module-toolkit/node_modules/lit-html/directives/style-map.js
-var n5 = "important";
-var i6 = " !" + n5;
-var o6 = e4(class extends i4 {
-  constructor(t5) {
-    if (super(t5), t5.type !== t3.ATTRIBUTE || "style" !== t5.name || t5.strings?.length > 2) throw Error("The `styleMap` directive must be used in the `style` attribute and must be the only part in the attribute.");
-  }
-  render(t5) {
-    return Object.keys(t5).reduce((e5, r6) => {
-      const s5 = t5[r6];
-      return null == s5 ? e5 : e5 + `${r6 = r6.includes("-") ? r6 : r6.replace(/(?:^(webkit|moz|ms|o)|)(?=[A-Z])/g, "-$&").toLowerCase()}:${s5};`;
-    }, "");
-  }
-  update(e5, [r6]) {
-    const { style: s5 } = e5.element;
-    if (void 0 === this.ft) return this.ft = new Set(Object.keys(r6)), this.render(r6);
-    for (const t5 of this.ft) null == r6[t5] && (this.ft.delete(t5), t5.includes("-") ? s5.removeProperty(t5) : s5[t5] = null);
-    for (const t5 in r6) {
-      const e6 = r6[t5];
-      if (null != e6) {
-        this.ft.add(t5);
-        const r7 = "string" == typeof e6 && e6.endsWith(i6);
-        t5.includes("-") || r7 ? s5.setProperty(t5, r7 ? e6.slice(0, -11) : e6, r7 ? n5 : "") : s5[t5] = e6;
-      }
-    }
-    return E;
-  }
-});
-
-// ../../../outfitkit/dist/shared/icons.js
+// ../outfitkit/dist/shared/icons.js
 var rawAdd = '<svg viewBox="0 0 512 512" width="1.2em" height="1.2em" ><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M256 112v288m144-144H112"/></svg>';
 var rawAlertCircle = '<svg viewBox="0 0 512 512" width="1.2em" height="1.2em" ><path fill="currentColor" d="M256 48C141.31 48 48 141.31 48 256s93.31 208 208 208s208-93.31 208-208S370.69 48 256 48m0 319.91a20 20 0 1 1 20-20a20 20 0 0 1-20 20m21.72-201.15l-5.74 122a16 16 0 0 1-32 0l-5.74-121.94v-.05a21.74 21.74 0 1 1 43.44 0Z"/></svg>';
 var rawAlertCircleOutline = '<svg viewBox="0 0 512 512" width="1.2em" height="1.2em" ><path fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" d="M448 256c0-106-86-192-192-192S64 150 64 256s86 192 192 192s192-86 192-192Z"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M250.26 166.05L256 288l5.73-121.95a5.74 5.74 0 0 0-5.79-6h0a5.74 5.74 0 0 0-5.68 6"/><path fill="currentColor" d="M256 367.91a20 20 0 1 1 20-20a20 20 0 0 1-20 20"/></svg>';
@@ -1887,17 +1784,7 @@ function okIcon(value) {
   return BY_NAME[value] ?? value;
 }
 
-// ../../../outfitkit/dist/ok-data-table.js
-var CSV_BOM = "\uFEFF";
-function decodeCsvBuffer(buf) {
-  let text;
-  try {
-    text = new TextDecoder("utf-8", { fatal: true }).decode(buf);
-  } catch {
-    text = new TextDecoder("windows-1252").decode(buf);
-  }
-  return text.charCodeAt(0) === 65279 ? text.slice(1) : text;
-}
+// ../outfitkit/dist/ok-inline-feedback.js
 var __defProp2 = Object.defineProperty;
 var __decorateClass2 = (decorators, target, key, kind) => {
   var result = void 0;
@@ -1908,6 +1795,368 @@ var __decorateClass2 = (decorators, target, key, kind) => {
   return result;
 };
 var DEFAULT_LABELS = {
+  dismiss: "Dismiss"
+};
+var OkInlineFeedback = class extends i3 {
+  constructor() {
+    super(...arguments);
+    this.tone = "info";
+    this.dismissible = false;
+    this.hidden = false;
+    this.labels = {};
+    this.hasActions = false;
+    this.onActionsSlotChange = (e5) => {
+      const slot = e5.target;
+      this.hasActions = slot.assignedNodes({ flatten: true }).length > 0;
+    };
+  }
+  static {
+    this.styles = i`
+    :host {
+      /* Vars overridable (estilo Ionic), default = cadena --ok-* → --ion-* → hex.
+         --tone-color y --tone-icon se reasignan por tone abajo. */
+      --tone-color: var(--ok-primary, var(--ion-color-primary, #3880ff));
+      --background-opacity: 0.1;
+      --color: var(--ok-text, var(--ion-text-color, #1c1b17));
+      --border-radius: var(--ok-radius, var(--ion-border-radius, 8px));
+      --padding: var(--ok-spacing, var(--ion-padding, 16px));
+      --accent-width: 4px;
+      --font: var(--ok-font, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
+
+      /* Responsive: el banner ocupa el ancho del contenedor. */
+      display: block;
+      width: 100%;
+      font-family: var(--font);
+      box-sizing: border-box;
+    }
+    :host([hidden]) { display: none; }
+
+    /* Mapa de tonos → color Ionic + icono por defecto. */
+    :host([tone='success']) { --tone-color: var(--ok-success, var(--ion-color-success, #2dd55b)); }
+    :host([tone='warning']) { --tone-color: var(--ok-warning, var(--ion-color-warning, #ffc409)); }
+    :host([tone='danger'])  { --tone-color: var(--ok-danger, var(--ion-color-danger, #c5000f)); }
+    :host([tone='neutral']) { --tone-color: var(--ok-medium, var(--ion-color-medium, #5f5f5f)); }
+    /* info / sin tono → primary (default ya aplicado en :host). */
+
+    .box {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: var(--padding);
+      border-radius: var(--border-radius);
+      border-inline-start: var(--accent-width) solid var(--tone-color);
+      /* Fondo tonal: el color del tono con baja opacidad (color-mix con fallback al borde fino). */
+      background: color-mix(in srgb, var(--tone-color) calc(var(--background-opacity) * 100%), transparent);
+      color: var(--color);
+    }
+
+    .icon {
+      flex: 0 0 auto;
+      font-size: 1.4rem;
+      line-height: 1;
+      color: var(--tone-color);
+      margin-top: 0.05rem;
+    }
+
+    .content {
+      flex: 1 1 auto;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .row {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    .text {
+      flex: 1 1 auto;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .heading {
+      font-weight: 700;
+      font-size: 0.98rem;
+      line-height: 1.3;
+    }
+    .body {
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+    .actions {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    /* Si no hay actions, el slot queda vacío y no ocupa espacio. */
+    .actions.empty { display: none; }
+
+    .close {
+      flex: 0 0 auto;
+      background: none;
+      border: 0;
+      cursor: pointer;
+      padding: 0.15rem;
+      margin: -0.15rem -0.15rem 0 0;
+      color: inherit;
+      opacity: 0.6;
+      font-size: 1.2rem;
+      line-height: 1;
+      border-radius: 4px;
+      transition: background-color var(--ok-transition, 150ms ease), color var(--ok-transition, 150ms ease),
+        border-color var(--ok-transition, 150ms ease), box-shadow var(--ok-transition, 150ms ease),
+        opacity 0.15s ease, transform 120ms ease;
+    }
+    @media (hover: hover) {
+      .close:hover { opacity: 1; background: rgba(var(--ion-text-color-rgb, 24, 24, 27), 0.07); }
+    }
+    .close:active { transform: scale(var(--ok-press-scale, 0.97)); }
+
+    /* Móvil: las actions bajan bajo el texto (apiladas a ancho completo). */
+    @media (max-width: 640px) {
+      .row { flex-direction: column; align-items: stretch; }
+      .actions { width: 100%; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .close:hover,
+      .close:active { transform: none; }
+    }
+  `;
+  }
+  // Textos efectivos: defaults en inglés + overrides del consumidor.
+  get t() {
+    return { ...DEFAULT_LABELS, ...this.labels };
+  }
+  // Icono por defecto según el tono (overridable por la prop `icon`).
+  defaultIcon() {
+    switch (this.tone) {
+      case "success":
+        return iconCheckmarkCircle;
+      case "warning":
+        return iconWarning;
+      case "danger":
+        return iconAlertCircle;
+      case "neutral":
+        return iconInformationCircle;
+      case "info":
+      default:
+        return iconInformationCircle;
+    }
+  }
+  // Oculta el banner y avisa al consumidor; éste puede revertir restaurando `hidden=false`.
+  dismiss() {
+    this.hidden = true;
+    this.dispatchEvent(new CustomEvent("ok-dismiss", { bubbles: true, composed: true }));
+  }
+  render() {
+    const iconName = this.icon ?? this.defaultIcon();
+    return b2`
+      <div class="box" role="status">
+        <ion-icon class="icon" .icon=${okIcon(iconName)} aria-hidden="true"></ion-icon>
+        <div class="content">
+          <div class="row">
+            <div class="text">
+              ${this.heading ? b2`<div class="heading">${this.heading}</div>` : null}
+              <div class="body"><slot></slot></div>
+            </div>
+            <div class="actions ${this.hasActions ? "" : "empty"}">
+              <slot name="actions" @slotchange=${this.onActionsSlotChange}></slot>
+            </div>
+          </div>
+        </div>
+        ${this.dismissible ? b2`
+              <button class="close" aria-label=${this.t.dismiss} @click=${this.dismiss}>
+                <ion-icon .icon=${iconClose} aria-hidden="true"></ion-icon>
+              </button>
+            ` : null}
+      </div>
+    `;
+  }
+};
+__decorateClass2([
+  n4({ type: String, reflect: true })
+], OkInlineFeedback.prototype, "tone");
+__decorateClass2([
+  n4({ type: String })
+], OkInlineFeedback.prototype, "heading");
+__decorateClass2([
+  n4({ type: String })
+], OkInlineFeedback.prototype, "icon");
+__decorateClass2([
+  n4({ type: Boolean, reflect: true })
+], OkInlineFeedback.prototype, "dismissible");
+__decorateClass2([
+  n4({ type: Boolean, reflect: true })
+], OkInlineFeedback.prototype, "hidden");
+__decorateClass2([
+  n4({ attribute: false })
+], OkInlineFeedback.prototype, "labels");
+__decorateClass2([
+  r5()
+], OkInlineFeedback.prototype, "hasActions");
+define("ok-inline-feedback", OkInlineFeedback);
+
+// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directive.js
+var t3 = { ATTRIBUTE: 1, CHILD: 2, PROPERTY: 3, BOOLEAN_ATTRIBUTE: 4, EVENT: 5, ELEMENT: 6 };
+var e4 = (t5) => (...e5) => ({ _$litDirective$: t5, values: e5 });
+var i4 = class {
+  constructor(t5) {
+  }
+  get _$AU() {
+    return this._$AM._$AU;
+  }
+  _$AT(t5, e5, i7) {
+    this._$Ct = t5, this._$AM = e5, this._$Ci = i7;
+  }
+  _$AS(t5, e5) {
+    return this.update(t5, e5);
+  }
+  update(t5, e5) {
+    return this.render(...e5);
+  }
+};
+
+// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directive-helpers.js
+var { I: t4 } = j;
+var i5 = (o7) => o7;
+var s4 = () => document.createComment("");
+var v2 = (o7, n6, e5) => {
+  const l3 = o7._$AA.parentNode, d3 = void 0 === n6 ? o7._$AB : n6._$AA;
+  if (void 0 === e5) {
+    const i7 = l3.insertBefore(s4(), d3), n7 = l3.insertBefore(s4(), d3);
+    e5 = new t4(i7, n7, o7, o7.options);
+  } else {
+    const t5 = e5._$AB.nextSibling, n7 = e5._$AM, c5 = n7 !== o7;
+    if (c5) {
+      let t6;
+      e5._$AQ?.(o7), e5._$AM = o7, void 0 !== e5._$AP && (t6 = o7._$AU) !== n7._$AU && e5._$AP(t6);
+    }
+    if (t5 !== d3 || c5) {
+      let o8 = e5._$AA;
+      for (; o8 !== t5; ) {
+        const t6 = i5(o8).nextSibling;
+        i5(l3).insertBefore(o8, d3), o8 = t6;
+      }
+    }
+  }
+  return e5;
+};
+var u3 = (o7, t5, i7 = o7) => (o7._$AI(t5, i7), o7);
+var m3 = {};
+var p3 = (o7, t5 = m3) => o7._$AH = t5;
+var M2 = (o7) => o7._$AH;
+var h3 = (o7) => {
+  o7._$AR(), o7._$AA.remove();
+};
+
+// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directives/repeat.js
+var u4 = (e5, s5, t5) => {
+  const r6 = /* @__PURE__ */ new Map();
+  for (let l3 = s5; l3 <= t5; l3++) r6.set(e5[l3], l3);
+  return r6;
+};
+var c4 = e4(class extends i4 {
+  constructor(e5) {
+    if (super(e5), e5.type !== t3.CHILD) throw Error("repeat() can only be used in text expressions");
+  }
+  dt(e5, s5, t5) {
+    let r6;
+    void 0 === t5 ? t5 = s5 : void 0 !== s5 && (r6 = s5);
+    const l3 = [], o7 = [];
+    let i7 = 0;
+    for (const s6 of e5) l3[i7] = r6 ? r6(s6, i7) : i7, o7[i7] = t5(s6, i7), i7++;
+    return { values: o7, keys: l3 };
+  }
+  render(e5, s5, t5) {
+    return this.dt(e5, s5, t5).values;
+  }
+  update(s5, [t5, r6, c5]) {
+    const d3 = M2(s5), { values: p4, keys: a3 } = this.dt(t5, r6, c5);
+    if (!Array.isArray(d3)) return this.ut = a3, p4;
+    const h4 = this.ut ??= [], v3 = [];
+    let m4, y3, x2 = 0, j2 = d3.length - 1, k2 = 0, w2 = p4.length - 1;
+    for (; x2 <= j2 && k2 <= w2; ) if (null === d3[x2]) x2++;
+    else if (null === d3[j2]) j2--;
+    else if (h4[x2] === a3[k2]) v3[k2] = u3(d3[x2], p4[k2]), x2++, k2++;
+    else if (h4[j2] === a3[w2]) v3[w2] = u3(d3[j2], p4[w2]), j2--, w2--;
+    else if (h4[x2] === a3[w2]) v3[w2] = u3(d3[x2], p4[w2]), v2(s5, v3[w2 + 1], d3[x2]), x2++, w2--;
+    else if (h4[j2] === a3[k2]) v3[k2] = u3(d3[j2], p4[k2]), v2(s5, d3[x2], d3[j2]), j2--, k2++;
+    else if (void 0 === m4 && (m4 = u4(a3, k2, w2), y3 = u4(h4, x2, j2)), m4.has(h4[x2])) if (m4.has(h4[j2])) {
+      const e5 = y3.get(a3[k2]), t6 = void 0 !== e5 ? d3[e5] : null;
+      if (null === t6) {
+        const e6 = v2(s5, d3[x2]);
+        u3(e6, p4[k2]), v3[k2] = e6;
+      } else v3[k2] = u3(t6, p4[k2]), v2(s5, d3[x2], t6), d3[e5] = null;
+      k2++;
+    } else h3(d3[j2]), j2--;
+    else h3(d3[x2]), x2++;
+    for (; k2 <= w2; ) {
+      const e5 = v2(s5, v3[w2 + 1]);
+      u3(e5, p4[k2]), v3[k2++] = e5;
+    }
+    for (; x2 <= j2; ) {
+      const e5 = d3[x2++];
+      null !== e5 && h3(e5);
+    }
+    return this.ut = a3, p3(s5, v3), E;
+  }
+});
+
+// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directives/style-map.js
+var n5 = "important";
+var i6 = " !" + n5;
+var o6 = e4(class extends i4 {
+  constructor(t5) {
+    if (super(t5), t5.type !== t3.ATTRIBUTE || "style" !== t5.name || t5.strings?.length > 2) throw Error("The `styleMap` directive must be used in the `style` attribute and must be the only part in the attribute.");
+  }
+  render(t5) {
+    return Object.keys(t5).reduce((e5, r6) => {
+      const s5 = t5[r6];
+      return null == s5 ? e5 : e5 + `${r6 = r6.includes("-") ? r6 : r6.replace(/(?:^(webkit|moz|ms|o)|)(?=[A-Z])/g, "-$&").toLowerCase()}:${s5};`;
+    }, "");
+  }
+  update(e5, [r6]) {
+    const { style: s5 } = e5.element;
+    if (void 0 === this.ft) return this.ft = new Set(Object.keys(r6)), this.render(r6);
+    for (const t5 of this.ft) null == r6[t5] && (this.ft.delete(t5), t5.includes("-") ? s5.removeProperty(t5) : s5[t5] = null);
+    for (const t5 in r6) {
+      const e6 = r6[t5];
+      if (null != e6) {
+        this.ft.add(t5);
+        const r7 = "string" == typeof e6 && e6.endsWith(i6);
+        t5.includes("-") || r7 ? s5.setProperty(t5, r7 ? e6.slice(0, -11) : e6, r7 ? n5 : "") : s5[t5] = e6;
+      }
+    }
+    return E;
+  }
+});
+
+// ../outfitkit/dist/ok-data-table.js
+var CSV_BOM = "\uFEFF";
+function decodeCsvBuffer(buf) {
+  let text;
+  try {
+    text = new TextDecoder("utf-8", { fatal: true }).decode(buf);
+  } catch {
+    text = new TextDecoder("windows-1252").decode(buf);
+  }
+  return text.charCodeAt(0) === 65279 ? text.slice(1) : text;
+}
+var __defProp3 = Object.defineProperty;
+var __decorateClass3 = (decorators, target, key, kind) => {
+  var result = void 0;
+  for (var i7 = decorators.length - 1, decorator; i7 >= 0; i7--)
+    if (decorator = decorators[i7])
+      result = decorator(target, key, result) || result;
+  if (result) __defProp3(target, key, result);
+  return result;
+};
+var DEFAULT_LABELS2 = {
   search: "Search\u2026",
   empty: "No results",
   filters: "Filters",
@@ -1942,6 +2191,42 @@ var DEFAULT_LABELS = {
   showing: "Showing {from}\u2013{to} of",
   recordSingular: "record",
   recordPlural: "records"
+};
+var ES_LABELS = {
+  search: "Buscar\u2026",
+  empty: "Sin resultados",
+  filters: "Filtros",
+  clear: "Limpiar",
+  apply: "Aplicar",
+  selected: "{n} seleccionados",
+  importCsv: "Importar CSV",
+  exportCsv: "Exportar CSV",
+  add: "A\xF1adir",
+  moreActions: "M\xE1s acciones",
+  rowsPerPage: "Filas por p\xE1gina",
+  perPageShort: "{n} / p\xE1g.",
+  viewList: "Vista lista",
+  viewCards: "Vista tarjetas",
+  columnsVisible: "Columnas visibles",
+  columns: "Columnas",
+  actions: "Acciones",
+  close: "Cerrar",
+  newRecord: "Nuevo",
+  form: "Formulario",
+  filterPlaceholder: "Filtrar\u2026",
+  from: "Desde",
+  to: "Hasta",
+  fromOf: "{label} desde",
+  toOf: "{label} hasta",
+  gte: "\u2265",
+  lte: "\u2264",
+  noValues: "Sin valores",
+  selectAll: "Seleccionar todo",
+  selectRow: "Seleccionar fila",
+  select: "Seleccionar",
+  showing: "Mostrando {from}\u2013{to} de",
+  recordSingular: "registro",
+  recordPlural: "registros"
 };
 var OkDataTable = class extends i3 {
   constructor() {
@@ -1984,6 +2269,7 @@ var OkDataTable = class extends i3 {
     this.hiddenKeys = /* @__PURE__ */ new Set();
     this.internalSelection = /* @__PURE__ */ new Set();
     this.menuOpen = false;
+    this.onLocaleChanged = () => this.requestUpdate();
     this.onSearch = (ev) => {
       const value = ev.target.value ?? "";
       if (this.serverSide) {
@@ -2035,7 +2321,7 @@ var OkDataTable = class extends i3 {
     .tk-scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.18); z-index: 19; }
     .drawer { position: absolute; top: 0; right: 0; height: 100%; width: 340px; max-width: 88%;
       background: var(--background); border-left: 1px solid var(--border-color);
-      box-shadow: -10px 0 28px rgba(0, 0, 0, 0.10); display: flex; flex-direction: column; z-index: 20;
+      display: flex; flex-direction: column; z-index: 20;
       animation: tk-slide-in 0.18s ease; }
     @keyframes tk-slide-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
     .drawer .dh { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between;
@@ -2219,9 +2505,22 @@ var OkDataTable = class extends i3 {
     ion-button { --box-shadow: none; }
   `;
   }
-  // ── i18n: textos efectivos (default inglés ← overrides de `.labels`) ──────────────────────
+  connectedCallback() {
+    super.connectedCallback();
+    if (typeof window !== "undefined") {
+      window.addEventListener("erplora:locale-changed", this.onLocaleChanged);
+    }
+  }
+  disconnectedCallback() {
+    if (typeof window !== "undefined") {
+      window.removeEventListener("erplora:locale-changed", this.onLocaleChanged);
+    }
+    super.disconnectedCallback();
+  }
+  // ── i18n: idioma del documento ← overrides explícitos de `.labels` ─────────────────────────
   get t() {
-    return { ...DEFAULT_LABELS, ...this.labels };
+    const lang = typeof document === "undefined" ? "en" : document.documentElement.lang.toLowerCase();
+    return { ...lang.startsWith("es") ? ES_LABELS : DEFAULT_LABELS2, ...this.labels };
   }
   /** Placeholder efectivo del buscador (prop explícita → label i18n → default inglés). */
   get effSearchPlaceholder() {
@@ -2722,6 +3021,8 @@ var OkDataTable = class extends i3 {
               color=${a3.color ?? "medium"}
               ?disabled=${disabled}
               aria-disabled=${disabled ? "true" : A}
+              aria-label=${a3.label}
+              title=${a3.label}
               @click=${() => this.emit("rowAction", { actionId: a3.id, row })}
             >
               ${loading ? b2`<ion-spinner slot="icon-only" name="dots"></ion-spinner>` : a3.icon ? b2`<ion-icon slot="icon-only" .icon=${okIcon(a3.icon)}></ion-icon>` : a3.label}
@@ -3055,156 +3356,231 @@ var OkDataTable = class extends i3 {
     `;
   }
 };
-__decorateClass2([
+__decorateClass3([
   n4({ attribute: false })
 ], OkDataTable.prototype, "columns");
-__decorateClass2([
+__decorateClass3([
   n4({ attribute: false })
 ], OkDataTable.prototype, "rows");
-__decorateClass2([
+__decorateClass3([
   n4({ attribute: false })
 ], OkDataTable.prototype, "searchKeys");
-__decorateClass2([
+__decorateClass3([
   n4({ attribute: "row-key-field" })
 ], OkDataTable.prototype, "rowKeyField");
-__decorateClass2([
+__decorateClass3([
   n4({ attribute: false })
 ], OkDataTable.prototype, "rowKey");
-__decorateClass2([
+__decorateClass3([
   n4({ type: Number, attribute: "page-size" })
 ], OkDataTable.prototype, "pageSize");
-__decorateClass2([
+__decorateClass3([
   n4({ attribute: "empty-message" })
 ], OkDataTable.prototype, "emptyMessage");
-__decorateClass2([
+__decorateClass3([
   n4({ attribute: "search-placeholder" })
 ], OkDataTable.prototype, "searchPlaceholder");
-__decorateClass2([
+__decorateClass3([
   n4({ attribute: false })
 ], OkDataTable.prototype, "labels");
-__decorateClass2([
+__decorateClass3([
   n4({ attribute: false })
 ], OkDataTable.prototype, "actions");
-__decorateClass2([
+__decorateClass3([
   n4({ type: Boolean })
 ], OkDataTable.prototype, "addable");
-__decorateClass2([
+__decorateClass3([
   n4({ attribute: false })
 ], OkDataTable.prototype, "pageSizeOptions");
-__decorateClass2([
+__decorateClass3([
   n4({ type: Boolean, reflect: true })
 ], OkDataTable.prototype, "fill");
-__decorateClass2([
+__decorateClass3([
   n4({ type: Boolean, attribute: "column-picker" })
 ], OkDataTable.prototype, "columnPicker");
-__decorateClass2([
+__decorateClass3([
   n4({ type: Boolean })
 ], OkDataTable.prototype, "csv");
-__decorateClass2([
+__decorateClass3([
   n4({ attribute: "csv-name" })
 ], OkDataTable.prototype, "csvName");
-__decorateClass2([
+__decorateClass3([
   n4({ type: Boolean, attribute: "server-side" })
 ], OkDataTable.prototype, "serverSide");
-__decorateClass2([
+__decorateClass3([
   n4({ type: Number })
 ], OkDataTable.prototype, "total");
-__decorateClass2([
+__decorateClass3([
   n4({ type: Number })
 ], OkDataTable.prototype, "page");
-__decorateClass2([
+__decorateClass3([
   n4({ type: Boolean })
 ], OkDataTable.prototype, "searchable");
-__decorateClass2([
+__decorateClass3([
   n4({ type: String })
 ], OkDataTable.prototype, "sort");
-__decorateClass2([
+__decorateClass3([
   n4({ attribute: "sort-dir" })
 ], OkDataTable.prototype, "sortDir");
-__decorateClass2([
+__decorateClass3([
   n4()
 ], OkDataTable.prototype, "title");
-__decorateClass2([
+__decorateClass3([
   n4({ attribute: false })
 ], OkDataTable.prototype, "views");
-__decorateClass2([
+__decorateClass3([
   n4({ attribute: "default-view" })
 ], OkDataTable.prototype, "defaultView");
-__decorateClass2([
+__decorateClass3([
   n4({ type: Boolean })
 ], OkDataTable.prototype, "exportable");
-__decorateClass2([
+__decorateClass3([
   n4({ type: Boolean })
 ], OkDataTable.prototype, "importable");
-__decorateClass2([
+__decorateClass3([
   n4({ type: Boolean, attribute: "column-selector" })
 ], OkDataTable.prototype, "columnSelector");
-__decorateClass2([
+__decorateClass3([
   n4({ attribute: false })
 ], OkDataTable.prototype, "pageSizes");
-__decorateClass2([
+__decorateClass3([
   n4({ type: Boolean })
 ], OkDataTable.prototype, "selectable");
-__decorateClass2([
+__decorateClass3([
   n4({ attribute: false })
 ], OkDataTable.prototype, "selectedKeys");
-__decorateClass2([
+__decorateClass3([
   n4({ attribute: false })
 ], OkDataTable.prototype, "primaryAction");
-__decorateClass2([
+__decorateClass3([
   n4({ type: Boolean })
 ], OkDataTable.prototype, "inlineFilters");
-__decorateClass2([
+__decorateClass3([
   n4({ attribute: false })
 ], OkDataTable.prototype, "menuActions");
-__decorateClass2([
+__decorateClass3([
   n4({ attribute: false })
 ], OkDataTable.prototype, "cardTitle");
-__decorateClass2([
+__decorateClass3([
   n4({ attribute: false })
 ], OkDataTable.prototype, "cardIcon");
-__decorateClass2([
+__decorateClass3([
   n4({ attribute: false })
 ], OkDataTable.prototype, "renderCard");
-__decorateClass2([
+__decorateClass3([
   r5()
 ], OkDataTable.prototype, "q");
-__decorateClass2([
+__decorateClass3([
   r5()
 ], OkDataTable.prototype, "clientPage");
-__decorateClass2([
+__decorateClass3([
   r5()
 ], OkDataTable.prototype, "clientPageSize");
-__decorateClass2([
+__decorateClass3([
   r5()
 ], OkDataTable.prototype, "clientSort");
-__decorateClass2([
+__decorateClass3([
   r5()
 ], OkDataTable.prototype, "clientSortDir");
-__decorateClass2([
+__decorateClass3([
   r5()
 ], OkDataTable.prototype, "clientFilters");
-__decorateClass2([
+__decorateClass3([
   r5()
 ], OkDataTable.prototype, "filterDraft");
-__decorateClass2([
+__decorateClass3([
   r5()
 ], OkDataTable.prototype, "panel");
-__decorateClass2([
+__decorateClass3([
   r5()
 ], OkDataTable.prototype, "viewMode");
-__decorateClass2([
+__decorateClass3([
   r5()
 ], OkDataTable.prototype, "hiddenKeys");
-__decorateClass2([
+__decorateClass3([
   r5()
 ], OkDataTable.prototype, "internalSelection");
-__decorateClass2([
+__decorateClass3([
   r5()
 ], OkDataTable.prototype, "menuOpen");
 define("ok-data-table", OkDataTable);
 
-// ../../../hub/packages/module-sdk/src/index.ts
+// ../hub/packages/module-sdk/src/index.ts
+var DATA_TABLE_LABELS_ES = {
+  search: "Buscar\u2026",
+  empty: "Sin resultados",
+  filters: "Filtros",
+  clear: "Limpiar",
+  apply: "Aplicar",
+  selected: "{n} seleccionados",
+  importCsv: "Importar CSV",
+  exportCsv: "Exportar CSV",
+  add: "A\xF1adir",
+  moreActions: "M\xE1s acciones",
+  rowsPerPage: "Filas por p\xE1gina",
+  perPageShort: "{n} / p\xE1g.",
+  viewList: "Vista lista",
+  viewCards: "Vista tarjetas",
+  columnsVisible: "Columnas visibles",
+  columns: "Columnas",
+  actions: "Acciones",
+  close: "Cerrar",
+  newRecord: "Nuevo",
+  form: "Formulario",
+  filterPlaceholder: "Filtrar\u2026",
+  from: "Desde",
+  to: "Hasta",
+  fromOf: "{label} desde",
+  toOf: "{label} hasta",
+  gte: "\u2265",
+  lte: "\u2264",
+  noValues: "Sin valores",
+  selectAll: "Seleccionar todo",
+  selectRow: "Seleccionar fila",
+  select: "Seleccionar",
+  showing: "Mostrando {from}\u2013{to} de",
+  recordSingular: "registro",
+  recordPlural: "registros"
+};
+var DATA_TABLE_LABELS_EN = {
+  search: "Search\u2026",
+  empty: "No results",
+  filters: "Filters",
+  clear: "Clear",
+  apply: "Apply",
+  selected: "{n} selected",
+  importCsv: "Import CSV",
+  exportCsv: "Export CSV",
+  add: "Add",
+  moreActions: "More actions",
+  rowsPerPage: "Rows per page",
+  perPageShort: "{n} / page",
+  viewList: "List view",
+  viewCards: "Card view",
+  columnsVisible: "Visible columns",
+  columns: "Columns",
+  actions: "Actions",
+  close: "Close",
+  newRecord: "New",
+  form: "Form",
+  filterPlaceholder: "Filter\u2026",
+  from: "From",
+  to: "To",
+  fromOf: "{label} from",
+  toOf: "{label} to",
+  gte: "\u2265",
+  lte: "\u2264",
+  noValues: "No values",
+  selectAll: "Select all",
+  selectRow: "Select row",
+  select: "Select",
+  showing: "Showing {from}\u2013{to} of",
+  recordSingular: "record",
+  recordPlural: "records"
+};
+function dataTableLabels(locale = "es") {
+  return locale.toLowerCase().startsWith("en") ? DATA_TABLE_LABELS_EN : DATA_TABLE_LABELS_ES;
+}
 function isEmpty(v3) {
   return v3 === null || v3 === void 0 || v3 === "";
 }
@@ -3332,12 +3708,16 @@ function centsToEuros(cents) {
   return cents == null ? "" : (cents / 100).toFixed(2);
 }
 
-// ui/components/erp-inventory-categories/erp-inventory-categories.ts
+// modules/inventory/ui/components/erp-inventory-categories/erp-inventory-categories.ts
 var CATALOG = { es: es_default, en: en_default };
 function erplora() {
   const c5 = globalThis.erplora;
   if (!c5) throw new Error("erplora SDK no inicializado por el shell");
   return c5;
+}
+function can(permission) {
+  const client = erplora();
+  return typeof client.hasPermission === "function" ? client.hasPermission(permission) : true;
 }
 var ErpInventoryCategories = class extends i3 {
   constructor() {
@@ -3353,15 +3733,7 @@ var ErpInventoryCategories = class extends i3 {
     this.editRow = null;
     this.deleteTarget = null;
     this.deleteImpact = 0;
-    this.columns = [
-      { key: "name", header: "Nombre", sortable: true, filterable: true, filterType: "text" },
-      { key: "slug", header: "Slug", sortable: true, filterable: true, filterType: "text" },
-      { key: "product_count", header: "Productos", align: "right", sortable: true, filterable: true, filterType: "range" }
-    ];
-    this.actions = [
-      { id: "edit", label: "Editar", icon: "create-outline" },
-      { id: "delete", label: "Eliminar", icon: "trash-outline", color: "danger" }
-    ];
+    this.onLocaleChange = () => this.requestUpdate();
   }
   static {
     this.styles = i`
@@ -3373,6 +3745,25 @@ var ErpInventoryCategories = class extends i3 {
     .err { color: #d9480f; font-weight: 600; margin: 0; }
   `;
   }
+  get columns() {
+    const t5 = (key) => erplora().t(CATALOG, key);
+    return [
+      { key: "name", header: t5("ui.name"), sortable: true, filterable: true, filterType: "text" },
+      { key: "slug", header: "Slug", sortable: true, filterable: true, filterType: "text" },
+      { key: "product_count", header: t5("ui.products"), align: "right", sortable: true, filterable: true, filterType: "range" }
+    ];
+  }
+  get actions() {
+    const t5 = (key) => erplora().t(CATALOG, key);
+    return [
+      ...can("inventory.change_category") ? [{ id: "edit", label: t5("ui.actionEdit"), icon: "create-outline" }] : [],
+      ...can("inventory.delete_category") ? [{ id: "delete", label: t5("ui.actionDelete"), icon: "trash-outline", color: "danger" }] : []
+    ];
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    window.addEventListener("erplora:locale-changed", this.onLocaleChange);
+  }
   async firstUpdated() {
     this.ctrl = createListController(erplora(), "inventory.categories.list", () => this.requestUpdate(), {
       pageSize: 25,
@@ -3381,6 +3772,10 @@ var ErpInventoryCategories = class extends i3 {
     });
     await this.ctrl.load();
     void this.loadTaxRates();
+  }
+  disconnectedCallback() {
+    window.removeEventListener("erplora:locale-changed", this.onLocaleChange);
+    super.disconnectedCallback();
   }
   // Carga los tipos de IVA/impuesto para el selector del formulario (ADR-0066/0069). Best-effort:
   // si falla (módulo `taxes` no instalado, sin permiso…), el select queda con solo "— (por defecto)"
@@ -3395,7 +3790,7 @@ var ErpInventoryCategories = class extends i3 {
   // Opciones del ion-select: "— (sin categoría)" (valor '') + una categoría por fila (value = key).
   taxOptions() {
     return b2`
-      <ion-select-option value="">— (sin categoría)</ion-select-option>
+      <ion-select-option value="">${erplora().t(CATALOG, "ui.taxDefault")}</ion-select-option>
       ${this.taxRates.map(
       (c5) => b2`<ion-select-option .value=${c5.key}>${c5.name} (${c5.key})</ion-select-option>`
     )}
@@ -3404,14 +3799,14 @@ var ErpInventoryCategories = class extends i3 {
   async onRowAction(ev) {
     const { actionId, row } = ev.detail;
     const c5 = row;
-    if (actionId === "edit") {
+    if (actionId === "edit" && can("inventory.change_category")) {
       this.editingId = c5.id;
       this.editRow = row;
       this.newName = c5.name;
       this.newSlug = c5.slug;
       this.newTaxRateId = c5.tax_category_key ?? "";
       this.dataTable()?.open("create");
-    } else if (actionId === "delete") {
+    } else if (actionId === "delete" && can("inventory.delete_category")) {
       let impact = 0;
       try {
         const links = await erplora().query("inventory.product_categories");
@@ -3425,14 +3820,14 @@ var ErpInventoryCategories = class extends i3 {
   }
   /** Ejecuta el borrado confirmado (política definida: DESVINCULAR; los productos siguen). */
   async confirmDelete() {
-    if (!this.deleteTarget) return;
+    if (!can("inventory.delete_category") || !this.deleteTarget) return;
     try {
       await erplora().command("inventory.categories.delete", { category_id: this.deleteTarget.id });
       this.deleteTarget = null;
       this.deleteImpact = 0;
       await this.ctrl.load();
     } catch (e5) {
-      this.formError = e5 instanceof Error ? e5.message : "No se pudo eliminar";
+      this.formError = e5 instanceof Error ? e5.message : erplora().t(CATALOG, "ui.errDeleteCategory");
       this.deleteTarget = null;
     }
   }
@@ -3454,6 +3849,7 @@ var ErpInventoryCategories = class extends i3 {
   // falten (con un % real) se crean en bloque, y la categoría enlaza por `tax_category_key`. Vacío / sin
   // columna → null = tipo por defecto del hub. NO se convierten precios.
   async onCsvImport(ev) {
+    if (!can("inventory.add_category")) return;
     const rows = ev.detail.rows ?? [];
     let map = /* @__PURE__ */ new Map();
     let unresolved = [];
@@ -3491,7 +3887,8 @@ var ErpInventoryCategories = class extends i3 {
   // llamaba a create y duplicaba la categoría en silencio).
   async create(ev) {
     ev.preventDefault();
-    if (!this.newName.trim()) return;
+    const requiredPermission = this.editingId ? "inventory.change_category" : "inventory.add_category";
+    if (!can(requiredPermission) || !this.newName.trim()) return;
     this.saving = true;
     this.formError = "";
     try {
@@ -3522,7 +3919,7 @@ var ErpInventoryCategories = class extends i3 {
       this.dataTable()?.close();
       await this.ctrl.load();
     } catch (e5) {
-      this.formError = e5 instanceof Error ? e5.message : "No se pudo guardar";
+      this.formError = e5 instanceof Error ? e5.message : erplora().t(CATALOG, "ui.errSaveCategory");
     } finally {
       this.saving = false;
     }
@@ -3530,18 +3927,21 @@ var ErpInventoryCategories = class extends i3 {
   render() {
     return b2`
       <div class="page">
-        ${this.formError ? b2`<p class="err">${this.formError}</p>` : A}
-        ${this.ctrl?.error ? b2`<p class="err">${this.ctrl.error}</p>` : A}
+        ${this.formError ? b2`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.formError}</ok-inline-feedback>` : A}
+        ${this.ctrl?.error ? b2`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : A}
 
         <ok-data-table
           .serverSide=${true}
           .fill=${true}
+          .labels=${dataTableLabels(erplora().locale)}
           .columns=${this.columns}
           .actions=${this.actions}
-          .addable=${true}
+          .addable=${can("inventory.add_category")}
           .views=${true}
+          .cardTitle=${(row) => String(row.name ?? "")}
           .columnPicker=${true}
-          .csv=${true}
+          .importable=${can("inventory.add_category")}
+          .exportable=${can("inventory.export_product")}
           .csvName=${"inventory-categories.csv"}
           @csvImport=${(e5) => this.onCsvImport(e5)}
           @rowAction=${(e5) => this.onRowAction(e5)}
@@ -3552,8 +3952,8 @@ var ErpInventoryCategories = class extends i3 {
           .sort=${this.ctrl?.state.sort}
           .sortDir=${this.ctrl?.state.dir ?? "asc"}
           .searchable=${true}
-          .searchPlaceholder=${"Buscar categor\xEDa\u2026"}
-          .emptyMessage=${this.ctrl?.loading ? "Cargando\u2026" : "Sin categor\xEDas."}
+          .searchPlaceholder=${erplora().t(CATALOG, "ui.searchCategory")}
+          .emptyMessage=${this.ctrl?.loading ? erplora().t(CATALOG, "ui.loading") : erplora().t(CATALOG, "ui.noCategories")}
           @pageChange=${(e5) => this.ctrl.setPage(e5.detail)}
           @pageSizeChange=${(e5) => this.ctrl.setPageSize(e5.detail)}
           @sortChange=${(e5) => this.ctrl.setSort(e5.detail.sort, e5.detail.dir)}
@@ -3563,14 +3963,14 @@ var ErpInventoryCategories = class extends i3 {
           <form slot="create" class="form" @submit=${(e5) => this.create(e5)}>
             <ion-input
               fill="outline"
-              label="Nombre"
+              label=${erplora().t(CATALOG, "ui.name")}
               label-placement="floating"
               .value=${this.newName}
               @ionInput=${(e5) => this.newName = e5.target.value}
             ></ion-input>
             <ion-input
               fill="outline"
-              label="Slug (opcional)"
+              label=${erplora().t(CATALOG, "ui.slugOptional")}
               label-placement="floating"
               .value=${this.newSlug}
               @ionInput=${(e5) => this.newSlug = e5.target.value}
@@ -3578,7 +3978,7 @@ var ErpInventoryCategories = class extends i3 {
             <ion-select
               fill="outline"
               label-placement="floating"
-              label="Tipo de IVA / Impuesto"
+              label=${erplora().t(CATALOG, "ui.taxRate")}
               .value=${this.newTaxRateId}
               @ionChange=${(e5) => this.newTaxRateId = e5.target.value}
             >
@@ -3588,7 +3988,7 @@ var ErpInventoryCategories = class extends i3 {
                   ${erplora().t(CATALOG, "ui.editingCancel")}
                 </ion-button>` : A}
             <ion-button type="submit" ?disabled=${this.saving || !this.newName}>
-              ${this.saving ? "Guardando\u2026" : this.editingId ? erplora().t(CATALOG, "ui.saveChanges") : "Guardar"}
+              ${this.saving ? erplora().t(CATALOG, "ui.saving") : this.editingId ? erplora().t(CATALOG, "ui.saveChanges") : erplora().t(CATALOG, "ui.save")}
             </ion-button>
           </form>
         </ok-data-table>
@@ -3646,14 +4046,14 @@ __decorateClass([
 ], ErpInventoryCategories.prototype, "deleteImpact", 2);
 define("erp-inventory-categories", ErpInventoryCategories);
 
-// ../../../outfitkit/dist/ok-kpi.js
-var __defProp3 = Object.defineProperty;
-var __decorateClass3 = (decorators, target, key, kind) => {
+// ../outfitkit/dist/ok-kpi.js
+var __defProp4 = Object.defineProperty;
+var __decorateClass4 = (decorators, target, key, kind) => {
   var result = void 0;
   for (var i7 = decorators.length - 1, decorator; i7 >= 0; i7--)
     if (decorator = decorators[i7])
       result = decorator(target, key, result) || result;
-  if (result) __defProp3(target, key, result);
+  if (result) __defProp4(target, key, result);
   return result;
 };
 var OkKpi = class extends i3 {
@@ -3772,24 +4172,43 @@ var OkKpi = class extends i3 {
     `;
   }
 };
-__decorateClass3([
+__decorateClass4([
   n4()
 ], OkKpi.prototype, "label");
-__decorateClass3([
+__decorateClass4([
   n4()
 ], OkKpi.prototype, "value");
-__decorateClass3([
+__decorateClass4([
   n4()
 ], OkKpi.prototype, "delta");
-__decorateClass3([
+__decorateClass4([
   n4()
 ], OkKpi.prototype, "trend");
-__decorateClass3([
+__decorateClass4([
   n4()
 ], OkKpi.prototype, "icon");
 define("ok-kpi", OkKpi);
 
-// ui/components/erp-inventory-dashboard/erp-inventory-dashboard.ts
+// modules/inventory/ui/lib/quantity.ts
+var QUANTITY_SCALE = 1e6;
+function fromMicro(raw) {
+  return raw / QUANTITY_SCALE;
+}
+function parseQuantity(text) {
+  const normalized = text.trim().replace(",", ".");
+  if (!/^\d+(\.\d{1,6})?$/.test(normalized)) return null;
+  const raw = Math.round(Number(normalized) * QUANTITY_SCALE);
+  return Number.isSafeInteger(raw) && raw >= 0 ? raw : null;
+}
+function formatQuantity(raw) {
+  const value = Number(raw);
+  return Number.isFinite(value) ? String(fromMicro(value)) : String(raw);
+}
+function onGrid(raw, increment) {
+  return !Number.isFinite(increment) || increment <= 0 || raw % increment === 0;
+}
+
+// modules/inventory/ui/components/erp-inventory-dashboard/erp-inventory-dashboard.ts
 var CATALOG2 = { es: es_default, en: en_default };
 function erplora2() {
   const c5 = globalThis.erplora;
@@ -3802,6 +4221,7 @@ var ErpInventoryDashboard = class extends i3 {
     this.stats = null;
     this.statsLoading = true;
     this.statsError = false;
+    this.onLocaleChange = () => this.requestUpdate();
   }
   static {
     this.styles = i`
@@ -3811,9 +4231,16 @@ var ErpInventoryDashboard = class extends i3 {
     .cards a { text-decoration: none; color: inherit; display: block; }
     .section { margin-bottom: 1.5rem; }
     .state { color: var(--ion-color-medium, #6b6557); margin: 0 0 1rem; }
-    .state.error { color: var(--ion-color-danger, #c5000f); }
     ion-note { display: block; margin: 0 0 1rem; font-size: 0.85rem; }
   `;
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    window.addEventListener("erplora:locale-changed", this.onLocaleChange);
+  }
+  disconnectedCallback() {
+    window.removeEventListener("erplora:locale-changed", this.onLocaleChange);
+    super.disconnectedCallback();
   }
   /** Columnas = las que `low_stock.sql` proyecta (nada de `price`: no viene, era NaN). */
   get columns() {
@@ -3821,8 +4248,18 @@ var ErpInventoryDashboard = class extends i3 {
     return [
       { key: "name", header: t5("ui.name") },
       { key: "sku", header: t5("ui.sku") },
-      { key: "stock", header: t5("ui.stock"), align: "right" },
-      { key: "low_stock_threshold", header: t5("ui.threshold"), align: "right" }
+      {
+        key: "stock",
+        header: t5("ui.stock"),
+        align: "right",
+        format: (r6) => formatQuantity(Number(r6.stock))
+      },
+      {
+        key: "low_stock_threshold",
+        header: t5("ui.threshold"),
+        align: "right",
+        format: (r6) => formatQuantity(Number(r6.low_stock_threshold))
+      }
     ];
   }
   async firstUpdated() {
@@ -3865,15 +4302,18 @@ var ErpInventoryDashboard = class extends i3 {
     return b2`
       <div>
         ${this.statsLoading ? b2`<p class="state">${t5("ui.loading")}</p>` : A}
-        ${this.statsError ? b2`<p class="state error">${t5("ui.statsError")}</p>` : A}
+        ${this.statsError ? b2`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${t5("ui.statsError")}</ok-inline-feedback>` : A}
         ${this.stats ? this.kpis() : A}
 
         <div class="section">
           <h2>${t5("ui.lowStockTitle")}</h2>
-          ${this.ctrl?.error ? b2`<p class="state error">${this.ctrl.error}</p>` : A}
+          ${this.ctrl?.error ? b2`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : A}
           <ok-data-table
             .serverSide=${true}
+            .labels=${dataTableLabels(erplora2().locale)}
             .columns=${this.columns}
+            .views=${true}
+            .cardTitle=${(row) => String(row.name ?? row.sku ?? "")}
             .rows=${this.ctrl?.rows ?? []}
             .total=${this.ctrl?.total ?? 0}
             .page=${this.ctrl?.state.page ?? 0}
@@ -3898,27 +4338,39 @@ __decorateClass([
 ], ErpInventoryDashboard.prototype, "statsError", 2);
 define("erp-inventory-dashboard", ErpInventoryDashboard);
 
-// ui/components/erp-inventory-movements/erp-inventory-movements.ts
+// modules/inventory/ui/components/erp-inventory-movements/erp-inventory-movements.ts
 var CATALOG3 = { es: es_default, en: en_default };
 function erplora3() {
   const c5 = globalThis.erplora;
   if (!c5) throw new Error("erplora SDK no inicializado por el shell");
   return c5;
 }
-function formatDate(v3) {
+function formatDate(v3, locale) {
   const d3 = new Date(v3);
   if (Number.isNaN(d3.getTime())) return v3;
-  return d3.toLocaleString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  return d3.toLocaleString(locale || "es", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 function formatQty(v3) {
-  const n6 = Number(v3);
-  return n6 > 0 ? `+${n6}` : String(n6);
+  const logical = fromMicro(Number(v3));
+  return logical > 0 ? `+${logical}` : String(logical);
 }
 var ErpInventoryMovements = class extends i3 {
+  constructor() {
+    super(...arguments);
+    this.onLocaleChange = () => this.requestUpdate();
+  }
   static {
     this.styles = i`
     :host { display: block; height: 100%; font-family: system-ui, sans-serif; color: var(--ion-text-color, #1c1b18); }
   `;
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    window.addEventListener("erplora:locale-changed", this.onLocaleChange);
+  }
+  disconnectedCallback() {
+    window.removeEventListener("erplora:locale-changed", this.onLocaleChange);
+    super.disconnectedCallback();
   }
   get columns() {
     const t5 = (k2) => erplora3().t(CATALOG3, k2);
@@ -3938,7 +4390,7 @@ var ErpInventoryMovements = class extends i3 {
         key: "created_at",
         header: t5("ui.mvDate"),
         sortable: true,
-        format: (r6) => formatDate(String(r6.created_at))
+        format: (r6) => formatDate(String(r6.created_at), erplora3().locale)
       },
       { key: "product_name", header: t5("ui.name") },
       { key: "sku", header: t5("ui.sku") },
@@ -3962,7 +4414,7 @@ var ErpInventoryMovements = class extends i3 {
         header: t5("ui.mvStockAfter"),
         align: "right",
         sortable: true,
-        format: (r6) => String(Number(r6.stock_after))
+        format: (r6) => formatQuantity(r6.stock_after)
       },
       { key: "reason", header: t5("ui.mvReason") },
       { key: "reference", header: t5("ui.mvReference"), filterable: true, filterType: "text" }
@@ -3975,11 +4427,14 @@ var ErpInventoryMovements = class extends i3 {
   render() {
     const t5 = (k2) => erplora3().t(CATALOG3, k2);
     return b2`
-      ${this.ctrl?.error ? b2`<p>${this.ctrl.error}</p>` : A}
+      ${this.ctrl?.error ? b2`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : A}
       <ok-data-table
         fill
         .serverSide=${true}
+        .labels=${dataTableLabels(erplora3().locale)}
         .searchable=${true}
+        .views=${true}
+        .cardTitle=${(row) => String(row.product_name ?? row.sku ?? "")}
         .columns=${this.columns}
         .rows=${this.ctrl?.rows ?? []}
         .total=${this.ctrl?.total ?? 0}
@@ -3997,7 +4452,7 @@ var ErpInventoryMovements = class extends i3 {
 };
 define("erp-inventory-movements", ErpInventoryMovements);
 
-// ui/lib/code128.ts
+// modules/inventory/ui/lib/code128.ts
 var PATTERNS = [
   "212222",
   "222122",
@@ -4135,12 +4590,16 @@ function code128b(text, module = 2, height = 70) {
   return { width: x2, height, bars };
 }
 
-// ui/components/erp-inventory-products/erp-inventory-products.ts
+// modules/inventory/ui/components/erp-inventory-products/erp-inventory-products.ts
 var CATALOG4 = { es: es_default, en: en_default };
 function erplora4() {
   const c5 = globalThis.erplora;
   if (!c5) throw new Error("erplora SDK no inicializado por el shell");
   return c5;
+}
+function can2(permission) {
+  const client = erplora4();
+  return typeof client.hasPermission === "function" ? client.hasPermission(permission) : true;
 }
 var ErpInventoryProducts = class extends i3 {
   constructor() {
@@ -4198,7 +4657,7 @@ var ErpInventoryProducts = class extends i3 {
     .detail { display:flex; flex-direction:column; gap:.6rem; }
     .drow { display:flex; justify-content:space-between; border-bottom:1px solid var(--ion-border-color,#eee); padding:.4rem 0; }
     .drow span { color:var(--ion-color-medium,#6b6557); }
-    .barcode { text-align:center; margin:1rem 0; padding:1rem; border:1px solid var(--ion-border-color,#e6e2d8); border-radius:10px; }
+    .barcode { text-align:center; margin:1rem 0; padding:1rem; border:1px solid var(--ion-border-color,#e6e2d8); border-radius: var(--ok-radius-sm, 10px); }
     .barcode .bc { max-width:100%; height:auto; }
     .bccode { font:14px ui-monospace,monospace; margin-top:.4rem; letter-spacing:.08em; }
   `;
@@ -4221,7 +4680,15 @@ var ErpInventoryProducts = class extends i3 {
         // un café de 220 céntimos se pintaba «220,00 €».
         format: (r6) => erplora4().formatMoney(Number(r6.price))
       },
-      { key: "stock", header: t5("ui.stock"), align: "right", sortable: true, filterable: true, filterType: "range" },
+      {
+        key: "stock",
+        header: t5("ui.stock"),
+        align: "right",
+        sortable: true,
+        filterable: true,
+        filterType: "range",
+        format: (r6) => formatQuantity(Number(r6.stock))
+      },
       {
         key: "is_active",
         header: t5("ui.active"),
@@ -4235,31 +4702,39 @@ var ErpInventoryProducts = class extends i3 {
         // Celda interactiva: ion-toggle (verde = activo). Al cambiar, persiste vía command.
         // El color va por CSS var (--background-checked) y no por `color=`, porque las clases
         // .ion-color-* no penetran el shadow DOM de ok-data-table; las custom props sí heredan.
-        render: (r6) => b2`
-        <ion-toggle
-          style="--track-background-checked: rgba(var(--ion-color-success-rgb, 45,211,111), 0.5); --handle-background-checked: var(--ion-color-success, #2dd36f);"
-          ?checked=${!!r6.is_active}
-          @ionChange=${(e5) => this.toggleActive(r6, e5)}
-        ></ion-toggle>
-      `
+        render: (r6) => can2("inventory.change_product") ? b2`
+            <ion-toggle
+              aria-label=${t5("ui.active")}
+              style="--track-background-checked: rgba(var(--ion-color-success-rgb, 45,211,111), 0.5); --handle-background-checked: var(--ion-color-success, #2dd36f);"
+              ?checked=${!!r6.is_active}
+              @ionChange=${(e5) => this.toggleActive(r6, e5)}
+            ></ion-toggle>
+          ` : r6.is_active ? t5("ui.yes") : t5("ui.no")
       }
     ];
   }
   /** Diferencia del recuento (nuevo − actual), o null si aún no hay valor tecleado. */
   get countDifference() {
     if (!this.countTarget || this.countValue.trim() === "") return null;
-    const v3 = Number(this.countValue);
-    if (!Number.isFinite(v3)) return null;
-    return Math.round((v3 - Number(this.countTarget.stock)) * 1e3) / 1e3;
+    const raw = parseQuantity(this.countValue);
+    if (raw === null || !this.quantityMatchesUnit(raw, this.countTarget.unit_code)) return null;
+    return fromMicro(raw - Number(this.countTarget.stock));
   }
   async submitCount() {
-    if (!this.countTarget || this.countValue.trim() === "" || this.countReason.trim() === "") return;
-    const v3 = Number(this.countValue);
-    if (!Number.isFinite(v3) || v3 < 0) return;
+    if (!can2("inventory.adjust_stock") || !this.countTarget || this.countValue.trim() === "" || this.countReason.trim() === "") return;
+    const raw = parseQuantity(this.countValue);
+    if (raw === null) {
+      this.formError = erplora4().t(CATALOG4, "ui.errQuantity");
+      return;
+    }
+    if (!this.quantityMatchesUnit(raw, this.countTarget.unit_code)) {
+      this.formError = erplora4().t(CATALOG4, "ui.errQuantityGrid");
+      return;
+    }
     try {
       await erplora4().command("inventory.stock.adjust", {
         product_id: this.countTarget.id,
-        stock: v3,
+        stock: raw,
         reason: this.countReason.trim()
       });
       this.countTarget = null;
@@ -4267,13 +4742,20 @@ var ErpInventoryProducts = class extends i3 {
       this.countReason = "";
       await this.ctrl.load();
     } catch (e5) {
-      this.formError = e5 instanceof Error ? e5.message : "No se pudo aplicar el recuento";
+      this.formError = e5 instanceof Error ? e5.message : erplora4().t(CATALOG4, "ui.errCount");
     }
   }
   async submitReceive() {
-    if (!this.receiveTarget || this.receiveQty.trim() === "") return;
-    const qty = Number(this.receiveQty);
-    if (!Number.isFinite(qty) || qty <= 0) return;
+    if (!can2("inventory.adjust_stock") || !this.receiveTarget || this.receiveQty.trim() === "") return;
+    const qty = parseQuantity(this.receiveQty);
+    if (qty === null || qty <= 0) {
+      this.formError = erplora4().t(CATALOG4, "ui.errQuantity");
+      return;
+    }
+    if (!this.quantityMatchesUnit(qty, this.receiveTarget.unit_code)) {
+      this.formError = erplora4().t(CATALOG4, "ui.errQuantityGrid");
+      return;
+    }
     const cost = this.receiveCost.trim() === "" ? null : Math.round(Number(this.receiveCost) * 100);
     try {
       await erplora4().command("inventory.stock.receive", {
@@ -4284,7 +4766,7 @@ var ErpInventoryProducts = class extends i3 {
       this.receiveCost = "";
       await this.ctrl.load();
     } catch (e5) {
-      this.formError = e5 instanceof Error ? e5.message : "No se pudo registrar la recepci\xF3n";
+      this.formError = e5 instanceof Error ? e5.message : erplora4().t(CATALOG4, "ui.errReceive");
     }
   }
   // Acciones por fila (botones) → la tabla emite `rowAction` con { actionId, row }. Getter (i18n).
@@ -4292,10 +4774,12 @@ var ErpInventoryProducts = class extends i3 {
     const t5 = (k2) => erplora4().t(CATALOG4, k2);
     return [
       { id: "detail", label: t5("ui.actionDetail"), icon: "eye-outline" },
-      { id: "receive", label: t5("ui.actionReceive"), icon: "download-outline" },
-      { id: "count", label: t5("ui.actionCount"), icon: "calculator-outline" },
-      { id: "edit", label: t5("ui.actionEdit"), icon: "create-outline" },
-      { id: "delete", label: t5("ui.actionDelete"), icon: "trash-outline", color: "danger" }
+      ...can2("inventory.adjust_stock") ? [
+        { id: "receive", label: t5("ui.actionReceive"), icon: "download-outline" },
+        { id: "count", label: t5("ui.actionCount"), icon: "calculator-outline" }
+      ] : [],
+      ...can2("inventory.change_product") ? [{ id: "edit", label: t5("ui.actionEdit"), icon: "create-outline" }] : [],
+      ...can2("inventory.delete_product") ? [{ id: "delete", label: t5("ui.actionDelete"), icon: "trash-outline", color: "danger" }] : []
     ];
   }
   async onRowAction(ev) {
@@ -4303,13 +4787,13 @@ var ErpInventoryProducts = class extends i3 {
     const p4 = row;
     if (actionId === "detail") {
       this.detail = p4;
-    } else if (actionId === "receive") {
+    } else if (actionId === "receive" && can2("inventory.adjust_stock")) {
       this.receiveTarget = p4;
-    } else if (actionId === "count") {
+    } else if (actionId === "count" && can2("inventory.adjust_stock")) {
       this.countTarget = p4;
       this.countValue = "";
       this.countReason = "";
-    } else if (actionId === "edit") {
+    } else if (actionId === "edit" && can2("inventory.change_product")) {
       this.editingId = p4.id;
       try {
         const full = (await erplora4().query("inventory.products.get", { product_id: p4.id }))?.[0] ?? p4;
@@ -4317,7 +4801,9 @@ var ErpInventoryProducts = class extends i3 {
         this.newSku = full.sku ?? "";
         this.newPrice = centsToEuros(full.price);
         this.newCost = centsToEuros(full.cost ?? 0);
-        this.newThreshold = String(full.low_stock_threshold ?? 10);
+        this.newThreshold = formatQuantity(
+          full.low_stock_threshold ?? 1e7
+        );
         this.newEan = String(full.ean13 ?? "");
         this.newDescription = String(full.description ?? "");
         this.newType = full.product_type === "service" ? "service" : "physical";
@@ -4333,16 +4819,17 @@ var ErpInventoryProducts = class extends i3 {
         this.selectedCategoryIds = /* @__PURE__ */ new Set();
       }
       this.dataTable()?.open("create");
-    } else if (actionId === "delete") {
+    } else if (actionId === "delete" && can2("inventory.delete_product")) {
       try {
         await erplora4().command("inventory.products.delete", { product_id: p4.id });
         await this.ctrl.load();
       } catch (e5) {
-        this.formError = e5 instanceof Error ? e5.message : "No se pudo eliminar";
+        this.formError = e5 instanceof Error ? e5.message : erplora4().t(CATALOG4, "ui.errDeleteProduct");
       }
     }
   }
   async toggleActive(p4, ev) {
+    if (!can2("inventory.change_product")) return;
     const checked = ev.target.checked;
     try {
       const full = (await erplora4().query("inventory.products.get", { product_id: p4.id }))?.[0] ?? {};
@@ -4359,7 +4846,7 @@ var ErpInventoryProducts = class extends i3 {
       });
       await this.ctrl.load();
     } catch (e5) {
-      this.formError = e5 instanceof Error ? e5.message : "No se pudo actualizar";
+      this.formError = e5 instanceof Error ? e5.message : erplora4().t(CATALOG4, "ui.errUpdateProduct");
     }
   }
   // Referencia al ok-data-table para abrir/cerrar su panel lateral (drawer).
@@ -4372,6 +4859,7 @@ var ErpInventoryProducts = class extends i3 {
   // bloque, y el producto enlaza por `tax_category_key`. Vacío / sin columna → null = tipo por defecto
   // del hub. NO se convierten precios: "IVA incluido o no" lo gobierna el ajuste del hub/POS.
   async onCsvImport(ev) {
+    if (!can2("inventory.import_product") || !can2("inventory.add_product")) return;
     const rows = ev.detail.rows ?? [];
     let map = /* @__PURE__ */ new Map();
     let unresolved = [];
@@ -4451,18 +4939,30 @@ var ErpInventoryProducts = class extends i3 {
       seenSkus.add(sku);
       const taxValue = pickTaxValue(r6);
       const taxCategoryKey = taxValue ? map.get(normalizeAlias(taxValue)) ?? null : null;
+      const unitCode = (r6.unit_code ?? "ud").trim() || "ud";
+      const stock = r6.stock?.trim() ? parseQuantity(r6.stock) : 0;
+      const threshold = r6.low_stock_threshold?.trim() ? parseQuantity(r6.low_stock_threshold) : 1e7;
+      if (stock === null || threshold === null) {
+        failed.push({ line, sku, reason: t5("ui.errQuantity") });
+        continue;
+      }
+      if (!this.quantityMatchesUnit(stock, unitCode) || !this.quantityMatchesUnit(threshold, unitCode)) {
+        failed.push({ line, sku, reason: t5("ui.errQuantityGrid") });
+        continue;
+      }
       try {
         await erplora4().command("inventory.products.create", {
           name,
           sku,
           price,
-          stock: Number(r6.stock) || 0,
+          stock,
           cost: eurosToCents(r6.cost),
-          low_stock_threshold: Number(r6.low_stock_threshold) || 10,
+          low_stock_threshold: threshold,
           product_type: "physical",
           ean13: r6.ean13 || null,
           description: r6.description ?? "",
           tax_category_key: taxCategoryKey,
+          unit_code: unitCode,
           image: ""
         });
         created++;
@@ -4611,6 +5111,29 @@ var ErpInventoryProducts = class extends i3 {
       this.units = [];
     }
   }
+  /** Incremento exacto de la unidad. Sin catálogo, `ud` conserva su rejilla natural de 1. */
+  unitIncrement(code) {
+    const normalized = code || "ud";
+    const configured = this.units.find((unit) => unit.code === normalized)?.increment_value;
+    return Number(configured ?? (normalized === "ud" ? 1e6 : 0));
+  }
+  quantityMatchesUnit(raw, unitCode) {
+    return onGrid(raw, this.unitIncrement(unitCode));
+  }
+  quantityStep(unitCode) {
+    const increment = this.unitIncrement(unitCode);
+    return increment > 0 ? formatQuantity(increment) : "0.000001";
+  }
+  /** Los filtros de la tabla también son entrada humana; el servidor espera los extremos en µ. */
+  stockFilterValue(value) {
+    if (typeof value !== "object" || value === null) return value;
+    const scaled = {};
+    for (const [edge, logical] of Object.entries(value)) {
+      if (logical === "" || logical == null) scaled[edge] = logical;
+      else scaled[edge] = parseQuantity(String(logical)) ?? logical;
+    }
+    return scaled;
+  }
   /** Etiqueta del selector: «Kilogramo (kg)» / «Kilogram (kg)» según locale (ADR-0055). */
   unitLabel(u5) {
     const es = (erplora4().locale ?? "").startsWith("es");
@@ -4656,18 +5179,24 @@ var ErpInventoryProducts = class extends i3 {
   // conserva por compatibilidad con el template/tests históricos.
   async createProduct(ev) {
     ev.preventDefault();
-    if (!this.newName.trim() || !this.newSku.trim()) return;
+    const requiredPermission = this.editingId ? "inventory.change_product" : "inventory.add_product";
+    if (!can2(requiredPermission) || !this.newName.trim() || !this.newSku.trim()) return;
     this.saving = true;
     this.formError = "";
     const t5 = (k2) => erplora4().t(CATALOG4, k2);
     try {
+      const threshold = this.newThreshold.trim() === "" ? 1e7 : parseQuantity(this.newThreshold);
+      if (threshold === null) throw new Error(t5("ui.errQuantity"));
+      if (!this.quantityMatchesUnit(threshold, this.newUnitCode)) {
+        throw new Error(t5("ui.errQuantityGrid"));
+      }
       if (this.editingId) {
         await erplora4().command("inventory.products.update", {
           product_id: this.editingId,
           name: this.newName.trim(),
           price: eurosToCents(this.newPrice),
           cost: eurosToCents(this.newCost),
-          low_stock_threshold: Number(this.newThreshold) || 10,
+          low_stock_threshold: threshold,
           ean13: this.newEan.trim() || null,
           description: this.newDescription,
           tax_category_key: this.newTaxCategoryKey || null,
@@ -4693,13 +5222,18 @@ var ErpInventoryProducts = class extends i3 {
           }
         }
       } else {
+        const stock = this.newStock.trim() === "" ? 0 : parseQuantity(this.newStock);
+        if (stock === null) throw new Error(t5("ui.errQuantity"));
+        if (!this.quantityMatchesUnit(stock, this.newUnitCode)) {
+          throw new Error(t5("ui.errQuantityGrid"));
+        }
         await erplora4().command("inventory.products.create", {
           name: this.newName.trim(),
           sku: this.newSku.trim(),
           price: eurosToCents(this.newPrice),
           cost: eurosToCents(this.newCost),
-          stock: Number(this.newStock) || 0,
-          low_stock_threshold: Number(this.newThreshold) || 10,
+          stock,
+          low_stock_threshold: threshold,
           product_type: this.newType,
           ean13: this.newEan.trim() || null,
           description: this.newDescription,
@@ -4718,7 +5252,7 @@ var ErpInventoryProducts = class extends i3 {
       } else if (/unique|duplicate/i.test(msg) && /ean/i.test(msg)) {
         this.formError = t5("ui.errEanTaken");
       } else {
-        this.formError = msg || "No se pudo guardar";
+        this.formError = msg || t5("ui.errSaveProduct");
       }
     } finally {
       this.saving = false;
@@ -4727,18 +5261,21 @@ var ErpInventoryProducts = class extends i3 {
   render() {
     return b2`
       <div class="page">
-        ${this.formError ? b2`<p class="err">${this.formError}</p>` : A}
-        ${this.ctrl?.error ? b2`<p class="err">${this.ctrl.error}</p>` : A}
+        ${this.formError ? b2`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.formError}</ok-inline-feedback>` : A}
+        ${this.ctrl?.error ? b2`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : A}
 
         <ok-data-table
           .serverSide=${true}
           .fill=${true}
+          .labels=${dataTableLabels(erplora4().locale)}
           .columns=${this.columns}
           .actions=${this.actions}
-          .addable=${true}
+          .addable=${can2("inventory.add_product")}
           .views=${true}
+          .cardTitle=${(row) => String(row.name ?? row.sku ?? "")}
           .columnPicker=${true}
-          .csv=${true}
+          .importable=${can2("inventory.import_product") && can2("inventory.add_product")}
+          .exportable=${can2("inventory.export_product")}
           .csvName=${"inventory-products.csv"}
           @csvImport=${(e5) => this.onCsvImport(e5)}
           @rowAction=${(e5) => this.onRowAction(e5)}
@@ -4749,13 +5286,16 @@ var ErpInventoryProducts = class extends i3 {
           .sort=${this.ctrl?.state.sort}
           .sortDir=${this.ctrl?.state.dir ?? "asc"}
           .searchable=${true}
-          .searchPlaceholder=${"Buscar nombre o SKU\u2026"}
-          .emptyMessage=${this.ctrl?.loading ? "Cargando\u2026" : "Sin productos."}
+          .searchPlaceholder=${erplora4().t(CATALOG4, "ui.searchProduct")}
+          .emptyMessage=${this.ctrl?.loading ? erplora4().t(CATALOG4, "ui.loading") : erplora4().t(CATALOG4, "ui.noProducts")}
           @pageChange=${(e5) => this.ctrl.setPage(e5.detail)}
           @pageSizeChange=${(e5) => this.ctrl.setPageSize(e5.detail)}
           @sortChange=${(e5) => this.ctrl.setSort(e5.detail.sort, e5.detail.dir)}
           @searchChange=${(e5) => this.ctrl.setSearch(e5.detail)}
-          @filterChange=${(e5) => this.ctrl.setFilter(e5.detail.col, e5.detail.value)}
+          @filterChange=${(e5) => this.ctrl.setFilter(
+      e5.detail.col,
+      e5.detail.col === "stock" ? this.stockFilterValue(e5.detail.value) : e5.detail.value
+    )}
         >
           <!-- Formulario de alta: el botón "+" del data-table despliega este acordeón. -->
           <form slot="create" class="form" @submit=${(e5) => this.createProduct(e5)}>
@@ -4767,7 +5307,7 @@ var ErpInventoryProducts = class extends i3 {
                 </div>` : A}
             <ion-input
               fill="outline"
-              label="Nombre"
+              label=${erplora4().t(CATALOG4, "ui.name")}
               label-placement="floating"
               .value=${this.newName}
               @ionInput=${(e5) => this.newName = e5.target.value}
@@ -4783,7 +5323,7 @@ var ErpInventoryProducts = class extends i3 {
             ></ion-input>
             <ion-input
               fill="outline"
-              label="Precio"
+              label=${erplora4().t(CATALOG4, "ui.price")}
               label-placement="floating"
               type="number"
               step="0.01"
@@ -4792,7 +5332,7 @@ var ErpInventoryProducts = class extends i3 {
             ></ion-input>
             <ion-input
               fill="outline"
-              label=${erplora4().t(CATALOG4, "ui.fieldCost")}
+              label=${`${erplora4().t(CATALOG4, "ui.fieldCost")} (${erplora4().currency})`}
               label-placement="floating"
               type="number" step="0.01" min="0"
               .value=${this.newCost}
@@ -4802,7 +5342,7 @@ var ErpInventoryProducts = class extends i3 {
                   fill="outline"
                   label=${erplora4().t(CATALOG4, "ui.fieldInitialStock")}
                   label-placement="floating"
-                  type="number" step="0.001" min="0"
+                  type="number" .step=${this.quantityStep(this.newUnitCode)} min="0"
                   .value=${this.newStock}
                   @ionInput=${(e5) => this.newStock = e5.target.value}
                 ></ion-input>` : A}
@@ -4810,7 +5350,7 @@ var ErpInventoryProducts = class extends i3 {
               fill="outline"
               label=${erplora4().t(CATALOG4, "ui.fieldThreshold")}
               label-placement="floating"
-              type="number" step="1" min="0"
+              type="number" .step=${this.quantityStep(this.newUnitCode)} min="0"
               .value=${this.newThreshold}
               @ionInput=${(e5) => this.newThreshold = e5.target.value}
             ></ion-input>
@@ -4874,7 +5414,7 @@ var ErpInventoryProducts = class extends i3 {
     )}
                 </ion-select>` : A}
             <ion-button type="submit" ?disabled=${this.saving || !this.newName || !this.newSku}>
-              ${this.saving ? "Guardando\u2026" : this.editingId ? erplora4().t(CATALOG4, "ui.saveChanges") : "Guardar"}
+              ${this.saving ? erplora4().t(CATALOG4, "ui.saving") : this.editingId ? erplora4().t(CATALOG4, "ui.saveChanges") : erplora4().t(CATALOG4, "ui.save")}
             </ion-button>
           </form>
         </ok-data-table>
@@ -4884,7 +5424,7 @@ var ErpInventoryProducts = class extends i3 {
             <ion-toolbar>
               <ion-title>${this.detail?.name ?? ""}</ion-title>
               <ion-buttons slot="end">
-                <ion-button @click=${() => this.detail = null}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
+                <ion-button aria-label=${erplora4().t(CATALOG4, "ui.btnClose")} @click=${() => this.detail = null}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
               </ion-buttons>
             </ion-toolbar>
           </ion-header>
@@ -4892,15 +5432,15 @@ var ErpInventoryProducts = class extends i3 {
             ${this.detail ? b2`
                   <div class="detail">
                     <div class="drow"><span>SKU</span><b>${this.detail.sku}</b></div>
-                    <div class="drow"><span>Precio</span><b>${erplora4().formatMoney(Number(this.detail.price))}</b></div>
-                    <div class="drow"><span>Stock</span><b>${this.detail.stock}</b></div>
-                    <div class="drow"><span>Activo</span><b>${this.detail.is_active ? "S\xED" : "No"}</b></div>
+                    <div class="drow"><span>${erplora4().t(CATALOG4, "ui.price")}</span><b>${erplora4().formatMoney(Number(this.detail.price))}</b></div>
+                    <div class="drow"><span>${erplora4().t(CATALOG4, "ui.stock")}</span><b>${formatQuantity(this.detail.stock)}</b></div>
+                    <div class="drow"><span>${erplora4().t(CATALOG4, "ui.active")}</span><b>${this.detail.is_active ? erplora4().t(CATALOG4, "ui.yes") : erplora4().t(CATALOG4, "ui.no")}</b></div>
                     <div class="barcode">
                       ${this.renderBarcode(this.detail.sku)}
                       <div class="bccode">${this.detail.sku}</div>
                     </div>
                     <ion-button expand="block" @click=${() => this.detail && this.printBarcode(this.detail)}>
-                      <ion-icon name="print-outline" slot="start"></ion-icon> Imprimir código de barras
+                      <ion-icon name="print-outline" slot="start"></ion-icon> ${erplora4().t(CATALOG4, "ui.printBarcode")}
                     </ion-button>
                   </div>
                 ` : A}
@@ -4924,7 +5464,7 @@ var ErpInventoryProducts = class extends i3 {
           <ion-toolbar>
             <ion-title>${t5("ui.importReportTitle")}</ion-title>
             <ion-buttons slot="end">
-              <ion-button @click=${() => this.importReport = null}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
+              <ion-button aria-label=${t5("ui.btnClose")} @click=${() => this.importReport = null}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
             </ion-buttons>
           </ion-toolbar>
         </ion-header>
@@ -4967,15 +5507,15 @@ var ErpInventoryProducts = class extends i3 {
           <ion-toolbar>
             <ion-title>${t5("ui.countTitle")} — ${this.countTarget?.name ?? ""}</ion-title>
             <ion-buttons slot="end">
-              <ion-button @click=${() => this.countTarget = null}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
+              <ion-button aria-label=${t5("ui.btnClose")} @click=${() => this.countTarget = null}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
             </ion-buttons>
           </ion-toolbar>
         </ion-header>
         <ion-content class="ion-padding">
           <div class="detail">
-            <div class="drow"><span>${t5("ui.countCurrent")}</span><b>${Number(this.countTarget?.stock ?? 0)}</b></div>
+            <div class="drow"><span>${t5("ui.countCurrent")}</span><b>${formatQuantity(this.countTarget?.stock ?? 0)}</b></div>
             <ion-input fill="outline" label-placement="floating" label=${t5("ui.countNew")}
-              type="number" step="0.001" min="0" inputmode="decimal"
+              type="number" .step=${this.quantityStep(this.countTarget?.unit_code)} min="0" inputmode="decimal"
               .value=${this.countValue}
               @ionInput=${(e5) => this.countValue = String(e5.detail.value ?? "")}
             ></ion-input>
@@ -5004,19 +5544,19 @@ var ErpInventoryProducts = class extends i3 {
           <ion-toolbar>
             <ion-title>${t5("ui.receiveTitle")} — ${this.receiveTarget?.name ?? ""}</ion-title>
             <ion-buttons slot="end">
-              <ion-button @click=${() => this.receiveTarget = null}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
+              <ion-button aria-label=${t5("ui.btnClose")} @click=${() => this.receiveTarget = null}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
             </ion-buttons>
           </ion-toolbar>
         </ion-header>
         <ion-content class="ion-padding">
           <div class="detail">
-            <div class="drow"><span>${t5("ui.countCurrent")}</span><b>${Number(this.receiveTarget?.stock ?? 0)}</b></div>
+            <div class="drow"><span>${t5("ui.countCurrent")}</span><b>${formatQuantity(this.receiveTarget?.stock ?? 0)}</b></div>
             <ion-input fill="outline" label-placement="floating" label=${t5("ui.receiveQty")}
-              type="number" step="0.001" min="0.001" inputmode="decimal"
+              type="number" .step=${this.quantityStep(this.receiveTarget?.unit_code)} min="0.000001" inputmode="decimal"
               .value=${this.receiveQty}
               @ionInput=${(e5) => this.receiveQty = String(e5.detail.value ?? "")}
             ></ion-input>
-            <ion-input fill="outline" label-placement="floating" label=${t5("ui.receiveCost")}
+            <ion-input fill="outline" label-placement="floating" label=${`${t5("ui.receiveCost")} (${erplora4().currency})`}
               type="number" step="0.01" min="0" inputmode="decimal"
               .value=${this.receiveCost}
               @ionInput=${(e5) => this.receiveCost = String(e5.detail.value ?? "")}

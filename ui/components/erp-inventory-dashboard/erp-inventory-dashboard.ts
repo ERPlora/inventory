@@ -3,9 +3,11 @@ import { state } from 'lit/decorators.js';
 import { define } from '@erplora/outfitkit/define';
 import '@erplora/outfitkit/ok-data-table';
 import '@erplora/outfitkit/ok-kpi';
+import '@erplora/outfitkit/ok-inline-feedback';
 import type { DataTableColumn } from '@erplora/outfitkit';
-import { createListController } from '@erplora/module-sdk';
+import { createListController, dataTableLabels } from '@erplora/module-sdk';
 import type { ListController, ListClient, ListParams, ListPage } from '@erplora/module-sdk';
+import { formatQuantity } from '../../lib/quantity';
 
 // Catálogo i18n del módulo (ADR-0055): esbuild inlinea estos JSON en el `dist` del WC.
 import esLocale from '../../../locales/es.json';
@@ -24,6 +26,7 @@ interface ErploraClientLike extends ListClient {
   currency: string;
   formatMoney(cents: number, opts?: { currency?: string; locale?: string }): string;
   /** i18n del módulo (ADR-0055). */
+  locale: string;
   t(catalog: Record<string, unknown>, key: string): string;
 }
 
@@ -61,7 +64,6 @@ export class ErpInventoryDashboard extends LitElement {
     .cards a { text-decoration: none; color: inherit; display: block; }
     .section { margin-bottom: 1.5rem; }
     .state { color: var(--ion-color-medium, #6b6557); margin: 0 0 1rem; }
-    .state.error { color: var(--ion-color-danger, #c5000f); }
     ion-note { display: block; margin: 0 0 1rem; font-size: 0.85rem; }
   `;
 
@@ -69,6 +71,17 @@ export class ErpInventoryDashboard extends LitElement {
   @state() private statsLoading = true;
   @state() private statsError = false;
   private ctrl!: ListController<LowStockRow>;
+  private readonly onLocaleChange = (): void => this.requestUpdate();
+
+  connectedCallback(): void {
+    super.connectedCallback();
+    window.addEventListener('erplora:locale-changed', this.onLocaleChange);
+  }
+
+  disconnectedCallback(): void {
+    window.removeEventListener('erplora:locale-changed', this.onLocaleChange);
+    super.disconnectedCallback();
+  }
 
   /** Columnas = las que `low_stock.sql` proyecta (nada de `price`: no viene, era NaN). */
   get columns(): DataTableColumn[] {
@@ -76,8 +89,18 @@ export class ErpInventoryDashboard extends LitElement {
     return [
       { key: 'name', header: t('ui.name') },
       { key: 'sku', header: t('ui.sku') },
-      { key: 'stock', header: t('ui.stock'), align: 'right' },
-      { key: 'low_stock_threshold', header: t('ui.threshold'), align: 'right' },
+      {
+        key: 'stock',
+        header: t('ui.stock'),
+        align: 'right',
+        format: (r) => formatQuantity(Number(r.stock)),
+      },
+      {
+        key: 'low_stock_threshold',
+        header: t('ui.threshold'),
+        align: 'right',
+        format: (r) => formatQuantity(Number(r.low_stock_threshold)),
+      },
     ];
   }
 
@@ -127,15 +150,18 @@ export class ErpInventoryDashboard extends LitElement {
     return html`
       <div>
         ${this.statsLoading ? html`<p class="state">${t('ui.loading')}</p>` : nothing}
-        ${this.statsError ? html`<p class="state error">${t('ui.statsError')}</p>` : nothing}
+        ${this.statsError ? html`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${t('ui.statsError')}</ok-inline-feedback>` : nothing}
         ${this.stats ? this.kpis() : nothing}
 
         <div class="section">
           <h2>${t('ui.lowStockTitle')}</h2>
-          ${this.ctrl?.error ? html`<p class="state error">${this.ctrl.error}</p>` : nothing}
+          ${this.ctrl?.error ? html`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : nothing}
           <ok-data-table
             .serverSide=${true}
+            .labels=${dataTableLabels(erplora().locale)}
             .columns=${this.columns}
+            .views=${true}
+            .cardTitle=${(row: Record<string, unknown>) => String(row.name ?? row.sku ?? '')}
             .rows=${this.ctrl?.rows ?? []}
             .total=${this.ctrl?.total ?? 0}
             .page=${this.ctrl?.state.page ?? 0}

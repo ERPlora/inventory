@@ -51,12 +51,13 @@
     "stock": {
       "type": "integer",
       "minimum": 0,
-      "default": 0
+      "default": 0,
+      "description": "Stock inicial en punto fijo de escala 10⁶ (ADR-0147)."
     },
     "low_stock_threshold": {
       "type": "integer",
       "minimum": 0,
-      "description": "Umbral por producto (siempre manda). Ausente → hereda el umbral global de los ajustes del hub (fallback 10)."
+      "description": "Umbral por producto en punto fijo de escala 10⁶. Ausente → hereda el umbral global del hub convertido a la misma escala (fallback 10000000 = 10)."
     },
     "tax_category_key": {
       "type": [
