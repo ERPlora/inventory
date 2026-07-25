@@ -1,7 +1,7 @@
 {
   "id": "inventory",
   "name": "Inventory",
-  "version": "1.2.13",
+  "version": "1.2.14",
   "agent": {
     "description": "Product catalog and basic stock control: check availability, adjust stock, receive goods, create or remove products and categories.",
     "keywords": [
@@ -519,7 +519,9 @@
       "transaction": true,
       "sql": [
         "commands/_ensure_location.sql",
-        "commands/_restock_on_void.sql"
+        "commands/_restock_on_void_movement.sql",
+        "commands/_restock_on_void.sql",
+        "commands/_restock_on_void_marker.sql"
       ]
     },
     "inventory._skip_void_restock": {
