@@ -1,7 +1,7 @@
 {
   "id": "inventory",
   "name": "Inventory",
-  "version": "1.2.12",
+  "version": "1.2.13",
   "agent": {
     "description": "Product catalog and basic stock control: check availability, adjust stock, receive goods, create or remove products and categories.",
     "keywords": [
@@ -90,15 +90,6 @@
     "set": "inventory.settings.update"
   },
   "migrations": {
-    "sqlite": [
-      "migrations/sqlite/001_init.sql",
-      "migrations/sqlite/002_tax_rate_id.sql",
-      "migrations/sqlite/003_void_restock.sql",
-      "migrations/sqlite/004_tax_category_key.sql",
-      "migrations/sqlite/005_stock_ledger.sql",
-      "migrations/sqlite/006_quantity_fixed_point.sql",
-      "migrations/sqlite/007_quantity_threshold.sql"
-    ],
     "postgres": [
       "migrations/postgres/001_init.sql",
       "migrations/postgres/002_tax_rate_id.sql",
@@ -685,9 +676,6 @@
     "entry": "dist/inventory.esm.js"
   },
   "seed": {
-    "sqlite": [
-      "seed/install.sqlite.sql"
-    ],
     "postgres": [
       "seed/install.postgres.sql"
     ]
