@@ -26,7 +26,7 @@ function stubErplora(overrides: Record<string, unknown> = {}) {
     // `query()` devuelve FILAS (array) — el contrato real del cliente.
     query: async (name: string) => (name === 'inventory.products.stats' ? [STATS_ROW] : []),
     queryPage: async () => ({
-      rows: [{ id: 'p1', name: 'Vino', sku: 'VIN', stock: 1, low_stock_threshold: 5 }],
+      rows: [{ id: 'p1', name: 'Vino', sku: 'VIN', stock: 1_000_000, low_stock_threshold: 5_000_000 }],
       total: 1,
       limit: 5,
       offset: 0,
@@ -121,5 +121,16 @@ describe('accionable + tabla de stock bajo', () => {
     const cols = (el as unknown as { columns: { key: string }[] }).columns;
     expect(cols.map((c) => c.key)).not.toContain('price');
     expect(cols.map((c) => c.key)).toContain('low_stock_threshold');
+  });
+
+  it('stock y umbral se pintan en unidades lógicas, no en µ crudos', async () => {
+    const el = await montar();
+    const cols = (el as unknown as {
+      columns: { key: string; format?: (row: Record<string, unknown>) => string }[];
+    }).columns;
+    expect(cols.find((c) => c.key === 'stock')?.format?.({ stock: 2_500_000 })).toBe('2.5');
+    expect(
+      cols.find((c) => c.key === 'low_stock_threshold')?.format?.({ low_stock_threshold: 10_000_000 }),
+    ).toBe('10');
   });
 });

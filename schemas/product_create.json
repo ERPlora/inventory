@@ -3,18 +3,90 @@
   "title": "inventory.products.create",
   "type": "object",
   "additionalProperties": false,
-  "required": ["name", "sku", "price"],
+  "required": [
+    "name",
+    "sku",
+    "price"
+  ],
   "properties": {
-    "name": { "type": "string", "minLength": 1, "maxLength": 200 },
-    "sku": { "type": "string", "minLength": 1, "maxLength": 100 },
-    "ean13": { "type": ["string", "null"], "default": null, "maxLength": 13 },
-    "description": { "type": "string", "default": "" },
-    "product_type": { "type": "string", "enum": ["physical", "service"], "default": "physical" },
-    "price": { "type": "integer", "minimum": 0 },
-    "cost": { "type": "integer", "minimum": 0, "default": 0 },
-    "stock": { "type": "integer", "minimum": 0, "default": 0 },
-    "low_stock_threshold": { "type": "integer", "minimum": 0, "description": "Umbral por producto (siempre manda). Ausente → hereda el umbral global de los ajustes del hub (fallback 10)." },
-    "tax_category_key": { "type": ["string", "null"], "default": null },
-    "image": { "type": "string", "default": "" }
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "sku": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "ean13": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null,
+      "maxLength": 13
+    },
+    "description": {
+      "type": "string",
+      "default": ""
+    },
+    "product_type": {
+      "type": "string",
+      "enum": [
+        "physical",
+        "service"
+      ],
+      "default": "physical"
+    },
+    "price": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "cost": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0
+    },
+    "stock": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0,
+      "description": "Stock inicial en punto fijo de escala 10⁶ (ADR-0147)."
+    },
+    "low_stock_threshold": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Umbral por producto en punto fijo de escala 10⁶. Ausente → hereda el umbral global del hub convertido a la misma escala (fallback 10000000 = 10)."
+    },
+    "tax_category_key": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null
+    },
+    "image": {
+      "type": "string",
+      "default": ""
+    },
+    "unit_code": {
+      "description": "Unidad base de inventario del producto (ADR-0147). Los movimientos se convierten y almacenan en ella. `ud` por defecto: el caso mayoritario no obliga a declarar nada.",
+      "type": "string",
+      "default": "ud",
+      "maxLength": 8
+    },
+    "price_quantity_value": {
+      "description": "Cantidad de precio en escala 10⁶ (modelo KPEIN). «0,37 € por 100 ud» se expresa con price=37 y price_quantity_value=100000000, y así un precio sub-céntimo NO mete decimales en el dinero.",
+      "type": "integer",
+      "minimum": 1,
+      "default": 1000000
+    },
+    "pricing_unit_code": {
+      "description": "Unidad a la que se refiere el precio. Puede diferir de la unidad base (precio por kg, stock en g).",
+      "type": "string",
+      "default": "ud",
+      "maxLength": 8
+    }
   }
 }

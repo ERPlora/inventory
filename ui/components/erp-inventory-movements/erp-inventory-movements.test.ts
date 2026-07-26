@@ -4,10 +4,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 const MOVS = [
   { id: 'm1', product_id: 'p1', product_name: 'Café', sku: 'CAF', movement_type: 'sale',
-    qty: -2.5, stock_after: 7.5, reason: null, reference: 'sl-1', unit_cost: null,
+    qty: -2_500_000, stock_after: 7_500_000, reason: null, reference: 'sl-1', unit_cost: null,
     location_id: 'h1:default', created_by: 'u1', created_at: '2026-07-16T10:00:00+00:00' },
   { id: 'm2', product_id: 'p1', product_name: 'Café', sku: 'CAF', movement_type: 'count',
-    qty: 3, stock_after: 10, reason: 'recuento', reference: null, unit_cost: null,
+    qty: 3_000_000, stock_after: 10_000_000, reason: 'recuento', reference: null, unit_cost: null,
     location_id: 'h1:default', created_by: 'u1', created_at: '2026-07-16T09:00:00+00:00' },
 ];
 
@@ -62,8 +62,10 @@ describe('vista Movimientos (inventory#7)', () => {
     expect(tipo.filterable, 'el tipo debe ser filtrable').toBe(true);
     expect(tipo.format?.({ movement_type: 'sale' }), 'tipo traducido vía catálogo').toBe('ui.mvSale');
     const qty = table.columns.find((c) => c.key === 'qty')!;
-    expect(qty.format?.({ qty: -2.5 }), 'delta firmado, decimal intacto').toBe('-2.5');
-    expect(qty.format?.({ qty: 3 }), 'las entradas llevan signo + explícito').toBe('+3');
+    expect(qty.format?.({ qty: -2_500_000 }), 'delta firmado, convertido desde µ').toBe('-2.5');
+    expect(qty.format?.({ qty: 3_000_000 }), 'las entradas llevan signo + explícito').toBe('+3');
+    const balance = table.columns.find((c) => c.key === 'stock_after')!;
+    expect(balance.format?.({ stock_after: 7_500_000 })).toBe('7.5');
   });
 });
 

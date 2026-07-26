@@ -35,7 +35,8 @@
     },
     "low_stock_threshold": {
       "type": "integer",
-      "minimum": 0
+      "minimum": 0,
+      "description": "Umbral de stock bajo en punto fijo de escala 10⁶ (ADR-0147)."
     },
     "tax_category_key": {
       "type": [
@@ -60,6 +61,21 @@
     "description": {
       "type": "string",
       "maxLength": 2000
+    },
+    "unit_code": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unidad maestra de inventario (ADR-0147). OPCIONAL a propósito: ausente = se conserva la actual (cambiar la unidad es un acto explícito; los callers pre-0147 no deben perderla)."
+    },
+    "pricing_unit_code": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unidad de la cantidad de precio (ADR-0147 §2.3). Opcional: ausente = se conserva."
+    },
+    "price_quantity_value": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Cantidad de precio en escala 10⁶ (KPEIN, ADR-0147 §2.3): «price por ESTA cantidad». Opcional: ausente = se conserva."
     }
   }
 }

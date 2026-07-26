@@ -1,7 +1,8 @@
 {
   "id": "inventory",
   "name": "Inventory",
-  "version": "1.2.6",
+  "version": "1.2.15",
+  "description": "Products, stock and warehouses: check availability, adjust stock and receive goods.",
   "agent": {
     "description": "Product catalog and basic stock control: check availability, adjust stock, receive goods, create or remove products and categories.",
     "keywords": [
@@ -90,19 +91,14 @@
     "set": "inventory.settings.update"
   },
   "migrations": {
-    "sqlite": [
-      "migrations/sqlite/001_init.sql",
-      "migrations/sqlite/002_tax_rate_id.sql",
-      "migrations/sqlite/003_void_restock.sql",
-      "migrations/sqlite/004_tax_category_key.sql",
-      "migrations/sqlite/005_stock_ledger.sql"
-    ],
     "postgres": [
       "migrations/postgres/001_init.sql",
       "migrations/postgres/002_tax_rate_id.sql",
       "migrations/postgres/003_void_restock.sql",
       "migrations/postgres/004_tax_category_key.sql",
-      "migrations/postgres/005_stock_ledger.sql"
+      "migrations/postgres/005_stock_ledger.sql",
+      "migrations/postgres/006_quantity_fixed_point.sql",
+      "migrations/postgres/007_quantity_threshold.sql"
     ]
   },
   "queries": {
@@ -260,6 +256,20 @@
       "ai": {
         "description": "Immutable stock movement ledger: receptions, sales, voids, counts — with delta, resulting balance, reason and source document reference."
       }
+    },
+    "inventory.units.list": {
+      "permission": "inventory.view_product",
+      "sql": "queries/units_list.sql",
+      "ai": {
+        "description": "Lists the units of measure available in this hub (code, category, exact conversion factor and minimum increment)"
+      }
+    },
+    "inventory.products.unit_of": {
+      "permission": "inventory.view_product",
+      "sql": "queries/product_unit_of.sql",
+      "ai": {
+        "description": "Returns a product's unit of measure and its minimum increment."
+      }
     }
   },
   "commands": {
@@ -366,16 +376,24 @@
       "permission": "inventory.change_product",
       "schema": "schemas/stock_decrease.json",
       "transaction": true,
-      "sql": [
-        "commands/_ensure_location.sql",
-        "commands/_movement_on_decrease.sql",
-        "commands/stock_decrease.sql"
+      "handler": {
+        "type": "wasm",
+        "file": "dist/handler.wasm",
+        "function": "decrease_stock"
+      },
+      "reads": [
+        {
+          "query": "inventory.products.unit_of",
+          "params": {
+            "product_id": "payload.product_id"
+          }
+        }
       ],
       "emit": [
         "inventory.stock_changed"
       ],
       "ai": {
-        "description": "Decreases a product's stock by a given quantity."
+        "description": "Decreases a product's stock. Rejects quantities that do not fall on the unit's minimum increment (ADR-0147)."
       }
     },
     "inventory.stock.receive": {
@@ -502,7 +520,9 @@
       "transaction": true,
       "sql": [
         "commands/_ensure_location.sql",
-        "commands/_restock_on_void.sql"
+        "commands/_restock_on_void_movement.sql",
+        "commands/_restock_on_void.sql",
+        "commands/_restock_on_void_marker.sql"
       ]
     },
     "inventory._skip_void_restock": {
@@ -511,11 +531,29 @@
       "sql": [
         "commands/_skip_void_restock.sql"
       ]
+    },
+    "inventory._ensure_location": {
+      "permission": "inventory.change_product",
+      "sql": [
+        "commands/_ensure_location.sql"
+      ]
+    },
+    "inventory._movement_on_decrease": {
+      "permission": "inventory.change_product",
+      "sql": [
+        "commands/_movement_on_decrease.sql"
+      ]
+    },
+    "inventory._decrease_stock": {
+      "permission": "inventory.change_product",
+      "sql": [
+        "commands/stock_decrease.sql"
+      ]
     }
   },
   "widgets": {
     "inventory.low_stock_count": {
-      "title": "Stock bajo",
+      "title": "Low stock",
       "icon": "alert-circle-outline",
       "category": "Inventario",
       "size": "sm",
@@ -527,17 +565,22 @@
       "default": true,
       "kind": "kpi",
       "query": "inventory.products.stats",
+      "refresh_on": [
+        "inventory.stock_changed",
+        "inventory.product.created",
+        "inventory.product.deleted"
+      ],
       "map": {
         "value": "products_low_stock"
       },
       "options": {
-        "label": "Productos en stock bajo",
+        "label": "Low-stock products",
         "icon": "alert-circle-outline",
         "format": "number"
       }
     },
     "inventory.value": {
-      "title": "Valor de inventario",
+      "title": "Inventory value",
       "icon": "cash-outline",
       "category": "Inventario",
       "size": "sm",
@@ -549,11 +592,17 @@
       "default": true,
       "kind": "kpi",
       "query": "inventory.products.stats",
+      "refresh_on": [
+        "inventory.stock_changed",
+        "inventory.product.created",
+        "inventory.product.updated",
+        "inventory.product.deleted"
+      ],
       "map": {
         "value": "total_inventory_value"
       },
       "options": {
-        "label": "Valor del stock (a coste)",
+        "label": "Stock value (at cost)",
         "icon": "cash-outline",
         "format": "currency",
         "currency": "EUR",
@@ -561,7 +610,7 @@
       }
     },
     "inventory.in_stock": {
-      "title": "Productos en stock",
+      "title": "Products in stock",
       "icon": "cube-outline",
       "category": "Inventario",
       "size": "sm",
@@ -573,17 +622,22 @@
       "default": false,
       "kind": "stat",
       "query": "inventory.products.stats",
+      "refresh_on": [
+        "inventory.stock_changed",
+        "inventory.product.created",
+        "inventory.product.deleted"
+      ],
       "map": {
         "value": "products_in_stock"
       },
       "options": {
-        "label": "Productos con existencias",
+        "label": "Products with stock",
         "icon": "cube-outline",
         "format": "number"
       }
     },
     "inventory.low_stock_products": {
-      "title": "Productos con menos stock",
+      "title": "Lowest-stock products",
       "icon": "trending-down-outline",
       "category": "Inventario",
       "size": "md",
@@ -595,12 +649,18 @@
       "default": true,
       "kind": "bar-list",
       "query": "inventory.products.low_stock",
+      "refresh_on": [
+        "inventory.stock_changed",
+        "inventory.product.created",
+        "inventory.product.deleted"
+      ],
       "map": {
         "label": "name",
         "value": "stock"
       },
       "options": {
         "valueFormat": "number",
+        "valueDivisor": 1000000,
         "max": 10
       }
     }
@@ -617,5 +677,10 @@
   },
   "ui": {
     "entry": "dist/inventory.esm.js"
+  },
+  "seed": {
+    "postgres": [
+      "seed/install.postgres.sql"
+    ]
   }
 }
