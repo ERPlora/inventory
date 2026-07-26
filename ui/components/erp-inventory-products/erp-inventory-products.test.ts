@@ -555,3 +555,23 @@ describe('hallazgos del QA en navegador (07-16)', () => {
     expect(cerrado, 'el drawer debe cerrarse al cancelar').toBe(true);
   });
 });
+
+describe('hallazgos del QA sectorial (07-16)', () => {
+  it('borrar producto NO ejecuta directo: abre confirmación (paridad con categorías)', async () => {
+    const el = await montar();
+    const wc = el as unknown as {
+      onRowAction: (ev: CustomEvent) => Promise<void>;
+      deleteTarget: { id: string } | null;
+      confirmDelete: () => Promise<void>;
+    };
+    await wc.onRowAction(new CustomEvent('rowAction', {
+      detail: { actionId: 'delete', row: { id: 'p1', name: 'Café solo', sku: 'CAF' } },
+    }) as CustomEvent);
+    expect(comandos.find((c) => c.name === 'inventory.products.delete'),
+      'sin confirmación no se borra (P1 QA beauty #6)').toBeFalsy();
+    expect(wc.deleteTarget?.id).toBe('p1');
+    await wc.confirmDelete();
+    expect(comandos.find((c) => c.name === 'inventory.products.delete')?.payload.product_id).toBe('p1');
+    expect(wc.deleteTarget).toBeNull();
+  });
+});

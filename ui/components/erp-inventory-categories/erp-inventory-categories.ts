@@ -383,11 +383,16 @@ export class ErpInventoryCategories extends LitElement {
             </ion-toolbar>
           </ion-header>
           <ion-content class="ion-padding">
-            <p>
-              <b>${this.deleteTarget?.name ?? ''}</b> —
-              ${this.deleteImpact} ${erplora().t(CATALOG, 'ui.deleteCatImpact')}
-            </p>
-            <ion-button expand="block" color="danger" @click=${() => this.confirmDelete()}>
+            <!-- Auto-estilado: el reparent de ion-modal a <body> mata el CSS del shadow. -->
+            <ion-list lines="none">
+              <ion-item>
+                <ion-label class="ion-text-wrap">
+                  <b>${this.deleteTarget?.name ?? ''}</b> —
+                  ${this.deleteImpact} ${erplora().t(CATALOG, 'ui.deleteCatImpact')}
+                </ion-label>
+              </ion-item>
+            </ion-list>
+            <ion-button class="ion-margin-top" expand="block" color="danger" @click=${() => this.confirmDelete()}>
               ${erplora().t(CATALOG, 'ui.deleteCatConfirm')}
             </ion-button>
             <ion-button expand="block" fill="outline" @click=${() => (this.deleteTarget = null)}>

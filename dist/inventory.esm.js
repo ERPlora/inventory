@@ -9,7 +9,7 @@ var __decorateClass = (decorators, target, key, kind) => {
   return result;
 };
 
-// ../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/element-internals.js
+// ../../../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/element-internals.js
 var ElementInternalsShim = class ElementInternals {
   get shadowRoot() {
     return this.__host.__shadowRoot;
@@ -88,7 +88,7 @@ var ElementInternalsShim = class ElementInternals {
   }
 };
 
-// ../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/events.js
+// ../../../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/events.js
 var __classPrivateFieldSet = function(receiver, state, value, kind, f3) {
   if (kind === "m") throw new TypeError("Private method is not writable");
   if (kind === "a" && !f3) throw new TypeError("Private accessor was defined without a setter");
@@ -246,7 +246,7 @@ Object.defineProperties(CustomEventShim.prototype, {
 var EventShimWithRealType = EventShim;
 var CustomEventShimWithRealType = CustomEventShim;
 
-// ../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/css.js
+// ../../../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/css.js
 var _a2;
 var CSSRuleShim = (_a2 = class CSSRule {
   constructor() {
@@ -277,7 +277,7 @@ var CSSRuleShim = (_a2 = class CSSRule {
   }
 }, _a2.STYLE_RULE = 1, _a2.CHARSET_RULE = 2, _a2.IMPORT_RULE = 3, _a2.MEDIA_RULE = 4, _a2.FONT_FACE_RULE = 5, _a2.PAGE_RULE = 6, _a2.NAMESPACE_RULE = 10, _a2.KEYFRAMES_RULE = 7, _a2.KEYFRAME_RULE = 8, _a2.SUPPORTS_RULE = 12, _a2.COUNTER_STYLE_RULE = 11, _a2.FONT_FEATURE_VALUES_RULE = 14, _a2.MARGIN_RULE = 9, _a2);
 
-// ../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/index.js
+// ../../../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/index.js
 globalThis.Event ??= EventShimWithRealType;
 globalThis.CustomEvent ??= CustomEventShimWithRealType;
 var constructionToken = Symbol();
@@ -674,7 +674,7 @@ var CustomElementRegistryShimWithRealType = CustomElementRegistry;
 var customElements2 = new CustomElementRegistryShimWithRealType();
 var windowShim = new WindowShim(constructionToken);
 
-// ../module-toolkit/node_modules/@lit/reactive-element/node/css-tag.js
+// ../../../module-toolkit/node_modules/@lit/reactive-element/node/css-tag.js
 var t = globalThis;
 var e = t.ShadowRoot && (void 0 === t.ShadyCSS || t.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype;
 var s = Symbol();
@@ -719,7 +719,7 @@ var c = e || void 0 === t.CSSStyleSheet ? (t5) => t5 : (t5) => t5 instanceof CSS
   return r(e5);
 })(t5) : t5;
 
-// ../module-toolkit/node_modules/@lit/reactive-element/node/reactive-element.js
+// ../../../module-toolkit/node_modules/@lit/reactive-element/node/reactive-element.js
 var { is: h, defineProperty: r2, getOwnPropertyDescriptor: o2, getOwnPropertyNames: n2, getOwnPropertySymbols: a, getPrototypeOf: c2 } = Object;
 var l = globalThis;
 l.customElements ??= customElements2;
@@ -942,7 +942,7 @@ var g = class extends (globalThis.HTMLElement ?? HTMLElementShimWithRealType) {
 };
 g.elementStyles = [], g.shadowRootOptions = { mode: "open" }, g[f("elementProperties")] = /* @__PURE__ */ new Map(), g[f("finalized")] = /* @__PURE__ */ new Map(), u?.({ ReactiveElement: g }), (l.reactiveElementVersions ??= []).push("2.1.2");
 
-// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/lit-html.js
+// ../../../module-toolkit/node_modules/lit-html/lit-html.js
 var t2 = globalThis;
 var i2 = (t5) => t5;
 var s2 = t2.trustedTypes;
@@ -1197,7 +1197,7 @@ var D = (t5, i7, s5) => {
   return h4._$AI(t5), h4;
 };
 
-// node_modules/.pnpm/lit-element@4.2.2/node_modules/lit-element/lit-element.js
+// ../../../module-toolkit/node_modules/lit-element/lit-element.js
 var s3 = globalThis;
 var i3 = class extends g {
   constructor() {
@@ -1226,7 +1226,7 @@ var o4 = s3.litElementPolyfillSupport;
 o4?.({ LitElement: i3 });
 (s3.litElementVersions ??= []).push("4.2.2");
 
-// ../module-toolkit/node_modules/@lit/reactive-element/node/decorators/property.js
+// ../../../module-toolkit/node_modules/@lit/reactive-element/node/decorators/property.js
 var o5 = { attribute: true, type: String, converter: b, reflect: false, hasChanged: m };
 var r4 = (t5 = o5, e5, r6) => {
   const { kind: n6, metadata: i7 } = r6;
@@ -1256,12 +1256,12 @@ function n4(t5) {
   })(t5, e5, o7);
 }
 
-// ../module-toolkit/node_modules/@lit/reactive-element/node/decorators/state.js
+// ../../../module-toolkit/node_modules/@lit/reactive-element/node/decorators/state.js
 function r5(r6) {
   return n4({ ...r6, state: true, attribute: false });
 }
 
-// modules/inventory/ui/lib/tax-resolve.ts
+// ui/lib/tax-resolve.ts
 var TAX_HEADERS = [
   "tax_category",
   "tax_category_key",
@@ -1336,7 +1336,7 @@ async function createCategoryWithAlias(client, key, name, aliasText) {
   return key;
 }
 
-// modules/inventory/locales/es.json
+// locales/es.json
 var es_default = {
   name: "Inventario",
   navigation: {
@@ -1470,7 +1470,9 @@ var es_default = {
     printBarcode: "Imprimir c\xF3digo de barras",
     deleteCatTitle: "Eliminar categor\xEDa",
     deleteCatImpact: "producto(s) quedar\xE1n sin esta categor\xEDa (se desvinculan; los productos no se borran)",
-    deleteCatConfirm: "Eliminar y desvincular"
+    deleteCatConfirm: "Eliminar y desvincular",
+    deleteProdTitle: "Eliminar producto",
+    deleteProdHint: "se eliminar\xE1 del cat\xE1logo (borrado l\xF3gico; sus movimientos de stock se conservan)"
   },
   widgets: {
     "inventory.low_stock_count": {
@@ -1491,7 +1493,7 @@ var es_default = {
   }
 };
 
-// modules/inventory/locales/en.json
+// locales/en.json
 var en_default = {
   name: "Inventory",
   navigation: {
@@ -1625,18 +1627,20 @@ var en_default = {
     printBarcode: "Print barcode",
     deleteCatTitle: "Delete category",
     deleteCatImpact: "product(s) will lose this category (unlinked; products are kept)",
-    deleteCatConfirm: "Delete and unlink"
+    deleteCatConfirm: "Delete and unlink",
+    deleteProdTitle: "Delete product",
+    deleteProdHint: "will be removed from the catalog (soft delete; its stock movements are kept)"
   }
 };
 
-// ../outfitkit/dist/define.js
+// ../../../outfitkit/dist/define.js
 function define(tag, ctor) {
   if (typeof customElements !== "undefined" && !customElements.get(tag)) {
     customElements.define(tag, ctor);
   }
 }
 
-// ../outfitkit/dist/shared/icons.js
+// ../../../outfitkit/dist/shared/icons.js
 var rawAdd = '<svg viewBox="0 0 512 512" width="1.2em" height="1.2em" ><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M256 112v288m144-144H112"/></svg>';
 var rawAlertCircle = '<svg viewBox="0 0 512 512" width="1.2em" height="1.2em" ><path fill="currentColor" d="M256 48C141.31 48 48 141.31 48 256s93.31 208 208 208s208-93.31 208-208S370.69 48 256 48m0 319.91a20 20 0 1 1 20-20a20 20 0 0 1-20 20m21.72-201.15l-5.74 122a16 16 0 0 1-32 0l-5.74-121.94v-.05a21.74 21.74 0 1 1 43.44 0Z"/></svg>';
 var rawAlertCircleOutline = '<svg viewBox="0 0 512 512" width="1.2em" height="1.2em" ><path fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" d="M448 256c0-106-86-192-192-192S64 150 64 256s86 192 192 192s192-86 192-192Z"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M250.26 166.05L256 288l5.73-121.95a5.74 5.74 0 0 0-5.79-6h0a5.74 5.74 0 0 0-5.68 6"/><path fill="currentColor" d="M256 367.91a20 20 0 1 1 20-20a20 20 0 0 1-20 20"/></svg>';
@@ -1784,7 +1788,7 @@ function okIcon(value) {
   return BY_NAME[value] ?? value;
 }
 
-// ../outfitkit/dist/ok-inline-feedback.js
+// ../../../outfitkit/dist/ok-inline-feedback.js
 var __defProp2 = Object.defineProperty;
 var __decorateClass2 = (decorators, target, key, kind) => {
   var result = void 0;
@@ -2001,7 +2005,7 @@ __decorateClass2([
 ], OkInlineFeedback.prototype, "hasActions");
 define("ok-inline-feedback", OkInlineFeedback);
 
-// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directive.js
+// ../../../module-toolkit/node_modules/lit-html/directive.js
 var t3 = { ATTRIBUTE: 1, CHILD: 2, PROPERTY: 3, BOOLEAN_ATTRIBUTE: 4, EVENT: 5, ELEMENT: 6 };
 var e4 = (t5) => (...e5) => ({ _$litDirective$: t5, values: e5 });
 var i4 = class {
@@ -2021,7 +2025,7 @@ var i4 = class {
   }
 };
 
-// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directive-helpers.js
+// ../../../module-toolkit/node_modules/lit-html/directive-helpers.js
 var { I: t4 } = j;
 var i5 = (o7) => o7;
 var s4 = () => document.createComment("");
@@ -2054,7 +2058,7 @@ var h3 = (o7) => {
   o7._$AR(), o7._$AA.remove();
 };
 
-// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directives/repeat.js
+// ../../../module-toolkit/node_modules/lit-html/directives/repeat.js
 var u4 = (e5, s5, t5) => {
   const r6 = /* @__PURE__ */ new Map();
   for (let l3 = s5; l3 <= t5; l3++) r6.set(e5[l3], l3);
@@ -2107,7 +2111,7 @@ var c4 = e4(class extends i4 {
   }
 });
 
-// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directives/style-map.js
+// ../../../module-toolkit/node_modules/lit-html/directives/style-map.js
 var n5 = "important";
 var i6 = " !" + n5;
 var o6 = e4(class extends i4 {
@@ -2136,7 +2140,7 @@ var o6 = e4(class extends i4 {
   }
 });
 
-// ../outfitkit/dist/ok-data-table.js
+// ../../../outfitkit/dist/ok-data-table.js
 var CSV_BOM = "\uFEFF";
 function decodeCsvBuffer(buf) {
   let text;
@@ -2485,6 +2489,13 @@ var OkDataTable = class extends i3 {
     .empty .empty-ic { display: grid; place-items: center; width: 3.25rem; height: 3.25rem; border-radius: 999px; background: var(--header-background); font-size: 26px; }
 
     .actions { display: flex; gap: 0.25rem; justify-content: flex-end; }
+    /* Las acciones de fila son icon-only y de tamaño small en escritorio. En tablet/móvil se
+     * amplía el host completo (no solo el icono) para que el área táctil alcance 44×44 px. */
+    @media (pointer: coarse), (max-width: 834px) {
+      .actions ion-button { min-width: 44px; min-height: 44px; margin: 0; }
+      .toolbtn { width: 44px; height: 44px; }
+      .pager .nav ion-button { min-width: 44px; min-height: 44px; margin: 0; }
+    }
     /* Spinner de acción en curso (loading): contenido dentro del ion-button small (Ionic lo fija
      * a 28px en el :host, por eso width/height y no font-size). Cubre tabla y tarjetas: los
      * botones de fila siempre van dentro de .actions. */
@@ -3505,7 +3516,7 @@ __decorateClass3([
 ], OkDataTable.prototype, "menuOpen");
 define("ok-data-table", OkDataTable);
 
-// ../hub/packages/module-sdk/src/index.ts
+// ../../../hub/packages/module-sdk/src/index.ts
 var DATA_TABLE_LABELS_ES = {
   search: "Buscar\u2026",
   empty: "Sin resultados",
@@ -3708,7 +3719,7 @@ function centsToEuros(cents) {
   return cents == null ? "" : (cents / 100).toFixed(2);
 }
 
-// modules/inventory/ui/components/erp-inventory-categories/erp-inventory-categories.ts
+// ui/components/erp-inventory-categories/erp-inventory-categories.ts
 var CATALOG = { es: es_default, en: en_default };
 function erplora() {
   const c5 = globalThis.erplora;
@@ -4001,11 +4012,16 @@ var ErpInventoryCategories = class extends i3 {
             </ion-toolbar>
           </ion-header>
           <ion-content class="ion-padding">
-            <p>
-              <b>${this.deleteTarget?.name ?? ""}</b> —
-              ${this.deleteImpact} ${erplora().t(CATALOG, "ui.deleteCatImpact")}
-            </p>
-            <ion-button expand="block" color="danger" @click=${() => this.confirmDelete()}>
+            <!-- Auto-estilado: el reparent de ion-modal a <body> mata el CSS del shadow. -->
+            <ion-list lines="none">
+              <ion-item>
+                <ion-label class="ion-text-wrap">
+                  <b>${this.deleteTarget?.name ?? ""}</b> —
+                  ${this.deleteImpact} ${erplora().t(CATALOG, "ui.deleteCatImpact")}
+                </ion-label>
+              </ion-item>
+            </ion-list>
+            <ion-button class="ion-margin-top" expand="block" color="danger" @click=${() => this.confirmDelete()}>
               ${erplora().t(CATALOG, "ui.deleteCatConfirm")}
             </ion-button>
             <ion-button expand="block" fill="outline" @click=${() => this.deleteTarget = null}>
@@ -4046,7 +4062,7 @@ __decorateClass([
 ], ErpInventoryCategories.prototype, "deleteImpact", 2);
 define("erp-inventory-categories", ErpInventoryCategories);
 
-// ../outfitkit/dist/ok-kpi.js
+// ../../../outfitkit/dist/ok-kpi.js
 var __defProp4 = Object.defineProperty;
 var __decorateClass4 = (decorators, target, key, kind) => {
   var result = void 0;
@@ -4189,7 +4205,7 @@ __decorateClass4([
 ], OkKpi.prototype, "icon");
 define("ok-kpi", OkKpi);
 
-// modules/inventory/ui/lib/quantity.ts
+// ui/lib/quantity.ts
 var QUANTITY_SCALE = 1e6;
 function fromMicro(raw) {
   return raw / QUANTITY_SCALE;
@@ -4208,7 +4224,7 @@ function onGrid(raw, increment) {
   return !Number.isFinite(increment) || increment <= 0 || raw % increment === 0;
 }
 
-// modules/inventory/ui/components/erp-inventory-dashboard/erp-inventory-dashboard.ts
+// ui/components/erp-inventory-dashboard/erp-inventory-dashboard.ts
 var CATALOG2 = { es: es_default, en: en_default };
 function erplora2() {
   const c5 = globalThis.erplora;
@@ -4338,7 +4354,7 @@ __decorateClass([
 ], ErpInventoryDashboard.prototype, "statsError", 2);
 define("erp-inventory-dashboard", ErpInventoryDashboard);
 
-// modules/inventory/ui/components/erp-inventory-movements/erp-inventory-movements.ts
+// ui/components/erp-inventory-movements/erp-inventory-movements.ts
 var CATALOG3 = { es: es_default, en: en_default };
 function erplora3() {
   const c5 = globalThis.erplora;
@@ -4361,7 +4377,10 @@ var ErpInventoryMovements = class extends i3 {
   }
   static {
     this.styles = i`
-    :host { display: block; height: 100%; font-family: system-ui, sans-serif; color: var(--ion-text-color, #1c1b18); }
+    :host { display:flex; flex-direction:column; height:100%; min-height:0; font-family: system-ui, sans-serif; color: var(--ion-text-color, #1c1b18); }
+    /* Estructura de la casa (services/staff/products): la vista llena el alto, la tabla scrollea dentro. */
+    .page { display:flex; flex-direction:column; min-height:0; flex:1 1 auto; }
+    .page > ok-data-table { flex:1 1 auto; min-height:0; }
   `;
   }
   connectedCallback() {
@@ -4427,6 +4446,7 @@ var ErpInventoryMovements = class extends i3 {
   render() {
     const t5 = (k2) => erplora3().t(CATALOG3, k2);
     return b2`
+      <div class="page">
       ${this.ctrl?.error ? b2`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : A}
       <ok-data-table
         fill
@@ -4447,12 +4467,13 @@ var ErpInventoryMovements = class extends i3 {
         @sortChange=${(e5) => this.ctrl.setSort(e5.detail.sort, e5.detail.dir)}
         @filterChange=${(e5) => this.ctrl.setFilter(e5.detail.col, e5.detail.value)}
       ></ok-data-table>
+      </div>
     `;
   }
 };
 define("erp-inventory-movements", ErpInventoryMovements);
 
-// modules/inventory/ui/lib/code128.ts
+// ui/lib/code128.ts
 var PATTERNS = [
   "212222",
   "222122",
@@ -4590,7 +4611,7 @@ function code128b(text, module = 2, height = 70) {
   return { width: x2, height, bars };
 }
 
-// modules/inventory/ui/components/erp-inventory-products/erp-inventory-products.ts
+// ui/components/erp-inventory-products/erp-inventory-products.ts
 var CATALOG4 = { es: es_default, en: en_default };
 function erplora4() {
   const c5 = globalThis.erplora;
@@ -4629,6 +4650,7 @@ var ErpInventoryProducts = class extends i3 {
     this.importMap = /* @__PURE__ */ new Map();
     this.importUnresolved = [];
     this.importChoice = {};
+    this.deleteTarget = null;
     this.importReport = null;
     this.detail = null;
     this.countTarget = null;
@@ -4820,12 +4842,19 @@ var ErpInventoryProducts = class extends i3 {
       }
       this.dataTable()?.open("create");
     } else if (actionId === "delete" && can2("inventory.delete_product")) {
-      try {
-        await erplora4().command("inventory.products.delete", { product_id: p4.id });
-        await this.ctrl.load();
-      } catch (e5) {
-        this.formError = e5 instanceof Error ? e5.message : erplora4().t(CATALOG4, "ui.errDeleteProduct");
-      }
+      this.deleteTarget = p4;
+    }
+  }
+  /** Ejecuta el borrado confirmado. */
+  async confirmDelete() {
+    if (!this.deleteTarget) return;
+    try {
+      await erplora4().command("inventory.products.delete", { product_id: this.deleteTarget.id });
+      this.deleteTarget = null;
+      await this.ctrl.load();
+    } catch (e5) {
+      this.formError = e5 instanceof Error ? e5.message : erplora4().t(CATALOG4, "ui.errDeleteProduct");
+      this.deleteTarget = null;
     }
   }
   async toggleActive(p4, ev) {
@@ -5259,6 +5288,7 @@ var ErpInventoryProducts = class extends i3 {
     }
   }
   render() {
+    const t5 = (k2) => erplora4().t(CATALOG4, k2);
     return b2`
       <div class="page">
         ${this.formError ? b2`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.formError}</ok-inline-feedback>` : A}
@@ -5430,22 +5460,37 @@ var ErpInventoryProducts = class extends i3 {
           </ion-header>
           <ion-content class="ion-padding">
             ${this.detail ? b2`
-                  <div class="detail">
-                    <div class="drow"><span>SKU</span><b>${this.detail.sku}</b></div>
-                    <div class="drow"><span>${erplora4().t(CATALOG4, "ui.price")}</span><b>${erplora4().formatMoney(Number(this.detail.price))}</b></div>
-                    <div class="drow"><span>${erplora4().t(CATALOG4, "ui.stock")}</span><b>${formatQuantity(this.detail.stock)}</b></div>
-                    <div class="drow"><span>${erplora4().t(CATALOG4, "ui.active")}</span><b>${this.detail.is_active ? erplora4().t(CATALOG4, "ui.yes") : erplora4().t(CATALOG4, "ui.no")}</b></div>
-                    <div class="barcode">
-                      ${this.renderBarcode(this.detail.sku)}
-                      <div class="bccode">${this.detail.sku}</div>
-                    </div>
-                    <ion-button expand="block" @click=${() => this.detail && this.printBarcode(this.detail)}>
-                      <ion-icon name="print-outline" slot="start"></ion-icon> ${erplora4().t(CATALOG4, "ui.printBarcode")}
-                    </ion-button>
+                  <!-- Auto-estilado (reparent a <body>): las clases .detail/.drow/.barcode del
+                       shadow NO llegan aquí — Ionic puro + estilos inline para el barcode. -->
+                  <ion-list lines="full">
+                    <ion-item>
+                      <ion-label>SKU</ion-label>
+                      <ion-note slot="end">${this.detail.sku}</ion-note>
+                    </ion-item>
+                    <ion-item>
+                      <ion-label>${t5("ui.price")}</ion-label>
+                      <ion-note slot="end">${erplora4().formatMoney(Number(this.detail.price))}</ion-note>
+                    </ion-item>
+                    <ion-item>
+                      <ion-label>${t5("ui.stock")}</ion-label>
+                      <ion-note slot="end">${formatQuantity(this.detail.stock)}</ion-note>
+                    </ion-item>
+                    <ion-item>
+                      <ion-label>${t5("ui.active")}</ion-label>
+                      <ion-note slot="end">${this.detail.is_active ? t5("ui.yes") : t5("ui.no")}</ion-note>
+                    </ion-item>
+                  </ion-list>
+                  <div style="text-align:center; margin:1rem 0; padding:1rem; border:1px solid var(--ion-border-color,#e6e2d8); border-radius:10px;">
+                    ${this.renderBarcode(this.detail.sku)}
+                    <div style="font:14px ui-monospace,monospace; margin-top:.4rem; letter-spacing:.08em;">${this.detail.sku}</div>
                   </div>
+                  <ion-button expand="block" @click=${() => this.detail && this.printBarcode(this.detail)}>
+                    <ion-icon name="print-outline" slot="start"></ion-icon> ${t5("ui.printBarcode")}
+                  </ion-button>
                 ` : A}
           </ion-content>
         </ion-modal>
+        ${this.renderDeleteModal()}
         ${this.renderCountModal()}
         ${this.renderReceiveModal()}
         ${this.renderImportModal()}
@@ -5470,28 +5515,69 @@ var ErpInventoryProducts = class extends i3 {
         </ion-header>
         <ion-content class="ion-padding">
           ${rep ? b2`
-                <div class="detail">
-                  <div class="drow"><span>${t5("ui.importTotal")}</span><b>${rep.total}</b></div>
-                  <div class="drow"><span>${t5("ui.importCreated")}</span><b>${rep.created}</b></div>
-                  <div class="drow"><span>${t5("ui.importSkipped")}</span><b>${rep.skipped}</b></div>
-                  <div class="drow"><span>${t5("ui.importFailed")}</span><b>${rep.failed.length}</b></div>
-                  ${rep.failed.length ? b2`
-                        <ion-list>
-                          ${rep.failed.map(
-      (f3) => b2`<ion-item lines="none">
-                              <ion-label class="ion-text-wrap">
-                                <b>${t5("ui.importLine")} ${f3.line}</b> · ${f3.sku || "\u2014"} — ${f3.reason}
-                              </ion-label>
-                            </ion-item>`
+                <!-- Auto-estilado (reparent a <body>): Ionic puro, sin clases del shadow. -->
+                <ion-list lines="full">
+                  <ion-item>
+                    <ion-label>${t5("ui.importTotal")}</ion-label>
+                    <ion-note slot="end">${rep.total}</ion-note>
+                  </ion-item>
+                  <ion-item>
+                    <ion-label>${t5("ui.importCreated")}</ion-label>
+                    <ion-note slot="end" color="success">${rep.created}</ion-note>
+                  </ion-item>
+                  <ion-item>
+                    <ion-label>${t5("ui.importSkipped")}</ion-label>
+                    <ion-note slot="end">${rep.skipped}</ion-note>
+                  </ion-item>
+                  <ion-item>
+                    <ion-label>${t5("ui.importFailed")}</ion-label>
+                    <ion-note slot="end" color=${rep.failed.length ? "danger" : "success"}>${rep.failed.length}</ion-note>
+                  </ion-item>
+                </ion-list>
+                ${rep.failed.length ? b2`
+                      <ion-list class="ion-margin-top" lines="none">
+                        ${rep.failed.map(
+      (f3) => b2`<ion-item>
+                            <ion-label class="ion-text-wrap">
+                              <b>${t5("ui.importLine")} ${f3.line}</b> · ${f3.sku || "\u2014"} — ${f3.reason}
+                            </ion-label>
+                          </ion-item>`
     )}
-                        </ion-list>
-                        <ion-button expand="block" fill="outline"
-                          @click=${() => navigator.clipboard?.writeText(this.importReportText())}>
-                          <ion-icon name="copy-outline" slot="start"></ion-icon>${t5("ui.importCopy")}
-                        </ion-button>
-                      ` : A}
-                </div>
+                      </ion-list>
+                      <ion-button class="ion-margin-top" expand="block" fill="outline"
+                        @click=${() => navigator.clipboard?.writeText(this.importReportText())}>
+                        <ion-icon name="copy-outline" slot="start"></ion-icon>${t5("ui.importCopy")}
+                      </ion-button>
+                    ` : A}
               ` : A}
+        </ion-content>
+      </ion-modal>
+    `;
+  }
+  // Confirmación de borrado de producto (P1 QA #6): paridad con el borrado de categorías.
+  renderDeleteModal() {
+    const t5 = (k2) => erplora4().t(CATALOG4, k2);
+    return b2`
+      <ion-modal .isOpen=${!!this.deleteTarget} @ionModalDidDismiss=${() => this.deleteTarget = null}>
+        <ion-header class="ion-no-border">
+          <ion-toolbar>
+            <ion-title>${t5("ui.deleteProdTitle")}</ion-title>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content class="ion-padding">
+          <ion-list lines="none">
+            <ion-item>
+              <ion-label class="ion-text-wrap">
+                <b>${this.deleteTarget?.name ?? ""}</b> (${this.deleteTarget?.sku ?? ""}) — ${t5("ui.deleteProdHint")}
+              </ion-label>
+            </ion-item>
+          </ion-list>
+          <ion-button class="ion-margin-top" expand="block" color="danger" @click=${() => this.confirmDelete()}>
+            ${t5("ui.actionDelete")}
+          </ion-button>
+          <ion-button expand="block" fill="outline" @click=${() => this.deleteTarget = null}>
+            ${t5("ui.btnCancel")}
+          </ion-button>
         </ion-content>
       </ion-modal>
     `;
@@ -5512,24 +5598,32 @@ var ErpInventoryProducts = class extends i3 {
           </ion-toolbar>
         </ion-header>
         <ion-content class="ion-padding">
-          <div class="detail">
-            <div class="drow"><span>${t5("ui.countCurrent")}</span><b>${formatQuantity(this.countTarget?.stock ?? 0)}</b></div>
-            <ion-input fill="outline" label-placement="floating" label=${t5("ui.countNew")}
-              type="number" .step=${this.quantityStep(this.countTarget?.unit_code)} min="0" inputmode="decimal"
-              .value=${this.countValue}
-              @ionInput=${(e5) => this.countValue = String(e5.detail.value ?? "")}
-            ></ion-input>
-            ${diff !== null ? b2`<div class="drow"><span>${t5("ui.countDiff")}</span>
-                  <b>${diff > 0 ? `+${diff}` : diff}</b></div>` : A}
-            <ion-input fill="outline" label-placement="floating" label=${t5("ui.countReason")}
-              .value=${this.countReason} required
-              @ionInput=${(e5) => this.countReason = String(e5.detail.value ?? "")}
-            ></ion-input>
-            <ion-button expand="block" .disabled=${diff === null || this.countReason.trim() === ""}
-              @click=${() => this.submitCount()}>
-              ${t5("ui.countApply")}
-            </ion-button>
-          </div>
+          <!-- OJO: ion-modal se re-aparenta a <body> y PIERDE el CSS del shadow del
+               componente — el contenido debe AUTO-ESTILARSE (Ionic puro + ion-margin-*),
+               nunca clases propias (.detail/.drow). Patrón de la casa (sales-list). -->
+          <ion-list lines="full">
+            <ion-item>
+              <ion-label>${t5("ui.countCurrent")}</ion-label>
+              <ion-note slot="end">${formatQuantity(this.countTarget?.stock ?? 0)}</ion-note>
+            </ion-item>
+            ${diff !== null ? b2`<ion-item>
+                  <ion-label>${t5("ui.countDiff")}</ion-label>
+                  <ion-note slot="end" color=${diff < 0 ? "danger" : "success"}>${diff > 0 ? `+${diff}` : diff}</ion-note>
+                </ion-item>` : A}
+          </ion-list>
+          <ion-input class="ion-margin-top" fill="outline" label-placement="floating" label=${t5("ui.countNew")}
+            type="number" .step=${this.quantityStep(this.countTarget?.unit_code)} min="0" inputmode="decimal"
+            .value=${this.countValue}
+            @ionInput=${(e5) => this.countValue = String(e5.detail.value ?? "")}
+          ></ion-input>
+          <ion-input class="ion-margin-top" fill="outline" label-placement="floating" label=${t5("ui.countReason")}
+            .value=${this.countReason} required
+            @ionInput=${(e5) => this.countReason = String(e5.detail.value ?? "")}
+          ></ion-input>
+          <ion-button class="ion-margin-top" expand="block" .disabled=${diff === null || this.countReason.trim() === ""}
+            @click=${() => this.submitCount()}>
+            ${t5("ui.countApply")}
+          </ion-button>
         </ion-content>
       </ion-modal>
     `;
@@ -5549,23 +5643,27 @@ var ErpInventoryProducts = class extends i3 {
           </ion-toolbar>
         </ion-header>
         <ion-content class="ion-padding">
-          <div class="detail">
-            <div class="drow"><span>${t5("ui.countCurrent")}</span><b>${formatQuantity(this.receiveTarget?.stock ?? 0)}</b></div>
-            <ion-input fill="outline" label-placement="floating" label=${t5("ui.receiveQty")}
-              type="number" .step=${this.quantityStep(this.receiveTarget?.unit_code)} min="0.000001" inputmode="decimal"
-              .value=${this.receiveQty}
-              @ionInput=${(e5) => this.receiveQty = String(e5.detail.value ?? "")}
-            ></ion-input>
-            <ion-input fill="outline" label-placement="floating" label=${`${t5("ui.receiveCost")} (${erplora4().currency})`}
-              type="number" step="0.01" min="0" inputmode="decimal"
-              .value=${this.receiveCost}
-              @ionInput=${(e5) => this.receiveCost = String(e5.detail.value ?? "")}
-            ></ion-input>
-            <ion-button expand="block" .disabled=${this.receiveQty.trim() === ""}
-              @click=${() => this.submitReceive()}>
-              ${t5("ui.receiveApply")}
-            </ion-button>
-          </div>
+          <!-- Auto-estilado (ver nota del modal de recuento): el reparent a <body> mata el CSS del shadow. -->
+          <ion-list lines="full">
+            <ion-item>
+              <ion-label>${t5("ui.countCurrent")}</ion-label>
+              <ion-note slot="end">${formatQuantity(this.receiveTarget?.stock ?? 0)}</ion-note>
+            </ion-item>
+          </ion-list>
+          <ion-input class="ion-margin-top" fill="outline" label-placement="floating" label=${t5("ui.receiveQty")}
+            type="number" .step=${this.quantityStep(this.receiveTarget?.unit_code)} min="0.000001" inputmode="decimal"
+            .value=${this.receiveQty}
+            @ionInput=${(e5) => this.receiveQty = String(e5.detail.value ?? "")}
+          ></ion-input>
+          <ion-input class="ion-margin-top" fill="outline" label-placement="floating" label=${`${t5("ui.receiveCost")} (${erplora4().currency})`}
+            type="number" step="0.01" min="0" inputmode="decimal"
+            .value=${this.receiveCost}
+            @ionInput=${(e5) => this.receiveCost = String(e5.detail.value ?? "")}
+          ></ion-input>
+          <ion-button class="ion-margin-top" expand="block" .disabled=${this.receiveQty.trim() === ""}
+            @click=${() => this.submitReceive()}>
+            ${t5("ui.receiveApply")}
+          </ion-button>
         </ion-content>
       </ion-modal>
     `;
@@ -5643,6 +5741,9 @@ __decorateClass([
 __decorateClass([
   r5()
 ], ErpInventoryProducts.prototype, "importChoice", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "deleteTarget", 2);
 __decorateClass([
   r5()
 ], ErpInventoryProducts.prototype, "importReport", 2);
