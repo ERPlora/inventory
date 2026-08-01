@@ -385,7 +385,8 @@
           "query": "inventory.products.unit_of",
           "params": {
             "product_id": "payload.product_id"
-          }
+          },
+          "required": true
         }
       ],
       "emit": [
