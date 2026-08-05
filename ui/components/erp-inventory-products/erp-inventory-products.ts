@@ -1,6 +1,7 @@
 import { LitElement, html, css, nothing, svg } from 'lit';
 import { state } from 'lit/decorators.js';
 import { code128b } from '../../lib/code128';
+import { printBarcodeLabel } from '../../lib/barcode-print';
 import { formatQuantity, fromMicro, onGrid, parseQuantity } from '../../lib/quantity';
 import { resolveTaxCategories, pickTaxValue, normalizeAlias, learnAlias, createCategoryWithAlias } from '../../lib/tax-resolve';
 // `define` por su subpath ligero: importar el barrel '@erplora/outfitkit' arrastraría (efectos
@@ -603,21 +604,11 @@ export class ErpInventoryProducts extends LitElement {
       ${bc.bars.map((b) => svg`<rect x=${b.x} y="0" width=${b.w} height=${bc.height}></rect>`)}
     </svg>`;
   }
-  // Imprime el código de barras en una ventana aparte (en el Hub real iría al Bridge/etiquetadora).
+  // Prints the SKU barcode through the SINGLE print gate (issue #30, ADR-0196 decision 5):
+  // `erplora.print` (Bridge/label printer first) → isolated iframe. The old `window.open` popup
+  // with an inline `window.print()` script bypassed the gate; contract in barcode-print.test.ts.
   private printBarcode(p: Product): void {
-    const bc = code128b(p.sku, 2, 90);
-    const rects = bc.bars.map((b) => `<rect x="${b.x}" y="0" width="${b.w}" height="${bc.height}"/>`).join('');
-    const win = window.open('', '_blank', 'width=420,height=320');
-    if (!win) return;
-    win.document.write(
-      `<!doctype html><meta charset="utf-8"><title>${p.sku}</title>` +
-        `<body style="margin:0;display:grid;place-items:center;height:100vh;font-family:system-ui">` +
-        `<div style="text-align:center"><svg width="${bc.width}" height="${bc.height}" viewBox="0 0 ${bc.width} ${bc.height}" fill="#000">${rects}</svg>` +
-        `<div style="font:14px monospace;margin-top:6px">${p.sku}</div>` +
-        `<div style="font:13px system-ui;color:#555">${p.name}</div></div>` +
-        `<script>window.onload=function(){window.print()}<\/script>`,
-    );
-    win.document.close();
+    printBarcodeLabel(p.sku, p.name);
   }
 
   // Init una sola vez tras el primer render (equivalente a `componentWillLoad` de Stencil: el shell

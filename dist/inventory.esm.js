@@ -9,7 +9,7 @@ var __decorateClass = (decorators, target, key, kind) => {
   return result;
 };
 
-// ../../../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/element-internals.js
+// ../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/element-internals.js
 var ElementInternalsShim = class ElementInternals {
   get shadowRoot() {
     return this.__host.__shadowRoot;
@@ -88,7 +88,7 @@ var ElementInternalsShim = class ElementInternals {
   }
 };
 
-// ../../../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/events.js
+// ../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/events.js
 var __classPrivateFieldSet = function(receiver, state, value, kind, f3) {
   if (kind === "m") throw new TypeError("Private method is not writable");
   if (kind === "a" && !f3) throw new TypeError("Private accessor was defined without a setter");
@@ -246,7 +246,7 @@ Object.defineProperties(CustomEventShim.prototype, {
 var EventShimWithRealType = EventShim;
 var CustomEventShimWithRealType = CustomEventShim;
 
-// ../../../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/css.js
+// ../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/css.js
 var _a2;
 var CSSRuleShim = (_a2 = class CSSRule {
   constructor() {
@@ -277,7 +277,7 @@ var CSSRuleShim = (_a2 = class CSSRule {
   }
 }, _a2.STYLE_RULE = 1, _a2.CHARSET_RULE = 2, _a2.IMPORT_RULE = 3, _a2.MEDIA_RULE = 4, _a2.FONT_FACE_RULE = 5, _a2.PAGE_RULE = 6, _a2.NAMESPACE_RULE = 10, _a2.KEYFRAMES_RULE = 7, _a2.KEYFRAME_RULE = 8, _a2.SUPPORTS_RULE = 12, _a2.COUNTER_STYLE_RULE = 11, _a2.FONT_FEATURE_VALUES_RULE = 14, _a2.MARGIN_RULE = 9, _a2);
 
-// ../../../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/index.js
+// ../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/index.js
 globalThis.Event ??= EventShimWithRealType;
 globalThis.CustomEvent ??= CustomEventShimWithRealType;
 var constructionToken = Symbol();
@@ -674,7 +674,7 @@ var CustomElementRegistryShimWithRealType = CustomElementRegistry;
 var customElements2 = new CustomElementRegistryShimWithRealType();
 var windowShim = new WindowShim(constructionToken);
 
-// ../../../module-toolkit/node_modules/@lit/reactive-element/node/css-tag.js
+// ../module-toolkit/node_modules/@lit/reactive-element/node/css-tag.js
 var t = globalThis;
 var e = t.ShadowRoot && (void 0 === t.ShadyCSS || t.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype;
 var s = Symbol();
@@ -719,7 +719,7 @@ var c = e || void 0 === t.CSSStyleSheet ? (t5) => t5 : (t5) => t5 instanceof CSS
   return r(e5);
 })(t5) : t5;
 
-// ../../../module-toolkit/node_modules/@lit/reactive-element/node/reactive-element.js
+// ../module-toolkit/node_modules/@lit/reactive-element/node/reactive-element.js
 var { is: h, defineProperty: r2, getOwnPropertyDescriptor: o2, getOwnPropertyNames: n2, getOwnPropertySymbols: a, getPrototypeOf: c2 } = Object;
 var l = globalThis;
 l.customElements ??= customElements2;
@@ -942,7 +942,7 @@ var g = class extends (globalThis.HTMLElement ?? HTMLElementShimWithRealType) {
 };
 g.elementStyles = [], g.shadowRootOptions = { mode: "open" }, g[f("elementProperties")] = /* @__PURE__ */ new Map(), g[f("finalized")] = /* @__PURE__ */ new Map(), u?.({ ReactiveElement: g }), (l.reactiveElementVersions ??= []).push("2.1.2");
 
-// ../../../module-toolkit/node_modules/lit-html/lit-html.js
+// ../module-toolkit/node_modules/lit-html/lit-html.js
 var t2 = globalThis;
 var i2 = (t5) => t5;
 var s2 = t2.trustedTypes;
@@ -1197,7 +1197,7 @@ var D = (t5, i7, s5) => {
   return h4._$AI(t5), h4;
 };
 
-// ../../../module-toolkit/node_modules/lit-element/lit-element.js
+// ../module-toolkit/node_modules/lit-element/lit-element.js
 var s3 = globalThis;
 var i3 = class extends g {
   constructor() {
@@ -1226,7 +1226,7 @@ var o4 = s3.litElementPolyfillSupport;
 o4?.({ LitElement: i3 });
 (s3.litElementVersions ??= []).push("4.2.2");
 
-// ../../../module-toolkit/node_modules/@lit/reactive-element/node/decorators/property.js
+// ../module-toolkit/node_modules/@lit/reactive-element/node/decorators/property.js
 var o5 = { attribute: true, type: String, converter: b, reflect: false, hasChanged: m };
 var r4 = (t5 = o5, e5, r6) => {
   const { kind: n6, metadata: i7 } = r6;
@@ -1256,12 +1256,12 @@ function n4(t5) {
   })(t5, e5, o7);
 }
 
-// ../../../module-toolkit/node_modules/@lit/reactive-element/node/decorators/state.js
+// ../module-toolkit/node_modules/@lit/reactive-element/node/decorators/state.js
 function r5(r6) {
   return n4({ ...r6, state: true, attribute: false });
 }
 
-// ui/lib/tax-resolve.ts
+// modules/inventory/ui/lib/tax-resolve.ts
 var TAX_HEADERS = [
   "tax_category",
   "tax_category_key",
@@ -1336,7 +1336,7 @@ async function createCategoryWithAlias(client, key, name, aliasText) {
   return key;
 }
 
-// locales/es.json
+// modules/inventory/locales/es.json
 var es_default = {
   name: "Inventario",
   navigation: {
@@ -1493,7 +1493,7 @@ var es_default = {
   }
 };
 
-// locales/en.json
+// modules/inventory/locales/en.json
 var en_default = {
   name: "Inventory",
   navigation: {
@@ -1633,14 +1633,14 @@ var en_default = {
   }
 };
 
-// ../../../outfitkit/dist/define.js
+// ../../../../../../private/tmp/claude-501/-Users-ioan-beilic-workspace-code-ERPlora/89541ee2-7ec7-48d6-b975-f4f518912f85/scratchpad/outfitkit-main/dist/define.js
 function define(tag, ctor) {
   if (typeof customElements !== "undefined" && !customElements.get(tag)) {
     customElements.define(tag, ctor);
   }
 }
 
-// ../../../outfitkit/dist/shared/icons.js
+// ../../../../../../private/tmp/claude-501/-Users-ioan-beilic-workspace-code-ERPlora/89541ee2-7ec7-48d6-b975-f4f518912f85/scratchpad/outfitkit-main/dist/shared/icons.js
 var rawAdd = '<svg viewBox="0 0 512 512" width="1.2em" height="1.2em" ><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M256 112v288m144-144H112"/></svg>';
 var rawAlertCircle = '<svg viewBox="0 0 512 512" width="1.2em" height="1.2em" ><path fill="currentColor" d="M256 48C141.31 48 48 141.31 48 256s93.31 208 208 208s208-93.31 208-208S370.69 48 256 48m0 319.91a20 20 0 1 1 20-20a20 20 0 0 1-20 20m21.72-201.15l-5.74 122a16 16 0 0 1-32 0l-5.74-121.94v-.05a21.74 21.74 0 1 1 43.44 0Z"/></svg>';
 var rawAlertCircleOutline = '<svg viewBox="0 0 512 512" width="1.2em" height="1.2em" ><path fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" d="M448 256c0-106-86-192-192-192S64 150 64 256s86 192 192 192s192-86 192-192Z"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M250.26 166.05L256 288l5.73-121.95a5.74 5.74 0 0 0-5.79-6h0a5.74 5.74 0 0 0-5.68 6"/><path fill="currentColor" d="M256 367.91a20 20 0 1 1 20-20a20 20 0 0 1-20 20"/></svg>';
@@ -1788,7 +1788,7 @@ function okIcon(value) {
   return BY_NAME[value] ?? value;
 }
 
-// ../../../outfitkit/dist/ok-inline-feedback.js
+// ../../../../../../private/tmp/claude-501/-Users-ioan-beilic-workspace-code-ERPlora/89541ee2-7ec7-48d6-b975-f4f518912f85/scratchpad/outfitkit-main/dist/ok-inline-feedback.js
 var __defProp2 = Object.defineProperty;
 var __decorateClass2 = (decorators, target, key, kind) => {
   var result = void 0;
@@ -2005,7 +2005,7 @@ __decorateClass2([
 ], OkInlineFeedback.prototype, "hasActions");
 define("ok-inline-feedback", OkInlineFeedback);
 
-// ../../../module-toolkit/node_modules/lit-html/directive.js
+// ../module-toolkit/node_modules/lit-html/directive.js
 var t3 = { ATTRIBUTE: 1, CHILD: 2, PROPERTY: 3, BOOLEAN_ATTRIBUTE: 4, EVENT: 5, ELEMENT: 6 };
 var e4 = (t5) => (...e5) => ({ _$litDirective$: t5, values: e5 });
 var i4 = class {
@@ -2025,7 +2025,7 @@ var i4 = class {
   }
 };
 
-// ../../../module-toolkit/node_modules/lit-html/directive-helpers.js
+// ../module-toolkit/node_modules/lit-html/directive-helpers.js
 var { I: t4 } = j;
 var i5 = (o7) => o7;
 var s4 = () => document.createComment("");
@@ -2058,7 +2058,7 @@ var h3 = (o7) => {
   o7._$AR(), o7._$AA.remove();
 };
 
-// ../../../module-toolkit/node_modules/lit-html/directives/repeat.js
+// ../module-toolkit/node_modules/lit-html/directives/repeat.js
 var u4 = (e5, s5, t5) => {
   const r6 = /* @__PURE__ */ new Map();
   for (let l3 = s5; l3 <= t5; l3++) r6.set(e5[l3], l3);
@@ -2111,7 +2111,7 @@ var c4 = e4(class extends i4 {
   }
 });
 
-// ../../../module-toolkit/node_modules/lit-html/directives/style-map.js
+// ../module-toolkit/node_modules/lit-html/directives/style-map.js
 var n5 = "important";
 var i6 = " !" + n5;
 var o6 = e4(class extends i4 {
@@ -2140,7 +2140,7 @@ var o6 = e4(class extends i4 {
   }
 });
 
-// ../../../outfitkit/dist/ok-data-table.js
+// ../../../../../../private/tmp/claude-501/-Users-ioan-beilic-workspace-code-ERPlora/89541ee2-7ec7-48d6-b975-f4f518912f85/scratchpad/outfitkit-main/dist/ok-data-table.js
 var CSV_BOM = "\uFEFF";
 function decodeCsvBuffer(buf) {
   let text;
@@ -2232,7 +2232,7 @@ var ES_LABELS = {
   recordSingular: "registro",
   recordPlural: "registros"
 };
-var OkDataTable = class extends i3 {
+var _OkDataTable = class _OkDataTable2 extends i3 {
   constructor() {
     super(...arguments);
     this.columns = [];
@@ -2270,6 +2270,8 @@ var OkDataTable = class extends i3 {
     this.filterDraft = {};
     this.panel = "none";
     this.viewMode = "table";
+    this.viewChosenByUser = false;
+    this.isMobile = false;
     this.hiddenKeys = /* @__PURE__ */ new Set();
     this.internalSelection = /* @__PURE__ */ new Set();
     this.menuOpen = false;
@@ -2516,15 +2518,36 @@ var OkDataTable = class extends i3 {
     ion-button { --box-shadow: none; }
   `;
   }
+  static {
+    this.MOBILE_BREAKPOINT = 640;
+  }
   connectedCallback() {
     super.connectedCallback();
     if (typeof window !== "undefined") {
       window.addEventListener("erplora:locale-changed", this.onLocaleChanged);
     }
+    if (typeof window !== "undefined" && typeof window.matchMedia === "function") {
+      this.mq = window.matchMedia(`(max-width: ${_OkDataTable2.MOBILE_BREAKPOINT}px)`);
+      this.isMobile = this.mq.matches;
+      const handler = (e5) => {
+        const matches = "matches" in e5 ? e5.matches : this.mq?.matches ?? false;
+        if (this.isMobile === matches) return;
+        this.isMobile = matches;
+        if (matches && this.cardViewEnabled) this.viewMode = "cards";
+        else if (!matches && this.viewMode === "cards") this.viewMode = "table";
+      };
+      this.mq.addEventListener("change", handler);
+      this._mqHandler = handler;
+    }
   }
   disconnectedCallback() {
     if (typeof window !== "undefined") {
       window.removeEventListener("erplora:locale-changed", this.onLocaleChanged);
+    }
+    if (this.mq) {
+      const handler = this._mqHandler;
+      if (handler) this.mq.removeEventListener("change", handler);
+      this.mq = void 0;
     }
     super.disconnectedCallback();
   }
@@ -2884,10 +2907,35 @@ var OkDataTable = class extends i3 {
   // forma robusta de arrancar en tarjetas sin depender de fijar `viewMode` por referencia (que
   // falla si la tabla monta detrás de un `v-if`/loading y el ref aún es null).
   firstUpdated() {
-    if (this.defaultView === "cards" && this.cardViewEnabled) this.viewMode = "cards";
-    else if (this.defaultView === "table") this.viewMode = "table";
+    this.applyInitialView();
+  }
+  /** Re-evalúa la vista inicial cada render mientras el usuario no haya elegido a mano.
+   *
+   * `firstUpdated` NO basta: decide una sola vez, y los consumidores que asignan las props por JS
+   * DESPUÉS de insertar el elemento —lo normal en páginas renderizadas por el servidor— llegan
+   * tarde. En ese momento `cardViewEnabled` aún era `false`, así que no se conmutaba; y el
+   * listener de `matchMedia` solo dispara al CAMBIAR el viewport, cosa que en un móvil no pasa
+   * nunca. La tabla se quedaba con scroll lateral para siempre.
+   *
+   * Medido en Android contra producción el 2026-08-02 con el bundle ya actualizado:
+   *   `views` antes de insertar  → tarjetas
+   *   `views` después de insertar → tabla   ← lo que hace la página
+   */
+  willUpdate() {
+    this.applyInitialView();
+  }
+  applyInitialView() {
+    if (this.viewChosenByUser) return;
+    if (this.isMobile && this.cardViewEnabled) {
+      this.viewMode = "cards";
+    } else if (this.defaultView === "cards" && this.cardViewEnabled) {
+      this.viewMode = "cards";
+    } else if (this.defaultView === "table") {
+      this.viewMode = "table";
+    }
   }
   setViewMode(mode) {
+    this.viewChosenByUser = true;
     if (this.viewMode === mode) return;
     this.viewMode = mode;
     this.emit("viewChange", mode);
@@ -3369,154 +3417,158 @@ var OkDataTable = class extends i3 {
 };
 __decorateClass3([
   n4({ attribute: false })
-], OkDataTable.prototype, "columns");
+], _OkDataTable.prototype, "columns");
 __decorateClass3([
   n4({ attribute: false })
-], OkDataTable.prototype, "rows");
+], _OkDataTable.prototype, "rows");
 __decorateClass3([
   n4({ attribute: false })
-], OkDataTable.prototype, "searchKeys");
+], _OkDataTable.prototype, "searchKeys");
 __decorateClass3([
   n4({ attribute: "row-key-field" })
-], OkDataTable.prototype, "rowKeyField");
+], _OkDataTable.prototype, "rowKeyField");
 __decorateClass3([
   n4({ attribute: false })
-], OkDataTable.prototype, "rowKey");
+], _OkDataTable.prototype, "rowKey");
 __decorateClass3([
   n4({ type: Number, attribute: "page-size" })
-], OkDataTable.prototype, "pageSize");
+], _OkDataTable.prototype, "pageSize");
 __decorateClass3([
   n4({ attribute: "empty-message" })
-], OkDataTable.prototype, "emptyMessage");
+], _OkDataTable.prototype, "emptyMessage");
 __decorateClass3([
   n4({ attribute: "search-placeholder" })
-], OkDataTable.prototype, "searchPlaceholder");
+], _OkDataTable.prototype, "searchPlaceholder");
 __decorateClass3([
   n4({ attribute: false })
-], OkDataTable.prototype, "labels");
+], _OkDataTable.prototype, "labels");
 __decorateClass3([
   n4({ attribute: false })
-], OkDataTable.prototype, "actions");
+], _OkDataTable.prototype, "actions");
 __decorateClass3([
   n4({ type: Boolean })
-], OkDataTable.prototype, "addable");
+], _OkDataTable.prototype, "addable");
 __decorateClass3([
   n4({ attribute: false })
-], OkDataTable.prototype, "pageSizeOptions");
+], _OkDataTable.prototype, "pageSizeOptions");
 __decorateClass3([
   n4({ type: Boolean, reflect: true })
-], OkDataTable.prototype, "fill");
+], _OkDataTable.prototype, "fill");
 __decorateClass3([
   n4({ type: Boolean, attribute: "column-picker" })
-], OkDataTable.prototype, "columnPicker");
+], _OkDataTable.prototype, "columnPicker");
 __decorateClass3([
   n4({ type: Boolean })
-], OkDataTable.prototype, "csv");
+], _OkDataTable.prototype, "csv");
 __decorateClass3([
   n4({ attribute: "csv-name" })
-], OkDataTable.prototype, "csvName");
+], _OkDataTable.prototype, "csvName");
 __decorateClass3([
   n4({ type: Boolean, attribute: "server-side" })
-], OkDataTable.prototype, "serverSide");
+], _OkDataTable.prototype, "serverSide");
 __decorateClass3([
   n4({ type: Number })
-], OkDataTable.prototype, "total");
+], _OkDataTable.prototype, "total");
 __decorateClass3([
   n4({ type: Number })
-], OkDataTable.prototype, "page");
+], _OkDataTable.prototype, "page");
 __decorateClass3([
   n4({ type: Boolean })
-], OkDataTable.prototype, "searchable");
+], _OkDataTable.prototype, "searchable");
 __decorateClass3([
   n4({ type: String })
-], OkDataTable.prototype, "sort");
+], _OkDataTable.prototype, "sort");
 __decorateClass3([
   n4({ attribute: "sort-dir" })
-], OkDataTable.prototype, "sortDir");
+], _OkDataTable.prototype, "sortDir");
 __decorateClass3([
   n4()
-], OkDataTable.prototype, "title");
+], _OkDataTable.prototype, "title");
 __decorateClass3([
   n4({ attribute: false })
-], OkDataTable.prototype, "views");
+], _OkDataTable.prototype, "views");
 __decorateClass3([
   n4({ attribute: "default-view" })
-], OkDataTable.prototype, "defaultView");
+], _OkDataTable.prototype, "defaultView");
 __decorateClass3([
   n4({ type: Boolean })
-], OkDataTable.prototype, "exportable");
+], _OkDataTable.prototype, "exportable");
 __decorateClass3([
   n4({ type: Boolean })
-], OkDataTable.prototype, "importable");
+], _OkDataTable.prototype, "importable");
 __decorateClass3([
   n4({ type: Boolean, attribute: "column-selector" })
-], OkDataTable.prototype, "columnSelector");
+], _OkDataTable.prototype, "columnSelector");
 __decorateClass3([
   n4({ attribute: false })
-], OkDataTable.prototype, "pageSizes");
+], _OkDataTable.prototype, "pageSizes");
 __decorateClass3([
   n4({ type: Boolean })
-], OkDataTable.prototype, "selectable");
+], _OkDataTable.prototype, "selectable");
 __decorateClass3([
   n4({ attribute: false })
-], OkDataTable.prototype, "selectedKeys");
+], _OkDataTable.prototype, "selectedKeys");
 __decorateClass3([
   n4({ attribute: false })
-], OkDataTable.prototype, "primaryAction");
+], _OkDataTable.prototype, "primaryAction");
 __decorateClass3([
   n4({ type: Boolean })
-], OkDataTable.prototype, "inlineFilters");
+], _OkDataTable.prototype, "inlineFilters");
 __decorateClass3([
   n4({ attribute: false })
-], OkDataTable.prototype, "menuActions");
+], _OkDataTable.prototype, "menuActions");
 __decorateClass3([
   n4({ attribute: false })
-], OkDataTable.prototype, "cardTitle");
+], _OkDataTable.prototype, "cardTitle");
 __decorateClass3([
   n4({ attribute: false })
-], OkDataTable.prototype, "cardIcon");
+], _OkDataTable.prototype, "cardIcon");
 __decorateClass3([
   n4({ attribute: false })
-], OkDataTable.prototype, "renderCard");
+], _OkDataTable.prototype, "renderCard");
 __decorateClass3([
   r5()
-], OkDataTable.prototype, "q");
+], _OkDataTable.prototype, "q");
 __decorateClass3([
   r5()
-], OkDataTable.prototype, "clientPage");
+], _OkDataTable.prototype, "clientPage");
 __decorateClass3([
   r5()
-], OkDataTable.prototype, "clientPageSize");
+], _OkDataTable.prototype, "clientPageSize");
 __decorateClass3([
   r5()
-], OkDataTable.prototype, "clientSort");
+], _OkDataTable.prototype, "clientSort");
 __decorateClass3([
   r5()
-], OkDataTable.prototype, "clientSortDir");
+], _OkDataTable.prototype, "clientSortDir");
 __decorateClass3([
   r5()
-], OkDataTable.prototype, "clientFilters");
+], _OkDataTable.prototype, "clientFilters");
 __decorateClass3([
   r5()
-], OkDataTable.prototype, "filterDraft");
+], _OkDataTable.prototype, "filterDraft");
 __decorateClass3([
   r5()
-], OkDataTable.prototype, "panel");
+], _OkDataTable.prototype, "panel");
 __decorateClass3([
   r5()
-], OkDataTable.prototype, "viewMode");
+], _OkDataTable.prototype, "viewMode");
 __decorateClass3([
   r5()
-], OkDataTable.prototype, "hiddenKeys");
+], _OkDataTable.prototype, "isMobile");
 __decorateClass3([
   r5()
-], OkDataTable.prototype, "internalSelection");
+], _OkDataTable.prototype, "hiddenKeys");
 __decorateClass3([
   r5()
-], OkDataTable.prototype, "menuOpen");
+], _OkDataTable.prototype, "internalSelection");
+__decorateClass3([
+  r5()
+], _OkDataTable.prototype, "menuOpen");
+var OkDataTable = _OkDataTable;
 define("ok-data-table", OkDataTable);
 
-// ../../../hub/packages/module-sdk/src/index.ts
+// ../hub/packages/module-sdk/src/index.ts
 var DATA_TABLE_LABELS_ES = {
   search: "Buscar\u2026",
   empty: "Sin resultados",
@@ -3719,7 +3771,7 @@ function centsToEuros(cents) {
   return cents == null ? "" : (cents / 100).toFixed(2);
 }
 
-// ui/components/erp-inventory-categories/erp-inventory-categories.ts
+// modules/inventory/ui/components/erp-inventory-categories/erp-inventory-categories.ts
 var CATALOG = { es: es_default, en: en_default };
 function erplora() {
   const c5 = globalThis.erplora;
@@ -4062,7 +4114,7 @@ __decorateClass([
 ], ErpInventoryCategories.prototype, "deleteImpact", 2);
 define("erp-inventory-categories", ErpInventoryCategories);
 
-// ../../../outfitkit/dist/ok-kpi.js
+// ../../../../../../private/tmp/claude-501/-Users-ioan-beilic-workspace-code-ERPlora/89541ee2-7ec7-48d6-b975-f4f518912f85/scratchpad/outfitkit-main/dist/ok-kpi.js
 var __defProp4 = Object.defineProperty;
 var __decorateClass4 = (decorators, target, key, kind) => {
   var result = void 0;
@@ -4205,26 +4257,26 @@ __decorateClass4([
 ], OkKpi.prototype, "icon");
 define("ok-kpi", OkKpi);
 
-// ui/lib/quantity.ts
-var QUANTITY_SCALE = 1e6;
-function fromMicro(raw) {
-  return raw / QUANTITY_SCALE;
+// modules/inventory/ui/lib/quantity.ts
+var QUANTITY_SCALE2 = 1e6;
+function fromMicro2(raw) {
+  return raw / QUANTITY_SCALE2;
 }
-function parseQuantity(text) {
+function parseQuantity2(text) {
   const normalized = text.trim().replace(",", ".");
   if (!/^\d+(\.\d{1,6})?$/.test(normalized)) return null;
-  const raw = Math.round(Number(normalized) * QUANTITY_SCALE);
+  const raw = Math.round(Number(normalized) * QUANTITY_SCALE2);
   return Number.isSafeInteger(raw) && raw >= 0 ? raw : null;
 }
-function formatQuantity(raw) {
+function formatQuantity2(raw) {
   const value = Number(raw);
-  return Number.isFinite(value) ? String(fromMicro(value)) : String(raw);
+  return Number.isFinite(value) ? String(fromMicro2(value)) : String(raw);
 }
-function onGrid(raw, increment) {
+function onGrid2(raw, increment) {
   return !Number.isFinite(increment) || increment <= 0 || raw % increment === 0;
 }
 
-// ui/components/erp-inventory-dashboard/erp-inventory-dashboard.ts
+// modules/inventory/ui/components/erp-inventory-dashboard/erp-inventory-dashboard.ts
 var CATALOG2 = { es: es_default, en: en_default };
 function erplora2() {
   const c5 = globalThis.erplora;
@@ -4268,13 +4320,13 @@ var ErpInventoryDashboard = class extends i3 {
         key: "stock",
         header: t5("ui.stock"),
         align: "right",
-        format: (r6) => formatQuantity(Number(r6.stock))
+        format: (r6) => formatQuantity2(Number(r6.stock))
       },
       {
         key: "low_stock_threshold",
         header: t5("ui.threshold"),
         align: "right",
-        format: (r6) => formatQuantity(Number(r6.low_stock_threshold))
+        format: (r6) => formatQuantity2(Number(r6.low_stock_threshold))
       }
     ];
   }
@@ -4354,7 +4406,7 @@ __decorateClass([
 ], ErpInventoryDashboard.prototype, "statsError", 2);
 define("erp-inventory-dashboard", ErpInventoryDashboard);
 
-// ui/components/erp-inventory-movements/erp-inventory-movements.ts
+// modules/inventory/ui/components/erp-inventory-movements/erp-inventory-movements.ts
 var CATALOG3 = { es: es_default, en: en_default };
 function erplora3() {
   const c5 = globalThis.erplora;
@@ -4367,7 +4419,7 @@ function formatDate(v3, locale) {
   return d3.toLocaleString(locale || "es", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 function formatQty(v3) {
-  const logical = fromMicro(Number(v3));
+  const logical = fromMicro2(Number(v3));
   return logical > 0 ? `+${logical}` : String(logical);
 }
 var ErpInventoryMovements = class extends i3 {
@@ -4433,7 +4485,7 @@ var ErpInventoryMovements = class extends i3 {
         header: t5("ui.mvStockAfter"),
         align: "right",
         sortable: true,
-        format: (r6) => formatQuantity(r6.stock_after)
+        format: (r6) => formatQuantity2(r6.stock_after)
       },
       { key: "reason", header: t5("ui.mvReason") },
       { key: "reference", header: t5("ui.mvReference"), filterable: true, filterType: "text" }
@@ -4473,7 +4525,7 @@ var ErpInventoryMovements = class extends i3 {
 };
 define("erp-inventory-movements", ErpInventoryMovements);
 
-// ui/lib/code128.ts
+// modules/inventory/ui/lib/code128.ts
 var PATTERNS = [
   "212222",
   "222122",
@@ -4611,7 +4663,49 @@ function code128b(text, module = 2, height = 70) {
   return { width: x2, height, bars };
 }
 
-// ui/components/erp-inventory-products/erp-inventory-products.ts
+// modules/inventory/ui/lib/barcode-print.ts
+function esc(s5) {
+  return s5.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function barcodeLabelHtml(sku, name) {
+  const bc = code128b(sku, 2, 90);
+  const rects = bc.bars.map((b3) => `<rect x="${b3.x}" y="0" width="${b3.w}" height="${bc.height}"/>`).join("");
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(sku)}</title></head><body style="margin:0;display:grid;place-items:center;min-height:100vh;font-family:system-ui"><div style="text-align:center;padding:8px"><svg width="${bc.width}" height="${bc.height}" viewBox="0 0 ${bc.width} ${bc.height}" fill="#000">${rects}</svg><div style="font:14px monospace;margin-top:6px">${esc(sku)}</div><div style="font:13px system-ui;color:#555">${esc(name)}</div></div></body></html>`;
+}
+function printHtmlInIframe(html, doc = document) {
+  const frame = doc.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.cssText = "position:fixed;right:0;bottom:0;width:80mm;height:1px;border:0;visibility:hidden;";
+  doc.body.appendChild(frame);
+  const w2 = frame.contentWindow;
+  const d3 = frame.contentDocument;
+  if (!w2 || !d3) {
+    frame.remove();
+    return;
+  }
+  d3.open();
+  d3.write(html);
+  d3.close();
+  const fire = () => {
+    try {
+      w2.focus();
+      w2.print();
+    } finally {
+      setTimeout(() => frame.remove(), 1e3);
+    }
+  };
+  if (d3.readyState === "complete") setTimeout(fire, 50);
+  else w2.addEventListener("load", () => setTimeout(fire, 50), { once: true });
+}
+function printBarcodeLabel(sku, name, deps = {}) {
+  const html = barcodeLabelHtml(sku, name);
+  const sdk = globalThis.erplora;
+  if (sdk?.print) void sdk.print({ role: "label", documentType: "label", html, jobId: `barcode-${sku}` });
+  else if (html) (deps.iframePrint ?? printHtmlInIframe)(html);
+  else window.print();
+}
+
+// modules/inventory/ui/components/erp-inventory-products/erp-inventory-products.ts
 var CATALOG4 = { es: es_default, en: en_default };
 function erplora4() {
   const c5 = globalThis.erplora;
@@ -4709,7 +4803,7 @@ var ErpInventoryProducts = class extends i3 {
         sortable: true,
         filterable: true,
         filterType: "range",
-        format: (r6) => formatQuantity(Number(r6.stock))
+        format: (r6) => formatQuantity2(Number(r6.stock))
       },
       {
         key: "is_active",
@@ -4738,13 +4832,13 @@ var ErpInventoryProducts = class extends i3 {
   /** Diferencia del recuento (nuevo − actual), o null si aún no hay valor tecleado. */
   get countDifference() {
     if (!this.countTarget || this.countValue.trim() === "") return null;
-    const raw = parseQuantity(this.countValue);
+    const raw = parseQuantity2(this.countValue);
     if (raw === null || !this.quantityMatchesUnit(raw, this.countTarget.unit_code)) return null;
-    return fromMicro(raw - Number(this.countTarget.stock));
+    return fromMicro2(raw - Number(this.countTarget.stock));
   }
   async submitCount() {
     if (!can2("inventory.adjust_stock") || !this.countTarget || this.countValue.trim() === "" || this.countReason.trim() === "") return;
-    const raw = parseQuantity(this.countValue);
+    const raw = parseQuantity2(this.countValue);
     if (raw === null) {
       this.formError = erplora4().t(CATALOG4, "ui.errQuantity");
       return;
@@ -4769,7 +4863,7 @@ var ErpInventoryProducts = class extends i3 {
   }
   async submitReceive() {
     if (!can2("inventory.adjust_stock") || !this.receiveTarget || this.receiveQty.trim() === "") return;
-    const qty = parseQuantity(this.receiveQty);
+    const qty = parseQuantity2(this.receiveQty);
     if (qty === null || qty <= 0) {
       this.formError = erplora4().t(CATALOG4, "ui.errQuantity");
       return;
@@ -4823,7 +4917,7 @@ var ErpInventoryProducts = class extends i3 {
         this.newSku = full.sku ?? "";
         this.newPrice = centsToEuros(full.price);
         this.newCost = centsToEuros(full.cost ?? 0);
-        this.newThreshold = formatQuantity(
+        this.newThreshold = formatQuantity2(
           full.low_stock_threshold ?? 1e7
         );
         this.newEan = String(full.ean13 ?? "");
@@ -4969,8 +5063,8 @@ var ErpInventoryProducts = class extends i3 {
       const taxValue = pickTaxValue(r6);
       const taxCategoryKey = taxValue ? map.get(normalizeAlias(taxValue)) ?? null : null;
       const unitCode = (r6.unit_code ?? "ud").trim() || "ud";
-      const stock = r6.stock?.trim() ? parseQuantity(r6.stock) : 0;
-      const threshold = r6.low_stock_threshold?.trim() ? parseQuantity(r6.low_stock_threshold) : 1e7;
+      const stock = r6.stock?.trim() ? parseQuantity2(r6.stock) : 0;
+      const threshold = r6.low_stock_threshold?.trim() ? parseQuantity2(r6.low_stock_threshold) : 1e7;
       if (stock === null || threshold === null) {
         failed.push({ line, sku, reason: t5("ui.errQuantity") });
         continue;
@@ -5066,16 +5160,11 @@ var ErpInventoryProducts = class extends i3 {
       ${bc.bars.map((b3) => w`<rect x=${b3.x} y="0" width=${b3.w} height=${bc.height}></rect>`)}
     </svg>`;
   }
-  // Imprime el código de barras en una ventana aparte (en el Hub real iría al Bridge/etiquetadora).
+  // Prints the SKU barcode through the SINGLE print gate (issue #30, ADR-0196 decision 5):
+  // `erplora.print` (Bridge/label printer first) → isolated iframe. The old `window.open` popup
+  // with an inline `window.print()` script bypassed the gate; contract in barcode-print.test.ts.
   printBarcode(p4) {
-    const bc = code128b(p4.sku, 2, 90);
-    const rects = bc.bars.map((b3) => `<rect x="${b3.x}" y="0" width="${b3.w}" height="${bc.height}"/>`).join("");
-    const win = window.open("", "_blank", "width=420,height=320");
-    if (!win) return;
-    win.document.write(
-      `<!doctype html><meta charset="utf-8"><title>${p4.sku}</title><body style="margin:0;display:grid;place-items:center;height:100vh;font-family:system-ui"><div style="text-align:center"><svg width="${bc.width}" height="${bc.height}" viewBox="0 0 ${bc.width} ${bc.height}" fill="#000">${rects}</svg><div style="font:14px monospace;margin-top:6px">${p4.sku}</div><div style="font:13px system-ui;color:#555">${p4.name}</div></div><script>window.onload=function(){window.print()}<\/script>`
-    );
-    win.document.close();
+    printBarcodeLabel(p4.sku, p4.name);
   }
   connectedCallback() {
     super.connectedCallback();
@@ -5147,11 +5236,11 @@ var ErpInventoryProducts = class extends i3 {
     return Number(configured ?? (normalized === "ud" ? 1e6 : 0));
   }
   quantityMatchesUnit(raw, unitCode) {
-    return onGrid(raw, this.unitIncrement(unitCode));
+    return onGrid2(raw, this.unitIncrement(unitCode));
   }
   quantityStep(unitCode) {
     const increment = this.unitIncrement(unitCode);
-    return increment > 0 ? formatQuantity(increment) : "0.000001";
+    return increment > 0 ? formatQuantity2(increment) : "0.000001";
   }
   /** Los filtros de la tabla también son entrada humana; el servidor espera los extremos en µ. */
   stockFilterValue(value) {
@@ -5159,7 +5248,7 @@ var ErpInventoryProducts = class extends i3 {
     const scaled = {};
     for (const [edge, logical] of Object.entries(value)) {
       if (logical === "" || logical == null) scaled[edge] = logical;
-      else scaled[edge] = parseQuantity(String(logical)) ?? logical;
+      else scaled[edge] = parseQuantity2(String(logical)) ?? logical;
     }
     return scaled;
   }
@@ -5214,7 +5303,7 @@ var ErpInventoryProducts = class extends i3 {
     this.formError = "";
     const t5 = (k2) => erplora4().t(CATALOG4, k2);
     try {
-      const threshold = this.newThreshold.trim() === "" ? 1e7 : parseQuantity(this.newThreshold);
+      const threshold = this.newThreshold.trim() === "" ? 1e7 : parseQuantity2(this.newThreshold);
       if (threshold === null) throw new Error(t5("ui.errQuantity"));
       if (!this.quantityMatchesUnit(threshold, this.newUnitCode)) {
         throw new Error(t5("ui.errQuantityGrid"));
@@ -5251,7 +5340,7 @@ var ErpInventoryProducts = class extends i3 {
           }
         }
       } else {
-        const stock = this.newStock.trim() === "" ? 0 : parseQuantity(this.newStock);
+        const stock = this.newStock.trim() === "" ? 0 : parseQuantity2(this.newStock);
         if (stock === null) throw new Error(t5("ui.errQuantity"));
         if (!this.quantityMatchesUnit(stock, this.newUnitCode)) {
           throw new Error(t5("ui.errQuantityGrid"));
@@ -5473,7 +5562,7 @@ var ErpInventoryProducts = class extends i3 {
                     </ion-item>
                     <ion-item>
                       <ion-label>${t5("ui.stock")}</ion-label>
-                      <ion-note slot="end">${formatQuantity(this.detail.stock)}</ion-note>
+                      <ion-note slot="end">${formatQuantity2(this.detail.stock)}</ion-note>
                     </ion-item>
                     <ion-item>
                       <ion-label>${t5("ui.active")}</ion-label>
@@ -5604,7 +5693,7 @@ var ErpInventoryProducts = class extends i3 {
           <ion-list lines="full">
             <ion-item>
               <ion-label>${t5("ui.countCurrent")}</ion-label>
-              <ion-note slot="end">${formatQuantity(this.countTarget?.stock ?? 0)}</ion-note>
+              <ion-note slot="end">${formatQuantity2(this.countTarget?.stock ?? 0)}</ion-note>
             </ion-item>
             ${diff !== null ? b2`<ion-item>
                   <ion-label>${t5("ui.countDiff")}</ion-label>
@@ -5647,7 +5736,7 @@ var ErpInventoryProducts = class extends i3 {
           <ion-list lines="full">
             <ion-item>
               <ion-label>${t5("ui.countCurrent")}</ion-label>
-              <ion-note slot="end">${formatQuantity(this.receiveTarget?.stock ?? 0)}</ion-note>
+              <ion-note slot="end">${formatQuantity2(this.receiveTarget?.stock ?? 0)}</ion-note>
             </ion-item>
           </ion-list>
           <ion-input class="ion-margin-top" fill="outline" label-placement="floating" label=${t5("ui.receiveQty")}
