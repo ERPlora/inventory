@@ -151,5 +151,9 @@
     "inventory.low_stock_products": {
       "title": "Productos con menos stock"
     }
+  },
+  "errors": {
+    "inventory.insufficient_stock": "No hay stock suficiente para completar la operación.",
+    "inventory.unknown_product": "Este producto no existe en este hub."
   }
 }

@@ -387,13 +387,17 @@
           "params": {
             "product_id": "payload.product_id"
           }
+        },
+        "inventory.settings.get",
+        {
+          "query": "inventory.products.get",
+          "params": {
+            "product_id": "payload.product_id"
+          }
         }
       ],
-      "emit": [
-        "inventory.stock_changed"
-      ],
       "ai": {
-        "description": "Decreases a product's stock. Rejects quantities that do not fall on the unit's minimum increment (ADR-0147)."
+        "description": "Decreases a product's stock, governed by the stock-control settings (#6): rejects an insufficient decrease when overselling is not allowed, is a no-op when stock tracking is off, and rejects quantities off the unit's minimum increment (ADR-0147)."
       }
     },
     "inventory.stock.receive": {
@@ -536,12 +540,6 @@
       "permission": "inventory.change_product",
       "sql": [
         "commands/_ensure_location.sql"
-      ]
-    },
-    "inventory._movement_on_decrease": {
-      "permission": "inventory.change_product",
-      "sql": [
-        "commands/_movement_on_decrease.sql"
       ]
     },
     "inventory._decrease_stock": {

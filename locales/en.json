@@ -134,5 +134,9 @@
     "deleteCatConfirm": "Delete and unlink",
     "deleteProdTitle": "Delete product",
     "deleteProdHint": "will be removed from the catalog (soft delete; its stock movements are kept)"
+  },
+  "errors": {
+    "inventory.insufficient_stock": "Not enough stock to complete the operation.",
+    "inventory.unknown_product": "This product does not exist in this hub."
   }
 }
