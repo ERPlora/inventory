@@ -14,11 +14,57 @@
 //! y ejecuta en una transacción. Los ids de filas nuevas salen de
 //! `context.new_ids` (el host es la autoridad de ids; el guest los reparte).
 
-use erplora_guest_sdk::{Operation, Output};
+use erplora_guest_sdk::{Event, Operation, Output};
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 
 #[cfg(feature = "guest")]
 use extism_pdk::*;
+
+/// Domain error of a guest output (ADR-0205 wire contract, hub#139): a stable, namespaced
+/// `code` (`inventory.<snake_case>`) the UI translates, plus an English source `message`
+/// (max 500 chars) as fallback. Local mirror of `erplora_guest_sdk::DomainError` — the hub
+/// checkout this crate builds against may predate the SDK type; the JSON wire shape
+/// (`error: {code, message}`) is the actual ABI, so the mirror stays compatible either way.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DomainError {
+    pub code: String,
+    pub message: String,
+}
+
+impl DomainError {
+    pub fn new(code: impl Into<String>, message: impl Into<String>) -> Self {
+        DomainError { code: code.into(), message: message.into() }
+    }
+}
+
+/// Guest output with the ADR-0205 `error` channel. Wire-compatible superset of
+/// [`erplora_guest_sdk::Output`]:
+///  * on an ADR-0205 runtime, `error` is checked BEFORE operations/events — nothing persists
+///    and the caller gets HTTP 409 `{code, message}`;
+///  * on an older runtime the unknown `error` field is ignored by serde and the empty
+///    `operations` make the command a clean no-op — same silent outcome as before, never worse.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct HandlerOutput {
+    #[serde(default)]
+    pub operations: Vec<Operation>,
+    #[serde(default)]
+    pub events: Vec<Event>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<DomainError>,
+}
+
+impl HandlerOutput {
+    /// A business rejection: no operations, no events, just the domain error.
+    fn rejected(code: &str, message: String) -> Self {
+        HandlerOutput { error: Some(DomainError::new(code, message)), ..Default::default() }
+    }
+
+    /// A benign no-op (e.g. `track_stock = 0`): nothing to do, and NOT an error.
+    fn noop() -> Self {
+        HandlerOutput::default()
+    }
+}
 
 /// Alta batch de productos. Exporta `bulk_create`.
 #[cfg(feature = "guest")]
@@ -27,10 +73,13 @@ pub fn bulk_create(input: Json<erplora_guest_sdk::Input>) -> FnResult<Json<Outpu
     Ok(Json(bulk_create_pure(input.into_inner().into_value())))
 }
 
-/// Recepción de stock batch. Exporta `receive_stock`.
+/// Single-product stock decrease. Exports `decrease_stock`.
+/// `Err` (a WASM trap) stays reserved for broken-contract payloads (missing product_id,
+/// off-grid quantity — loud on every runtime); business rejections travel as
+/// `HandlerOutput.error` (ADR-0205 domain channel).
 #[cfg(feature = "guest")]
 #[plugin_fn]
-pub fn decrease_stock(input: Json<erplora_guest_sdk::Input>) -> FnResult<Json<Output>> {
+pub fn decrease_stock(input: Json<erplora_guest_sdk::Input>) -> FnResult<Json<HandlerOutput>> {
     match decrease_stock_pure(input.into_inner().into_value()) {
         Ok(out) => Ok(Json(out)),
         Err(e) => Err(Error::msg(e).into()),
@@ -183,20 +232,42 @@ pub fn receive_stock_pure(input: Value) -> Output {
     Output { operations: ops, events: vec![] }
 }
 
-/// `track_stock` de los ajustes del hub, PRE-CARGADOS por el host en
-/// `context.reads["inventory.settings.get"]` (ADR-0069; el manifest declara `reads`).
-/// Sin reads (manifest viejo o query caída) degrada a `true` — el guard autoritativo
-/// final vive en el SQL de `stock.decrease` (inventory#6).
+/// Rows of a pre-loaded read (`context.reads[query]`, ADR-0069). `None` when the read is
+/// ABSENT (old manifest or a degraded query — the handler defers to the SQL guards);
+/// `Some(rows)` when present, even empty: the rows are the hub's catalog of trust and the
+/// handler enforces against them.
+fn read_rows<'a>(input: &'a Value, query: &str) -> Option<&'a Vec<Value>> {
+    input.get("context")?.get("reads")?.get(query)?.as_array()
+}
+
+/// Stock-control settings of the hub, from `context.reads["inventory.settings.get"]`.
+struct StockSettings {
+    track: bool,
+    allow_oversell: bool,
+}
+
+/// `None` = read absent → degrade (SQL stays the single authority). A present-but-empty read
+/// (fresh hub without a settings row) resolves to the schema defaults: track on, oversell off.
+fn stock_settings(input: &Value) -> Option<StockSettings> {
+    let rows = read_rows(input, "inventory.settings.get")?;
+    let row = rows.first();
+    Some(StockSettings {
+        track: row
+            .and_then(|r| r.get("track_stock"))
+            .map(|v| as_i64(v, 1) != 0)
+            .unwrap_or(true),
+        allow_oversell: row
+            .and_then(|r| r.get("allow_sell_without_stock"))
+            .map(|v| as_i64(v, 0) != 0)
+            .unwrap_or(false),
+    })
+}
+
+/// `track_stock` of the hub settings, pre-loaded by the host (ADR-0069; the manifest declares
+/// `reads`). Without reads (old manifest or a degraded query) it degrades to `true` — the
+/// final authoritative guard lives in the SQL of `stock.decrease` (inventory#6).
 fn track_stock_enabled(input: &Value) -> bool {
-    input
-        .get("context")
-        .and_then(|c| c.get("reads"))
-        .and_then(|r| r.get("inventory.settings.get"))
-        .and_then(|rows| rows.as_array())
-        .and_then(|a| a.first())
-        .and_then(|row| row.get("track_stock"))
-        .map(|v| as_i64(v, 1) != 0)
-        .unwrap_or(true)
+    stock_settings(input).map(|s| s.track).unwrap_or(true)
 }
 
 /// Lógica pura del listener de `sale.completed`: por cada línea con product_id
@@ -222,19 +293,18 @@ pub fn decrease_on_sale_pure(input: Value) -> Output {
         }
         return Output { operations: ops, events: vec![] };
     }
-    let (_, ids) = payload_context(&input);
     let empty: Vec<Value> = Vec::new();
     let items = payload.get("items").and_then(|v| v.as_array()).unwrap_or(&empty);
-    // Referencia al documento origen (#7): el movimiento `sale` del ledger la registra.
+    // Reference to the source document (#7): the `sale` ledger movement records it.
     let sale_id = payload.get("sale_id").cloned().unwrap_or(Value::Null);
-    // Las ops de un handler solo pueden referenciar comandos SQL del PROPIO módulo (§5.3):
-    // apuntar aquí al comando WASM `inventory.stock.decrease` se resolvía a CERO sentencias y el
-    // descuento por evento no ocurría — en silencio. Se emiten las MISMAS ops internas que
-    // `decrease_stock_pure`: ledger ANTES del UPDATE (captura el saldo previo), ambas gobernadas
-    // por los modos de #6 en su WHERE. La rejilla del incremento ya la validó `sales` al cobrar
-    // (contexto congelado); el guard autoritativo de modos vive en el SQL.
+    // A handler's ops may only reference SQL commands of its OWN module (§5.3): pointing at the
+    // WASM command `inventory.stock.decrease` resolved to ZERO statements and the event-driven
+    // decrease silently never happened. Since #6, ledger movement + stock UPDATE are ONE atomic
+    // statement (`inventory._decrease_stock`, a data-modifying CTE) so the ledger cannot record
+    // a decrease that did not apply (ghost row under concurrency). The increment grid was
+    // already validated by `sales` at checkout (frozen context); the authoritative mode guard
+    // lives in the SQL WHERE.
     let mut ops: Vec<Operation> = Vec::new();
-    let mut mov_idx = 0usize;
     for it in items {
         let is_service = match it.get("is_service") {
             Some(Value::Bool(b)) => *b,
@@ -246,25 +316,18 @@ pub fn decrease_on_sale_pure(input: Value) -> Output {
         if is_service || product_id.is_null() {
             continue;
         }
-        let qty = as_qty(it.get("quantity").unwrap_or(&Value::Null)); // escala 10⁶ (ADR-0147)
+        let qty = as_qty(it.get("quantity").unwrap_or(&Value::Null)); // 10⁶ scale (ADR-0147)
         if qty <= 0 {
             continue;
         }
         if ops.is_empty() {
             ops.push(Operation::sql("inventory._ensure_location", Map::new()));
         }
-        let mut mov = Map::new();
-        mov.insert("new_id".into(), ids.get(mov_idx).cloned().unwrap_or_default());
-        mov.insert("product_id".into(), product_id.clone());
-        mov.insert("qty".into(), json!(qty));
-        mov.insert("reason".into(), Value::Null);
-        mov.insert("sale_id".into(), sale_id.clone());
-        ops.push(Operation::sql("inventory._movement_on_decrease", mov));
-        mov_idx += 1;
-
         let mut dec = Map::new();
         dec.insert("product_id".into(), product_id);
         dec.insert("qty".into(), json!(qty));
+        dec.insert("reason".into(), Value::Null);
+        dec.insert("sale_id".into(), sale_id.clone());
         ops.push(Operation::sql("inventory._decrease_stock", dec));
     }
     Output { operations: ops, events: vec![] }
@@ -303,42 +366,82 @@ fn increment_for_product(input: &Value) -> Option<i64> {
 ///
 /// Las tres operaciones son las mismas que ejecutaba el Tier-0; el guard de sobreventa y el de
 /// `track_stock` siguen en el SQL (inventory#6), que es donde deben estar: dentro de la transacción.
-pub fn decrease_stock_pure(input: Value) -> Result<Output, String> {
-    let (payload, ids) = payload_context(&input);
+pub fn decrease_stock_pure(input: Value) -> Result<HandlerOutput, String> {
+    let (payload, _ids) = payload_context(&input);
     let product_id = payload.get("product_id").cloned().unwrap_or(Value::Null);
     let qty = as_qty(payload.get("qty").unwrap_or(&Value::Null));
     if product_id.is_null() || qty <= 0 {
-        return Err("invalid_decrease: falta product_id o la cantidad no es positiva".to_string());
+        return Err("invalid_decrease: missing product_id or non-positive quantity".to_string());
     }
 
     if let Some(increment) = increment_for_product(&input) {
         if qty % increment != 0 {
             return Err(format!(
-                "off_grid: {qty} no es válida para una unidad con incrementos de {increment} \
-                 (ambas en escala 10^6). Ajusta la cantidad al escalón; no se redondea sola porque \
-                 eso cambiaría lo vendido."
+                "off_grid: {qty} is not valid for a unit with increments of {increment} \
+                 (both in 10^6 scale). Adjust the quantity to the step; it is not rounded \
+                 automatically because that would change what was sold."
             ));
         }
     }
 
-    let new_id = ids.first().cloned().unwrap_or_default();
+    // Operating modes (#6), enforced against the hub's catalog of trust (`reads`). This is the
+    // informative fast-path that makes the outcome VISIBLE (ADR-0205); the SQL WHERE of
+    // `inventory._decrease_stock` remains the authoritative, in-transaction guard, so a race
+    // between the read and the transaction can never oversell — it only loses the loud error.
+    if let Some(settings) = stock_settings(&input) {
+        // Mode 2 (`track_stock = 0`): no automatic movements and no blocking — a clean no-op.
+        if !settings.track {
+            return Ok(HandlerOutput::noop());
+        }
+        if let Some(rows) = read_rows(&input, "inventory.products.get") {
+            let Some(product) = rows.first() else {
+                return Ok(HandlerOutput::rejected(
+                    "inventory.unknown_product",
+                    format!("Product `{}` does not exist in this hub", as_str(&product_id)),
+                ));
+            };
+            // Services never move stock: benign no-op, parity with the sale listener.
+            if product.get("product_type").map(as_str).unwrap_or_default() == "service" {
+                return Ok(HandlerOutput::noop());
+            }
+            let stock = product.get("stock").map(as_qty).unwrap_or(0);
+            // Mode 3a (`allow_sell_without_stock = 0`): reject an insufficient decrease with a
+            // stable, translatable code. Mode 3b (= 1) proceeds and the SQL represents the
+            // resulting balance as is — negative included, never truncated.
+            if !settings.allow_oversell && stock < qty {
+                return Ok(HandlerOutput::rejected(
+                    "inventory.insufficient_stock",
+                    format!(
+                        "Insufficient stock: requested {qty}, available {stock} \
+                         (fixed-point quantities, 10^6 scale)"
+                    ),
+                ));
+            }
+        }
+    }
+
     let mut ops: Vec<Operation> = Vec::new();
     ops.push(Operation::sql("inventory._ensure_location", Map::new()));
 
-    let mut mov = Map::new();
-    mov.insert("new_id".into(), json!(new_id));
-    mov.insert("product_id".into(), product_id.clone());
-    mov.insert("qty".into(), json!(qty));
-    mov.insert("reason".into(), payload.get("reason").cloned().unwrap_or(Value::Null));
-    mov.insert("sale_id".into(), payload.get("sale_id").cloned().unwrap_or(Value::Null));
-    ops.push(Operation::sql("inventory._movement_on_decrease", mov));
-
+    // ONE atomic statement (data-modifying CTE): ledger movement + stock UPDATE share the same
+    // guards and the same row version, so the ledger cannot record a decrease that did not
+    // apply. The movement id is the runtime-injected `:new_id` (system param, per operation).
     let mut dec = Map::new();
-    dec.insert("product_id".into(), product_id);
+    dec.insert("product_id".into(), product_id.clone());
     dec.insert("qty".into(), json!(qty));
+    dec.insert("reason".into(), payload.get("reason").cloned().unwrap_or(Value::Null));
+    dec.insert("sale_id".into(), payload.get("sale_id").cloned().unwrap_or(Value::Null));
     ops.push(Operation::sql("inventory._decrease_stock", dec));
 
-    Ok(Output { operations: ops, events: vec![] })
+    // `inventory.stock_changed` is CONDITIONAL since #6: it only travels when a decrease is
+    // actually intended (never for rejections or mode-2 no-ops). Replaces the manifest-level
+    // `emit`, which fired even when nothing changed.
+    let events = vec![Event::new(
+        "inventory.stock_changed",
+        json!({ "product_id": product_id, "qty": qty }),
+    )];
+
+    Ok(HandlerOutput { operations: ops, events, error: None })
 }
 
 #[cfg(test)]
@@ -403,33 +506,29 @@ mod tests {
         assert_eq!(out.operations[1].params["unit_cost"], Value::Null);
     }
 
-    /// Las ops de un listener solo pueden referenciar comandos SQL del PROPIO módulo (§5.3):
-    /// apuntar al comando WASM `inventory.stock.decrease` se resolvía a CERO sentencias — el
-    /// descuento por evento no ocurría y nadie se enteraba. El listener emite las MISMAS ops
-    /// internas que `decrease_stock_pure`: ledger primero (captura el saldo previo), UPDATE después.
+    /// A listener's ops may only reference SQL commands of its OWN module (§5.3). Since #6,
+    /// ledger movement + stock UPDATE are ONE atomic statement (`inventory._decrease_stock`,
+    /// a data-modifying CTE): the movement can no longer outlive a decrease that did not apply
+    /// (ghost row under concurrency), and both guards live in a single place.
     #[test]
     fn decrease_on_sale_skips_services_and_nulls() {
         let payload = json!({ "sale_id": "s-1", "items": [
             { "product_id": "p1", "quantity": 3_000_000, "is_service": false },
-            { "product_id": "p2", "quantity": 1_000_000, "is_service": true },   // servicio → omitido
-            { "product_id": null, "quantity": 5_000_000 },                        // sin id → omitido
+            { "product_id": "p2", "quantity": 1_000_000, "is_service": true },   // service → skipped
+            { "product_id": null, "quantity": 5_000_000 },                        // no id → skipped
             { "product_id": "p3", "quantity": 2_000_000 }
         ]});
         let out = decrease_on_sale_pure(json!({ "payload": payload, "context": { "new_ids": ["m-0", "m-1"] } }));
-        // 1 ensure_location + 2 × (movimiento + descuento).
-        assert_eq!(out.operations.len(), 5, "{:?}", out.operations);
+        // 1 ensure_location + 1 atomic movement+decrease per sellable line.
+        assert_eq!(out.operations.len(), 3, "{:?}", out.operations);
         assert_eq!(out.operations[0].command, "inventory._ensure_location");
-        assert_eq!(out.operations[1].command, "inventory._movement_on_decrease");
-        assert_eq!(out.operations[1].params["new_id"], json!("m-0"), "id del movimiento = new_ids[i]");
+        assert_eq!(out.operations[1].command, "inventory._decrease_stock");
         assert_eq!(out.operations[1].params["product_id"], json!("p1"));
         assert_eq!(out.operations[1].params["qty"], json!(3_000_000));
-        assert_eq!(out.operations[1].params["sale_id"], json!("s-1"), "el ledger referencia la venta");
+        assert_eq!(out.operations[1].params["sale_id"], json!("s-1"), "the ledger references the sale");
         assert_eq!(out.operations[2].command, "inventory._decrease_stock");
-        assert_eq!(out.operations[2].params["product_id"], json!("p1"));
-        assert_eq!(out.operations[2].params["qty"], json!(3_000_000));
-        assert_eq!(out.operations[3].params["product_id"], json!("p3"));
-        assert_eq!(out.operations[3].params["new_id"], json!("m-1"));
-        assert_eq!(out.operations[4].command, "inventory._decrease_stock");
+        assert_eq!(out.operations[2].params["product_id"], json!("p3"));
+        assert_eq!(out.operations[2].params["qty"], json!(2_000_000));
     }
 
     // ── Modos operativos (inventory#6): el listener respeta `track_stock` vía reads ──
@@ -460,29 +559,28 @@ mod tests {
         assert!(out.events.is_empty());
     }
 
-    /// `track_stock = 1` → descuenta como siempre, SIN marcador (el void debe restituir).
+    /// `track_stock = 1` → decreases as always, WITHOUT the marker (a void must restock).
     #[test]
     fn decrease_on_sale_track_on_decreases_without_marker() {
         let payload = json!({ "sale_id": "s-78", "items": [
             { "product_id": "p1", "quantity": 3_000_000, "is_service": false }
         ]});
         let out = decrease_on_sale_pure(input_with_settings(payload, 1));
-        assert_eq!(out.operations.len(), 3, "{:?}", out.operations);
+        assert_eq!(out.operations.len(), 2, "{:?}", out.operations);
         assert_eq!(out.operations[0].command, "inventory._ensure_location");
-        assert_eq!(out.operations[1].command, "inventory._movement_on_decrease");
-        assert_eq!(out.operations[2].command, "inventory._decrease_stock");
+        assert_eq!(out.operations[1].command, "inventory._decrease_stock");
     }
 
-    /// Sin `reads` (manifest viejo o query caída): degrada al comportamiento histórico
-    /// (tracking activo) — el guard autoritativo final vive en el SQL.
+    /// Without `reads` (old manifest or a degraded query): falls back to the historical
+    /// behavior (tracking on) — the final authoritative guard lives in the SQL.
     #[test]
     fn decrease_on_sale_without_reads_defaults_to_tracking() {
         let payload = json!({ "sale_id": "s-79", "items": [
             { "product_id": "p1", "quantity": 2_000_000, "is_service": false }
         ]});
         let out = decrease_on_sale_pure(json!({ "payload": payload, "context": { "new_ids": ["m-0"] } }));
-        assert_eq!(out.operations.len(), 3, "{:?}", out.operations);
-        assert_eq!(out.operations[2].command, "inventory._decrease_stock");
+        assert_eq!(out.operations.len(), 2, "{:?}", out.operations);
+        assert_eq!(out.operations[1].command, "inventory._decrease_stock");
     }
 
     /// Con tracking OFF y venta de SOLO servicios el marcador se emite igual (inofensivo:
@@ -498,7 +596,7 @@ mod tests {
 
     // ── ADR-0147: punto fijo 10⁶ — sustituye al arreglo parcial de #10 (HALF_UP sobre f64) ──
 
-    /// Media ración en escala 10⁶ viaja TAL CUAL: 2,5 kg es 2500000 y no se toca.
+    /// Half a portion in 10⁶ scale travels AS IS: 2.5 kg is 2500000 and is not touched.
     #[test]
     fn decrease_on_sale_keeps_fixed_point_quantities() {
         let payload = json!({ "sale_id": "s-90", "items": [
@@ -506,15 +604,15 @@ mod tests {
             { "product_id": "p2", "quantity": 125_000, "is_service": false }
         ]});
         let out = decrease_on_sale_pure(json!({ "payload": payload, "context": { "new_ids": ["m-0", "m-1"] } }));
-        assert_eq!(out.operations.len(), 5);
+        assert_eq!(out.operations.len(), 3);
         assert_eq!(out.operations[1].params["qty"], json!(2_500_000));
-        assert_eq!(out.operations[3].params["qty"], json!(125_000));
-        // La referencia al documento origen viaja en cada movimiento (`sale`, #7).
+        assert_eq!(out.operations[2].params["qty"], json!(125_000));
+        // The reference to the source document travels in each movement (`sale`, #7).
         assert_eq!(out.operations[1].params["sale_id"], json!("s-90"));
     }
 
-    /// Un float que llegue al listener NO se repesca (ADR-0147): la conversión va en la frontera
-    /// donde el humano teclea. `as_qty(2.5)` = 0 → la línea se OMITE (qty <= 0), no se adivina.
+    /// A float reaching the listener is NOT rescued (ADR-0147): the conversion belongs at the
+    /// boundary where the human types. `as_qty(2.5)` = 0 → the line is SKIPPED, never guessed.
     #[test]
     fn floats_in_the_event_are_not_rescued() {
         let payload = json!({ "items": [
@@ -522,12 +620,153 @@ mod tests {
             { "product_id": "p2", "quantity": 1_000_000, "is_service": false }
         ]});
         let out = decrease_on_sale_pure(json!({ "payload": payload, "context": { "new_ids": ["m-0", "m-1"] } }));
-        // Solo p2 genera movimiento+descuento; el float de p1 no pasa la frontera.
-        assert_eq!(out.operations.len(), 3, "{:?}", out.operations);
+        // Only p2 produces the atomic movement+decrease; p1's float never crosses the boundary.
+        assert_eq!(out.operations.len(), 2, "{:?}", out.operations);
         assert_eq!(out.operations[1].params["product_id"], json!("p2"));
     }
 
-    /// receive_stock acepta qty en escala 10⁶ (recepción de 1,75 kg = 1750000) y pasa `reference`.
+    // ── #6 / ADR-0205: `stock.decrease` speaks the DOMAIN-ERROR channel ────────────────
+    //
+    // The settings must GOVERN and the caller must SEE the outcome: a business rejection is
+    // `HandlerOutput.error` (HTTP 409 with a stable, translatable code on an ADR-0205 runtime;
+    // a clean silent no-op on older runtimes), a mode-2 no-op is NOT an error, and
+    // `inventory.stock_changed` is only emitted when a decrease is actually intended.
+
+    fn decrease_input(payload: Value, settings: Option<Value>, product: Option<Value>) -> Value {
+        let mut reads = Map::new();
+        if let Some(s) = settings {
+            reads.insert("inventory.settings.get".into(), s);
+        }
+        if let Some(p) = product {
+            reads.insert("inventory.products.get".into(), p);
+        }
+        json!({ "payload": payload, "context": { "new_ids": ["m-0"], "reads": Value::Object(reads) } })
+    }
+
+    fn settings_rows(track: i64, allow: i64) -> Value {
+        json!([{ "track_stock": track, "allow_sell_without_stock": allow, "low_stock_threshold": 10_000_000 }])
+    }
+
+    fn product_rows(stock: i64, product_type: &str) -> Value {
+        json!([{ "id": "p1", "stock": stock, "product_type": product_type }])
+    }
+
+    fn op_names(out: &HandlerOutput) -> Vec<&str> {
+        out.operations.iter().map(|o| o.command.as_str()).collect()
+    }
+
+    /// Mode 2 (`track_stock = 0`): a clean no-op — no operations, no event, and NOT an error.
+    #[test]
+    fn decrease_track_off_is_a_clean_noop() {
+        let out = decrease_stock_pure(decrease_input(
+            json!({ "product_id": "p1", "qty": 1_000_000 }),
+            Some(settings_rows(0, 0)),
+            Some(product_rows(5_000_000, "physical")),
+        ))
+        .unwrap();
+        assert!(out.operations.is_empty(), "{:?}", out.operations);
+        assert!(out.events.is_empty(), "no stock_changed for a decrease that never happens");
+        assert!(out.error.is_none(), "mode 2 is a supported mode, not an error");
+    }
+
+    /// Mode 3a (`allow_sell_without_stock = 0`): an insufficient decrease REJECTS with the
+    /// stable code `inventory.insufficient_stock` — no silent 200-ok, nothing persisted.
+    #[test]
+    fn decrease_insufficient_stock_returns_domain_error() {
+        let out = decrease_stock_pure(decrease_input(
+            json!({ "product_id": "p1", "qty": 10_000_000 }),
+            Some(settings_rows(1, 0)),
+            Some(product_rows(5_000_000, "physical")),
+        ))
+        .unwrap();
+        let err = out.error.expect("insufficient decrease must reject with a domain error");
+        assert_eq!(err.code, "inventory.insufficient_stock");
+        assert!(err.message.chars().count() <= 500, "ADR-0205 caps the message at 500 chars");
+        assert!(out.operations.is_empty(), "a rejection persists nothing");
+        assert!(out.events.is_empty(), "a rejection emits no stock_changed");
+    }
+
+    /// Mode 3b (`allow_sell_without_stock = 1`): overselling proceeds — the resulting negative
+    /// balance is represented by the SQL, never truncated and never an error.
+    #[test]
+    fn decrease_insufficient_with_oversell_allowed_proceeds() {
+        let out = decrease_stock_pure(decrease_input(
+            json!({ "product_id": "p1", "qty": 10_000_000 }),
+            Some(settings_rows(1, 1)),
+            Some(product_rows(5_000_000, "physical")),
+        ))
+        .unwrap();
+        assert!(out.error.is_none());
+        assert_eq!(op_names(&out), ["inventory._ensure_location", "inventory._decrease_stock"]);
+        assert_eq!(out.events.len(), 1, "the decrease is intended → stock_changed is emitted");
+        assert_eq!(out.events[0].name, "inventory.stock_changed");
+    }
+
+    /// Sufficient decrease: ONE atomic movement+update op (ledger cannot ghost under
+    /// concurrency) and the conditional `inventory.stock_changed`.
+    #[test]
+    fn decrease_sufficient_emits_one_atomic_op_and_the_event() {
+        let out = decrease_stock_pure(decrease_input(
+            json!({ "product_id": "p1", "qty": 3_000_000, "reason": "damaged" }),
+            Some(settings_rows(1, 0)),
+            Some(product_rows(5_000_000, "physical")),
+        ))
+        .unwrap();
+        assert!(out.error.is_none());
+        assert_eq!(op_names(&out), ["inventory._ensure_location", "inventory._decrease_stock"]);
+        let dec = &out.operations[1];
+        assert_eq!(dec.params["product_id"], json!("p1"));
+        assert_eq!(dec.params["qty"], json!(3_000_000));
+        assert_eq!(dec.params["reason"], json!("damaged"));
+        assert_eq!(dec.params["sale_id"], Value::Null, "direct decrease → movement `decrease`");
+        assert_eq!(out.events.len(), 1);
+        assert_eq!(out.events[0].name, "inventory.stock_changed");
+        assert_eq!(out.events[0].payload["product_id"], json!("p1"));
+    }
+
+    /// A decrease on a product the hub does not have (read present but EMPTY) is a domain
+    /// error, not a silent no-op.
+    #[test]
+    fn decrease_unknown_product_returns_domain_error() {
+        let out = decrease_stock_pure(decrease_input(
+            json!({ "product_id": "ghost", "qty": 1_000_000 }),
+            Some(settings_rows(1, 0)),
+            Some(json!([])),
+        ))
+        .unwrap();
+        let err = out.error.expect("unknown product must reject with a domain error");
+        assert_eq!(err.code, "inventory.unknown_product");
+        assert!(out.operations.is_empty());
+    }
+
+    /// Services never move stock: a direct decrease on a service is a benign no-op (parity
+    /// with the sale listener, which skips service lines).
+    #[test]
+    fn decrease_service_product_is_a_clean_noop() {
+        let out = decrease_stock_pure(decrease_input(
+            json!({ "product_id": "p1", "qty": 1_000_000 }),
+            Some(settings_rows(1, 0)),
+            Some(product_rows(0, "service")),
+        ))
+        .unwrap();
+        assert!(out.operations.is_empty(), "{:?}", out.operations);
+        assert!(out.error.is_none());
+    }
+
+    /// Reads absent entirely (old manifest or degraded queries): the handler degrades and the
+    /// SQL guards stay the single authority — the command still emits its ops, never an error.
+    #[test]
+    fn decrease_without_reads_degrades_to_sql_authority() {
+        let out = decrease_stock_pure(json!({
+            "payload": { "product_id": "p1", "qty": 1_000_000 },
+            "context": { "new_ids": ["m-0"] }
+        }))
+        .unwrap();
+        assert!(out.error.is_none());
+        assert_eq!(op_names(&out), ["inventory._ensure_location", "inventory._decrease_stock"]);
+    }
+
+    /// receive_stock accepts qty in 10⁶ scale (receiving 1.75 kg = 1750000) and forwards `reference`.
     #[test]
     fn receive_stock_accepts_fixed_point_qty_and_reference() {
         let payload = json!({ "reference": "ALB-77", "items": [
