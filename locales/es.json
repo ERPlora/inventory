@@ -17,6 +17,10 @@
       "label": "Movimientos"
     }
   },
+  "setup": {
+    "title": "Tu catálogo",
+    "description": "Añade al menos un producto para que haya algo que vender."
+  },
   "ui": {
     "name": "Nombre",
     "sku": "SKU",

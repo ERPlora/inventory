@@ -90,6 +90,23 @@
     "get": "inventory.settings.get",
     "set": "inventory.settings.update"
   },
+  "setup": {
+    "query": "inventory.products.stats",
+    "configured_when": [
+      {
+        "field": "total_products",
+        "truthy": true
+      }
+    ],
+    "title": "Your catalog",
+    "description": "Add at least one product so there is something to sell.",
+    "icon": "cube-outline",
+    "route": "/m/inventory/products",
+    "permission": "inventory.add_product",
+    "countries": [],
+    "order": 30,
+    "required": true
+  },
   "migrations": {
     "postgres": [
       "migrations/postgres/001_init.sql",
