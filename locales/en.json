@@ -50,7 +50,7 @@
     "actionEdit": "Edit",
     "actionDelete": "Delete",
     "importTaxTitle": "CSV tax categories",
-    "importTaxHint": "Some category texts in the CSV aren't recognized. Pick an existing category or create a new one; it will be remembered for future imports.",
+    "importTaxHint": "Some rows need a tax category before they can be created: either their CSV text is not recognized, or they bring no tax column at all. Pick an existing category or create a new one; the choice is remembered for future imports.",
     "importPick": "Pick",
     "importCreate": "Create",
     "importSkip": "Skip",
@@ -137,7 +137,16 @@
     "deleteCatImpact": "product(s) will lose this category (unlinked; products are kept)",
     "deleteCatConfirm": "Delete and unlink",
     "deleteProdTitle": "Delete product",
-    "deleteProdHint": "will be removed from the catalog (soft delete; its stock movements are kept)"
+    "deleteProdHint": "will be removed from the catalog (soft delete; its stock movements are kept)",
+    "status": "Status",
+    "statusUnconfigured": "Not configured",
+    "statusUnconfiguredReason": "Missing tax category",
+    "fieldTaxCategory": "Tax category",
+    "taxCategoryPlaceholder": "Pick a tax category",
+    "taxNoneAvailable": "There are no tax categories yet. Create them in Taxes: a product cannot be sold until it is known how it is taxed.",
+    "errTaxCategoryRequired": "Pick the tax category: without it the product cannot be sold.",
+    "importErrTaxCategory": "Missing tax category",
+    "importTaxMissingLabel": "Rows with no tax category"
   },
   "errors": {
     "inventory.insufficient_stock": "Not enough stock to complete the operation.",
