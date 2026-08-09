@@ -8,6 +8,18 @@ recepción, ajustes, descuento por venta y reversión al anular.
 > **Module id:** `inventory` (canónico, sin prefijo). **Repo:** `module-inventory`.
 > **Depende de:** `taxes` (instalar inventory auto-instala taxes, ADR-0066/0085).
 
+## Documentación de usuario — [`docs/`](docs/)
+
+Viaja **dentro** del módulo y se versiona con él: el asistente del hub (ADR-0282) la indexa por
+versión instalada y cita la de TU versión, no la de la última publicada. En inglés (idioma fuente).
+
+| Fichero | Para qué |
+| ------- | -------- |
+| [`docs/overview.md`](docs/overview.md) | Qué hace y qué NO hace; con qué módulos habla |
+| [`docs/screens.md`](docs/screens.md) | Cada pestaña y el flujo principal paso a paso |
+| [`docs/concepts.md`](docs/concepts.md) | Los conceptos con matiz: ledger inmutable, recuento vs descuento, céntimos y punto fijo 10⁶ |
+| [`docs/limits.md`](docs/limits.md) | Errores, caps, permisos por acción y qué hacer cuando algo falla |
+
 ## Frontera funcional (decidida 2026-07-15)
 
 **Inventory debe bastar, completo, para una tienda pequeña o un restaurante:**
