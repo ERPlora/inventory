@@ -173,6 +173,13 @@
         "description": "Retrieves the full detail of an inventory product by its identifier."
       }
     },
+    "inventory.products.for_sale": {
+      "permission": "inventory.view_product",
+      "sql": "queries/products_for_sale.sql",
+      "ai": {
+        "description": "Sale catalogue: the fields the server needs to price a sale line authoritatively (price, cost, tax category, units). Not paginated on purpose."
+      }
+    },
     "inventory.products.low_stock": {
       "permission": "inventory.view_product",
       "sql": "queries/low_stock.sql",
