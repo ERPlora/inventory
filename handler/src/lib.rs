@@ -203,7 +203,7 @@ pub fn bulk_create_pure(input: Value) -> Output {
         p.insert("image".into(), json!(as_str(item.get("image").unwrap_or(&Value::Null))));
         ops.push(Operation::sql("inventory._insert_product", p));
     }
-    Output { operations: ops, events: vec![] }
+    Output { operations: ops, events: vec![], ..Default::default() }
 }
 
 /// Lógica pura de `receive_stock`. Cada línea debe traer `product_id` (resuelto
@@ -229,7 +229,7 @@ pub fn receive_stock_pure(input: Value) -> Output {
         p.insert("reference".into(), reference.clone());
         ops.push(Operation::sql("inventory._receive_line", p));
     }
-    Output { operations: ops, events: vec![] }
+    Output { operations: ops, events: vec![], ..Default::default() }
 }
 
 /// Rows of a pre-loaded read (`context.reads[query]`, ADR-0069). `None` when the read is
@@ -291,7 +291,7 @@ pub fn decrease_on_sale_pure(input: Value) -> Output {
             p.insert("sale_id".into(), sale_id);
             ops.push(Operation::sql("inventory._skip_void_restock", p));
         }
-        return Output { operations: ops, events: vec![] };
+        return Output { operations: ops, events: vec![], ..Default::default() };
     }
     let empty: Vec<Value> = Vec::new();
     let items = payload.get("items").and_then(|v| v.as_array()).unwrap_or(&empty);
@@ -330,7 +330,7 @@ pub fn decrease_on_sale_pure(input: Value) -> Output {
         dec.insert("sale_id".into(), sale_id.clone());
         ops.push(Operation::sql("inventory._decrease_stock", dec));
     }
-    Output { operations: ops, events: vec![] }
+    Output { operations: ops, events: vec![], ..Default::default() }
 }
 
 
