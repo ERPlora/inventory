@@ -10,10 +10,31 @@
 //
 // Arreglar solo la salida sería peor que no arreglar nada: la lista pintaría «0,02 €» tan tranquila
 // y el error pasaría desapercibido. Por eso los dos lados se fijan aquí juntos.
+import { existsSync, readFileSync } from 'node:fs';
+import path from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 /** Comandos que el WC manda al dispatcher, para poder afirmar QUÉ se guarda. */
 const comandos: { name: string; payload: Record<string, unknown> }[] = [];
+
+/** Categoría fiscal del hub de pruebas. Desde inventory#38 NINGÚN producto se crea sin una. */
+const CATEGORIA_FISCAL = { id: 't1', key: 'standard', name: 'Standard' };
+
+// Raíz del módulo EN DISCO. No se deriva de `import.meta.url`: Vite lo entrega relativo a la raíz
+// del workspace (`/modules/inventory/ui/…`, sin prefijo de disco) y `fileURLToPath` lo rechaza. Se
+// prueban las dos raíces posibles y gana la que de verdad tenga un `module.json`.
+const RAIZ_MODULO = [path.join(process.cwd(), 'modules/inventory'), process.cwd()].find((dir) =>
+  existsSync(path.join(dir, 'module.json')),
+)!;
+
+/** Lee un fichero del módulo (schemas, SQL, manifest) para fijar contratos que no son de la UI. */
+function ficheroDelModulo(rel: string): string {
+  return readFileSync(path.join(RAIZ_MODULO, rel), 'utf8');
+}
+
+function jsonDelModulo(rel: string): Record<string, any> {
+  return JSON.parse(ficheroDelModulo(rel));
+}
 
 beforeEach(() => {
   comandos.length = 0;
@@ -24,8 +45,13 @@ beforeEach(() => {
   (globalThis as Record<string, unknown>).erplora = {
     query: async (name: string) =>
       name === 'inventory.products.list'
-        ? [{ id: 'p1', name: 'Café solo', sku: 'CAF', price: 220, stock: 10_000_000, unit_code: 'ud', is_active: 1 }]
-        : [],
+        ? [{ id: 'p1', name: 'Café solo', sku: 'CAF', price: 220, stock: 10_000_000, unit_code: 'ud', is_active: 1, tax_category_key: 'standard' }]
+        : name === 'taxes.categories.list'
+          ? [CATEGORIA_FISCAL]
+          : [],
+    // El selector de categorías fiscales de la ficha se carga por `queryAll` (no por `query`):
+    // sin este doble el catálogo llegaba vacío y NINGUNA alta era posible desde inventory#38.
+    queryAll: async (name: string) => (name === 'taxes.categories.list' ? [CATEGORIA_FISCAL] : []),
     queryPage: async (name: string) =>
       name === 'inventory.products.list'
         ? {
@@ -60,16 +86,15 @@ async function montar() {
 }
 
 describe('el selector de categoría fiscal es best-effort (ADR-0085)', () => {
-  // `taxes` es una DEPENDENCIA BLANDA: puede no estar instalado, no tener permiso, o contestar algo
-  // que no es una lista. En cualquiera de esos casos el select se queda con "sin categoría" y el
-  // alta sigue funcionando. Lo que NO puede pasar es que la página de productos se caiga entera.
+  // `taxes` puede no tener permiso o contestar algo que no es una lista. Desde inventory#38 eso NO
+  // deja pasar el alta sin categoría (el formulario avisa y bloquea, ver más abajo), pero lo que
+  // sigue sin poder pasar es que la página de productos se caiga entera por un desplegable.
   it('si `taxes` no devuelve una lista, la página sigue en pie (no revienta el render)', async () => {
     (globalThis as Record<string, unknown>).erplora = {
       ...(globalThis as Record<string, { erplora: unknown }> & { erplora: object }).erplora,
-      query: async (name: string) =>
-        name === 'inventory.products.list'
-          ? [{ id: 'p1', name: 'Café solo', sku: 'CAF', price: 220, stock: 10_000_000, unit_code: 'ud', is_active: 1 }]
-          : ({ error: 'unknown_query' } as unknown), // taxes no instalado → NO es un array
+      // El catálogo se carga por `queryAll` — es ESE el que hay que envenenar. Envenenar `query`
+      // no probaba nada: `loadTaxCategories` ni lo llama.
+      queryAll: async () => ({ error: 'unknown_query' } as unknown), // taxes no instalado → NO es un array
     };
     const el = await montar();
     expect(el.shadowRoot, 'el componente ha renderizado pese a la respuesta rara').not.toBeNull();
@@ -107,10 +132,12 @@ describe('precios del CRUD de productos (dinero = céntimos, ADR-0007)', () => {
   it('ENTRADA: teclear 2,20 € guarda 220 céntimos (no 2)', async () => {
     const el = await montar();
     const wc = el as unknown as { newName: string; newSku: string; newPrice: string;
+                                  newTaxCategoryKey: string;
                                   createProduct: (ev: Event) => Promise<void> };
     wc.newName = 'Café solo';
     wc.newSku = 'CAF';
     wc.newPrice = '2.20'; // lo que teclea el usuario en un input `step="0.01"` = EUROS
+    wc.newTaxCategoryKey = 'standard'; // obligatoria desde inventory#38
     await wc.createProduct(new Event('submit'));
 
     const alta = comandos.find((c) => c.name === 'inventory.products.create');
@@ -121,10 +148,12 @@ describe('precios del CRUD de productos (dinero = céntimos, ADR-0007)', () => {
   it('ENTRADA: los céntimos no se pierden por redondeo (0,05 € → 5)', async () => {
     const el = await montar();
     const wc = el as unknown as { newName: string; newSku: string; newPrice: string;
+                                  newTaxCategoryKey: string;
                                   createProduct: (ev: Event) => Promise<void> };
     wc.newName = 'Bolsa';
     wc.newSku = 'BOL';
     wc.newPrice = '0.05';
+    wc.newTaxCategoryKey = 'standard';
     await wc.createProduct(new Event('submit'));
 
     expect(comandos.at(-1)!.payload.price).toBe(5);
@@ -144,24 +173,24 @@ describe('import CSV de productos (misma frontera euros↔céntimos)', () => {
   }
 
   it('un CSV en euros («2.20») guarda 220 céntimos, no 2', async () => {
-    const altas = await importar([{ name: 'Café solo', sku: 'CAF', price: '2.20', stock: '10' }]);
+    const altas = await importar([{ name: 'Café solo', sku: 'CAF', price: '2.20', stock: '10', tax_category: 'standard' }]);
     expect(altas, 'no se creó el producto del CSV').toHaveLength(1);
     expect(altas[0].payload.price, '2,20 € deben guardarse como 220 céntimos').toBe(220);
   });
 
   it('el coste sigue la misma regla («1.05» → 105 céntimos)', async () => {
-    const altas = await importar([{ name: 'Bolsa', sku: 'BOL', price: '0.30', cost: '1.05' }]);
+    const altas = await importar([{ name: 'Bolsa', sku: 'BOL', price: '0.30', cost: '1.05', tax_category: 'standard' }]);
     expect(altas[0].payload.cost).toBe(105);
     expect(altas[0].payload.price).toBe(30);
   });
 
   it('la CANTIDAD usa su propia escala 10⁶ (no céntimos)', async () => {
-    const altas = await importar([{ name: 'Café solo', sku: 'CAF', price: '2.20', stock: '10' }]);
+    const altas = await importar([{ name: 'Café solo', sku: 'CAF', price: '2.20', stock: '10', tax_category: 'standard' }]);
     expect(altas[0].payload.stock, '10 unidades viajan como 10.000.000 µ').toBe(10_000_000);
   });
 
   it('un precio vacío o basura entra como 0, no como NaN', async () => {
-    const altas = await importar([{ name: 'Sin precio', sku: 'NOP', price: '' }]);
+    const altas = await importar([{ name: 'Sin precio', sku: 'NOP', price: '', tax_category: 'standard' }]);
     expect(altas[0].payload.price).toBe(0);
   });
 });
@@ -258,12 +287,13 @@ describe('cantidades de la UI en punto fijo 10⁶ (inventory#25)', () => {
     const el = await montar();
     const wc = el as unknown as {
       newName: string; newSku: string; newPrice: string; newStock: string; newThreshold: string;
-      newUnitCode: string; units: Record<string, unknown>[];
+      newUnitCode: string; newTaxCategoryKey: string; units: Record<string, unknown>[];
       createProduct: (ev: Event) => Promise<void>;
     };
     wc.newName = 'Harina';
     wc.newSku = 'HAR';
     wc.newPrice = '1.20';
+    wc.newTaxCategoryKey = 'standard';
     wc.newStock = '2.5';
     wc.newThreshold = '0.75';
     wc.newUnitCode = 'kg';
@@ -306,7 +336,9 @@ describe('importador CSV: los errores se VEN, nunca parcial silencioso (inventor
         failed: { line: number; sku: string; reason: string }[] } | null;
       updateComplete: Promise<unknown>;
     };
-    await wc.finalizeImport(rows, new Map());
+    // `''` = la categoría que el usuario elige en el modal para las filas que no traen ninguna
+    // (inventory#38): sin ella el import no crearía NADA.
+    await wc.finalizeImport(rows, new Map([['', 'standard']]));
     return wc;
   }
 
@@ -375,7 +407,7 @@ describe('edición REAL de productos (inventory#8)', () => {
         name === 'inventory.products.get'
           ? [{ id: 'p1', name: 'Café solo', sku: 'CAF', price: 220, cost: 90, stock: 10_000_000,
                low_stock_threshold: 5_000_000, ean13: '8412345678905', description: 'café de casa',
-               tax_category_key: null, is_active: 1, product_type: 'physical', image: '' }]
+               tax_category_key: 'standard', is_active: 1, product_type: 'physical', image: '' }]
           : name === 'inventory.product_categories'
             ? [{ product_id: 'p1', category_id: 'c1' }]
             : [],
@@ -422,6 +454,7 @@ describe('edición REAL de productos (inventory#8)', () => {
     const el = await montar();
     const wc = el as unknown as {
       editingId: string | null; newName: string; newSku: string; newPrice: string;
+      newTaxCategoryKey: string;
       selectedCategoryIds: Set<string>; initialCategoryIds: Set<string>;
       createProduct: (ev: Event) => Promise<void>;
     };
@@ -429,6 +462,7 @@ describe('edición REAL de productos (inventory#8)', () => {
     wc.newName = 'Café';
     wc.newSku = 'CAF';
     wc.newPrice = '2.20';
+    wc.newTaxCategoryKey = 'standard';
     wc.initialCategoryIds = new Set(['c1']);
     wc.selectedCategoryIds = new Set(['c2']);
     await wc.createProduct(new Event('submit'));
@@ -445,12 +479,13 @@ describe('edición REAL de productos (inventory#8)', () => {
     };
     const el = await montar();
     const wc = el as unknown as {
-      newName: string; newSku: string; newPrice: string; formError: string;
+      newName: string; newSku: string; newPrice: string; newTaxCategoryKey: string; formError: string;
       createProduct: (ev: Event) => Promise<void>;
     };
     wc.newName = 'Café';
     wc.newSku = 'CAF';
     wc.newPrice = '2.20';
+    wc.newTaxCategoryKey = 'standard';
     await wc.createProduct(new Event('submit'));
     expect(wc.formError).toBe('ui.errSkuTaken');
   });
@@ -485,10 +520,12 @@ describe('selector de unidad maestra en la ficha (ADR-0147)', () => {
   it('ALTA: sin tocar el selector se envía unit_code "ud" (el default del contrato)', async () => {
     const el = await montar();
     const wc = el as unknown as { newName: string; newSku: string; newPrice: string;
+                                  newTaxCategoryKey: string;
                                   createProduct: (ev: Event) => Promise<void> };
     wc.newName = 'Caña';
     wc.newSku = 'CANA';
     wc.newPrice = '2.20';
+    wc.newTaxCategoryKey = 'standard';
     await wc.createProduct(new Event('submit'));
     const alta = comandos.find((c) => c.name === 'inventory.products.create');
     expect(alta!.payload.unit_code, 'el default explícito es ud').toBe('ud');
@@ -497,10 +534,12 @@ describe('selector de unidad maestra en la ficha (ADR-0147)', () => {
   it('ALTA: elegir kg envía unit_code "kg"', async () => {
     const el = await montar();
     const wc = el as unknown as { newName: string; newSku: string; newPrice: string;
-                                  newUnitCode: string; createProduct: (ev: Event) => Promise<void> };
+                                  newUnitCode: string; newTaxCategoryKey: string;
+                                  createProduct: (ev: Event) => Promise<void> };
     wc.newName = 'Gambas';
     wc.newSku = 'GAM';
     wc.newPrice = '12.00';
+    wc.newTaxCategoryKey = 'standard';
     wc.newUnitCode = 'kg';
     await wc.createProduct(new Event('submit'));
     expect(comandos.find((c) => c.name === 'inventory.products.create')!.payload.unit_code).toBe('kg');
@@ -512,7 +551,7 @@ describe('selector de unidad maestra en la ficha (ADR-0147)', () => {
       query: async (name: string) =>
         name === 'inventory.products.get'
           ? [{ id: 'p1', name: 'Gambas', sku: 'GAM', price: 1200, cost: 0, stock: 0,
-               low_stock_threshold: 5_000_000, ean13: null, description: '', tax_category_key: null,
+               low_stock_threshold: 5_000_000, ean13: null, description: '', tax_category_key: 'standard',
                is_active: 1, product_type: 'physical', unit_code: 'kg' }]
           : [],
     };
@@ -553,6 +592,264 @@ describe('hallazgos del QA en navegador (07-16)', () => {
     wc.editingId = 'p1';
     wc.cancelEdit();
     expect(cerrado, 'el drawer debe cerrarse al cancelar').toBe(true);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// inventory#38 — un producto NO puede existir sin saber cómo tributa.
+//
+// `tax_category_key` era opcional: se daba de alta un producto que no sabía si era 21 %, 10 % o
+// exento y nadie se enteraba hasta que un cajero intentaba cobrarlo y la venta se rechazaba, con el
+// cliente delante. El sector entero (Square, Lightspeed, Toast, Odoo) valida el impuesto al GUARDAR
+// el artículo, no al venderlo. Los productos que YA existen sin categoría no se migran —asignarles
+// una por defecto sería inventarse dato fiscal—: se marcan y se ven.
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+describe('el contrato exige la categoría fiscal (inventory#38)', () => {
+  it('el schema de ALTA la pide como cadena NO vacía', () => {
+    const schema = jsonDelModulo('schemas/product_create.json');
+    expect(schema.required, 'sin `required` el hueco fiscal sigue abierto').toContain('tax_category_key');
+    const prop = schema.properties.tax_category_key;
+    expect(prop.type, 'null ya no vale: es no saber cómo tributa').toBe('string');
+    expect(prop.minLength, 'la cadena vacía es el mismo agujero con otro nombre').toBe(1);
+    expect(prop.default, 'un `default: null` reabriría el hueco al omitir el campo').toBeUndefined();
+  });
+
+  it('el ALTA EN BLOQUE tampoco es una puerta trasera', () => {
+    // `bulk_create` es la otra puerta de alta (el handler WASM, y la herramienta que usa el
+    // asistente para «mete estos 20 platos»). Si ahí siguiera siendo opcional, la regla sería
+    // mentira: entrarían por lote justo los productos que no se pueden cobrar.
+    const item = jsonDelModulo('schemas/products_bulk_create.json').properties.products.items;
+    expect(item.required).toContain('tax_category_key');
+    expect(item.properties.tax_category_key.type).toBe('string');
+    expect(item.properties.tax_category_key.minLength).toBe(1);
+    expect(item.properties.tax_category_key.default).toBeUndefined();
+  });
+
+  it('el schema de EDICIÓN no deja VACIARLA', () => {
+    const schema = jsonDelModulo('schemas/product_update.json');
+    expect(schema.required).toContain('tax_category_key');
+    const prop = schema.properties.tax_category_key;
+    expect(prop.type).toBe('string');
+    expect(prop.minLength).toBe(1);
+  });
+});
+
+describe('la ficha de producto exige la categoría fiscal (inventory#38)', () => {
+  it('ALTA sin categoría: NO se manda el command y se explica por qué', async () => {
+    const el = await montar();
+    const wc = el as unknown as {
+      newName: string; newSku: string; newPrice: string; newTaxCategoryKey: string;
+      formError: string; createProduct: (ev: Event) => Promise<void>;
+    };
+    wc.newName = 'Café solo';
+    wc.newSku = 'CAF';
+    wc.newPrice = '2.20';
+    wc.newTaxCategoryKey = '';
+    await wc.createProduct(new Event('submit'));
+    expect(comandos.find((c) => c.name === 'inventory.products.create'),
+      'un producto que no sabe cómo tributa no se guarda').toBeFalsy();
+    expect(wc.formError, 'y el usuario ve POR QUÉ, no un botón muerto').toBe('ui.errTaxCategoryRequired');
+  });
+
+  it('ALTA con categoría: la clave elegida viaja en el payload', async () => {
+    const el = await montar();
+    const wc = el as unknown as {
+      newName: string; newSku: string; newPrice: string; newTaxCategoryKey: string;
+      createProduct: (ev: Event) => Promise<void>;
+    };
+    wc.newName = 'Café solo';
+    wc.newSku = 'CAF';
+    wc.newPrice = '2.20';
+    wc.newTaxCategoryKey = 'standard';
+    await wc.createProduct(new Event('submit'));
+    expect(comandos.find((c) => c.name === 'inventory.products.create')!.payload.tax_category_key)
+      .toBe('standard');
+  });
+
+  it('EDICIÓN: vaciar la categoría NO guarda (no se puede desconfigurar un producto)', async () => {
+    const el = await montar();
+    const wc = el as unknown as {
+      editingId: string | null; newName: string; newSku: string; newPrice: string;
+      newTaxCategoryKey: string; formError: string; createProduct: (ev: Event) => Promise<void>;
+    };
+    wc.editingId = 'p1';
+    wc.newName = 'Café solo';
+    wc.newSku = 'CAF';
+    wc.newPrice = '2.20';
+    wc.newTaxCategoryKey = '';
+    await wc.createProduct(new Event('submit'));
+    expect(comandos.find((c) => c.name === 'inventory.products.update')).toBeFalsy();
+    expect(wc.formError).toBe('ui.errTaxCategoryRequired');
+  });
+
+  it('el selector YA NO ofrece «— (por defecto)»: no hay opción de no elegir', async () => {
+    const el = await montar();
+    expect(el.shadowRoot?.textContent, 'la opción vacía era la puerta trasera del hueco fiscal')
+      .not.toContain('ui.taxDefault');
+  });
+
+  it('si el hub aún no tiene categorías fiscales, el formulario lo DICE', async () => {
+    (globalThis as Record<string, unknown>).erplora = {
+      ...(globalThis as { erplora: object }).erplora,
+      queryAll: async () => [],
+    };
+    const el = await montar();
+    expect(el.shadowRoot?.textContent, 'sin categorías no se puede dar de alta: hay que decirlo')
+      .toContain('ui.taxNoneAvailable');
+  });
+});
+
+describe('los productos que YA existen sin categoría SE VEN (inventory#38)', () => {
+  it('la query los MARCA (`needs_tax_setup`) y el manifest lo declara filtrable', () => {
+    const sql = ficheroDelModulo('queries/products_list.sql');
+    expect(sql, 'sin proyectarlo no se puede ni pintar ni filtrar').toMatch(/AS needs_tax_setup/);
+    const manifest = jsonDelModulo('module.json');
+    const list = manifest.queries['inventory.products.list'].list;
+    expect(list.filters, 'filtrable para repasarlos de golpe').toHaveProperty('needs_tax_setup');
+    expect(list.filters.needs_tax_setup.op).toBe('eq');
+  });
+
+  it('NO hay migración que les invente una categoría por defecto', () => {
+    const manifest = jsonDelModulo('module.json');
+    for (const rel of manifest.migrations.postgres as string[]) {
+      const sql = ficheroDelModulo(rel);
+      expect(/UPDATE\s+inventory_product\s+SET\s+tax_category_key/i.test(sql),
+        `${rel} rellena tax_category_key: eso es inventarse dato fiscal`).toBe(false);
+    }
+  });
+
+  it('un producto sin categoría no es «activo» ni «inactivo»: es «sin configurar», con su motivo', async () => {
+    const el = await montar();
+    const wc = el as unknown as {
+      productStatus: (row: Record<string, unknown>) => { id: string; label: string; reason: string };
+    };
+    const sinConfigurar = wc.productStatus({ is_active: 1, tax_category_key: null });
+    expect(sinConfigurar.id).toBe('unconfigured');
+    expect(sinConfigurar.label).toBe('ui.statusUnconfigured');
+    expect(sinConfigurar.reason, 'el motivo se dice, no se adivina').toBe('ui.statusUnconfiguredReason');
+    // La cadena vacía es el mismo agujero que el NULL.
+    expect(wc.productStatus({ is_active: 1, tax_category_key: '' }).id).toBe('unconfigured');
+    // Con categoría, los dos estados de siempre.
+    expect(wc.productStatus({ is_active: 1, tax_category_key: 'standard' }).id).toBe('active');
+    expect(wc.productStatus({ is_active: 0, tax_category_key: 'standard' }).id).toBe('inactive');
+  });
+
+  it('la FICHA de detalle tampoco dice «Activo: Sí» a un producto sin categoría', async () => {
+    const el = await montar();
+    const wc = el as unknown as {
+      detail: Record<string, unknown> | null; updateComplete: Promise<unknown>; shadowRoot: ShadowRoot;
+    };
+    wc.detail = { id: 'p1', name: 'Café solo', sku: 'CAF', price: 220, stock: 0, is_active: 1, tax_category_key: null };
+    await wc.updateComplete;
+    const texto = wc.shadowRoot.textContent ?? '';
+    expect(texto).toContain('ui.statusUnconfigured');
+    expect(texto).toContain('ui.statusUnconfiguredReason');
+  });
+
+  it('ARREGLARLO: se abre el producto viejo, se elige categoría y ya se guarda', async () => {
+    // El bucle completo de la incidencia: el listado los enseña, se abre uno (la propia celda del
+    // tercer estado es el atajo), se le pone la categoría que le faltaba y el update sale.
+    (globalThis as Record<string, unknown>).erplora = {
+      ...(globalThis as { erplora: object }).erplora,
+      query: async (name: string) =>
+        name === 'inventory.products.get'
+          ? [{ id: 'p1', name: 'Café solo', sku: 'CAF', price: 220, cost: 90, stock: 0,
+               low_stock_threshold: 5_000_000, ean13: null, description: '',
+               tax_category_key: null, is_active: 1, product_type: 'physical', unit_code: 'ud' }]
+          : [],
+    };
+    const el = await montar();
+    const wc = el as unknown as {
+      onRowAction: (ev: CustomEvent) => Promise<void>;
+      newTaxCategoryKey: string; formError: string;
+      createProduct: (ev: Event) => Promise<void>; updateComplete: Promise<unknown>;
+    };
+    await wc.onRowAction(new CustomEvent('rowAction', {
+      detail: { actionId: 'edit', row: { id: 'p1', name: 'Café solo', sku: 'CAF', price: 220, tax_category_key: null } },
+    }) as CustomEvent);
+    await wc.updateComplete;
+    expect(wc.newTaxCategoryKey, 'la ficha NO se inventa una categoría al abrirla').toBe('');
+
+    await wc.createProduct(new Event('submit'));
+    expect(comandos.find((c) => c.name === 'inventory.products.update'),
+      'guardar sin elegir categoría seguiría dejándolo sin configurar').toBeFalsy();
+
+    wc.newTaxCategoryKey = 'standard';
+    await wc.createProduct(new Event('submit'));
+    expect(comandos.find((c) => c.name === 'inventory.products.update')!.payload.tax_category_key)
+      .toBe('standard');
+  });
+
+  it('la columna de estado ofrece los TRES valores en su filtro', async () => {
+    const el = await montar();
+    const cols = (el as unknown as { columns: { key: string; options?: { value: string }[] }[] }).columns;
+    const estado = cols.find((c) => c.key === 'is_active')!;
+    expect(estado.options?.map((o) => o.value)).toEqual(['1', '0', 'unconfigured']);
+  });
+
+  it('filtrar por «sin configurar» va al SERVIDOR por needs_tax_setup, no al is_active', async () => {
+    const el = await montar();
+    const wc = el as unknown as {
+      applyStatusFilter: (value: unknown) => void;
+      ctrl: { state: { filters: Record<string, unknown> } };
+    };
+    wc.applyStatusFilter('unconfigured');
+    expect(wc.ctrl.state.filters).toEqual({ needs_tax_setup: '1' });
+    // Los tres valores son EXCLUYENTES: elegir otro limpia el anterior (si no, «inactivo» seguiría
+    // arrastrando el needs_tax_setup y la lista mentiría).
+    wc.applyStatusFilter('0');
+    expect(wc.ctrl.state.filters).toEqual({ is_active: '0' });
+    wc.applyStatusFilter('');
+    expect(wc.ctrl.state.filters).toEqual({});
+  });
+});
+
+describe('import CSV: ninguna fila entra sin saber cómo tributa (inventory#38)', () => {
+  it('una fila cuya categoría no se resuelve se cuenta como FALLIDA con su motivo', async () => {
+    const el = await montar();
+    const wc = el as unknown as {
+      finalizeImport: (rows: Record<string, string>[], map: Map<string, string>) => Promise<void>;
+      importReport: { created: number; failed: { line: number; reason: string }[] } | null;
+    };
+    await wc.finalizeImport([{ name: 'Café', sku: 'CAF', price: '2.20' }], new Map());
+    expect(comandos.find((c) => c.name === 'inventory.products.create'),
+      'nunca se manda un alta que el schema va a rechazar').toBeFalsy();
+    expect(wc.importReport!.created).toBe(0);
+    expect(wc.importReport!.failed[0].reason).toBe('ui.importErrTaxCategory');
+  });
+
+  it('un CSV SIN columna fiscal pregunta UNA categoría para todas sus filas', async () => {
+    const el = await montar();
+    const wc = el as unknown as {
+      onCsvImport: (ev: CustomEvent) => Promise<void>;
+      confirmImportResolution: () => Promise<void>;
+      importOpen: boolean; importUnresolved: string[];
+      importChoice: Record<string, { mode: string; key: string; newKey: string; newName: string }>;
+    };
+    await wc.onCsvImport(new CustomEvent('csvImport', {
+      detail: { rows: [{ name: 'Café', sku: 'CAF', price: '2.20' }, { name: 'Té', sku: 'TE', price: '1.80' }] },
+    }));
+    expect(wc.importOpen, 'no se importa a ciegas: se pregunta').toBe(true);
+    expect(wc.importUnresolved, 'la entrada «filas sin categoría» es la cadena vacía').toContain('');
+    expect(comandos.filter((c) => c.name === 'inventory.products.create'),
+      'nada se crea hasta que el usuario decide').toHaveLength(0);
+
+    wc.importChoice = { '': { mode: 'pick', key: 'standard', newKey: '', newName: '' } };
+    await wc.confirmImportResolution();
+    const altas = comandos.filter((c) => c.name === 'inventory.products.create');
+    expect(altas).toHaveLength(2);
+    expect(altas.every((a) => a.payload.tax_category_key === 'standard')).toBe(true);
+  });
+
+  it('un CSV cuya columna fiscal SÍ resuelve no pregunta nada', async () => {
+    const el = await montar();
+    const wc = el as unknown as { onCsvImport: (ev: CustomEvent) => Promise<void>; importOpen: boolean };
+    await wc.onCsvImport(new CustomEvent('csvImport', {
+      detail: { rows: [{ name: 'Café', sku: 'CAF', price: '2.20', tax_category: 'standard' }] },
+    }));
+    expect(wc.importOpen).toBe(false);
+    expect(comandos.find((c) => c.name === 'inventory.products.create')!.payload.tax_category_key)
+      .toBe('standard');
   });
 });
 

@@ -39,10 +39,9 @@
       "description": "Umbral de stock bajo en punto fijo de escala 10⁶ (ADR-0147)."
     },
     "tax_category_key": {
-      "type": [
-        "string",
-        "null"
-      ]
+      "description": "Fiscal category of the product (ADR-0085). Already required here, but it used to accept `null`: editing a product could WIPE how it is taxed and the failure only surfaced at the till. A configured product can no longer be un-configured.",
+      "type": "string",
+      "minLength": 1
     },
     "is_active": {
       "type": "integer",

@@ -6,7 +6,8 @@
   "required": [
     "name",
     "sku",
-    "price"
+    "price",
+    "tax_category_key"
   ],
   "properties": {
     "name": {
@@ -60,11 +61,9 @@
       "description": "Umbral por producto en punto fijo de escala 10⁶. Ausente → hereda el umbral global del hub convertido a la misma escala (fallback 10000000 = 10)."
     },
     "tax_category_key": {
-      "type": [
-        "string",
-        "null"
-      ],
-      "default": null
+      "description": "Fiscal category the product links its tax to (ADR-0085). REQUIRED: a product that does not know whether it is 21%, 10% or exempt cannot be sold, and nobody finds out until a cashier tries to charge it and the sale is rejected with the customer standing there. Every POS in the market (Square, Lightspeed, Toast, Odoo) validates the tax when the item is SAVED, not when it is sold. `null` and `\"\"` are the same hole with two names, hence `string` + `minLength`.",
+      "type": "string",
+      "minLength": 1
     },
     "image": {
       "type": "string",

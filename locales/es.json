@@ -50,7 +50,7 @@
     "actionEdit": "Editar",
     "actionDelete": "Eliminar",
     "importTaxTitle": "Categorías fiscales del CSV",
-    "importTaxHint": "Algunos textos de categoría del CSV no se reconocen. Elige una categoría existente o crea una nueva; se recordará para futuras importaciones.",
+    "importTaxHint": "Algunas filas necesitan una categoría fiscal antes de poder crearse: o su texto del CSV no se reconoce, o no traen columna fiscal. Elige una categoría existente o crea una nueva; la decisión se recuerda para futuras importaciones.",
     "importPick": "Elegir",
     "importCreate": "Crear",
     "importSkip": "Omitir",
@@ -137,7 +137,16 @@
     "deleteCatImpact": "producto(s) quedarán sin esta categoría (se desvinculan; los productos no se borran)",
     "deleteCatConfirm": "Eliminar y desvincular",
     "deleteProdTitle": "Eliminar producto",
-    "deleteProdHint": "se eliminará del catálogo (borrado lógico; sus movimientos de stock se conservan)"
+    "deleteProdHint": "se eliminará del catálogo (borrado lógico; sus movimientos de stock se conservan)",
+    "status": "Estado",
+    "statusUnconfigured": "Sin configurar",
+    "statusUnconfiguredReason": "Falta la categoría fiscal",
+    "fieldTaxCategory": "Categoría fiscal",
+    "taxCategoryPlaceholder": "Elige una categoría fiscal",
+    "taxNoneAvailable": "Todavía no hay categorías fiscales. Créalas en Impuestos: un producto no se puede vender sin saber cómo tributa.",
+    "errTaxCategoryRequired": "Elige la categoría fiscal: sin ella el producto no se puede vender.",
+    "importErrTaxCategory": "Falta la categoría fiscal",
+    "importTaxMissingLabel": "Filas sin categoría fiscal"
   },
   "widgets": {
     "inventory.low_stock_count": {
