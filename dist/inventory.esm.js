@@ -1389,7 +1389,7 @@ var es_default = {
     actionEdit: "Editar",
     actionDelete: "Eliminar",
     importTaxTitle: "Categor\xEDas fiscales del CSV",
-    importTaxHint: "Algunos textos de categor\xEDa del CSV no se reconocen. Elige una categor\xEDa existente o crea una nueva; se recordar\xE1 para futuras importaciones.",
+    importTaxHint: "Algunas filas necesitan una categor\xEDa fiscal antes de poder crearse: o su texto del CSV no se reconoce, o no traen columna fiscal. Elige una categor\xEDa existente o crea una nueva; la decisi\xF3n se recuerda para futuras importaciones.",
     importPick: "Elegir",
     importCreate: "Crear",
     importSkip: "Omitir",
@@ -1476,7 +1476,16 @@ var es_default = {
     deleteCatImpact: "producto(s) quedar\xE1n sin esta categor\xEDa (se desvinculan; los productos no se borran)",
     deleteCatConfirm: "Eliminar y desvincular",
     deleteProdTitle: "Eliminar producto",
-    deleteProdHint: "se eliminar\xE1 del cat\xE1logo (borrado l\xF3gico; sus movimientos de stock se conservan)"
+    deleteProdHint: "se eliminar\xE1 del cat\xE1logo (borrado l\xF3gico; sus movimientos de stock se conservan)",
+    status: "Estado",
+    statusUnconfigured: "Sin configurar",
+    statusUnconfiguredReason: "Falta la categor\xEDa fiscal",
+    fieldTaxCategory: "Categor\xEDa fiscal",
+    taxCategoryPlaceholder: "Elige una categor\xEDa fiscal",
+    taxNoneAvailable: "Todav\xEDa no hay categor\xEDas fiscales. Cr\xE9alas en Impuestos: un producto no se puede vender sin saber c\xF3mo tributa.",
+    errTaxCategoryRequired: "Elige la categor\xEDa fiscal: sin ella el producto no se puede vender.",
+    importErrTaxCategory: "Falta la categor\xEDa fiscal",
+    importTaxMissingLabel: "Filas sin categor\xEDa fiscal"
   },
   widgets: {
     "inventory.low_stock_count": {
@@ -1554,7 +1563,7 @@ var en_default = {
     actionEdit: "Edit",
     actionDelete: "Delete",
     importTaxTitle: "CSV tax categories",
-    importTaxHint: "Some category texts in the CSV aren't recognized. Pick an existing category or create a new one; it will be remembered for future imports.",
+    importTaxHint: "Some rows need a tax category before they can be created: either their CSV text is not recognized, or they bring no tax column at all. Pick an existing category or create a new one; the choice is remembered for future imports.",
     importPick: "Pick",
     importCreate: "Create",
     importSkip: "Skip",
@@ -1641,7 +1650,16 @@ var en_default = {
     deleteCatImpact: "product(s) will lose this category (unlinked; products are kept)",
     deleteCatConfirm: "Delete and unlink",
     deleteProdTitle: "Delete product",
-    deleteProdHint: "will be removed from the catalog (soft delete; its stock movements are kept)"
+    deleteProdHint: "will be removed from the catalog (soft delete; its stock movements are kept)",
+    status: "Status",
+    statusUnconfigured: "Not configured",
+    statusUnconfiguredReason: "Missing tax category",
+    fieldTaxCategory: "Tax category",
+    taxCategoryPlaceholder: "Pick a tax category",
+    taxNoneAvailable: "There are no tax categories yet. Create them in Taxes: a product cannot be sold until it is known how it is taxed.",
+    errTaxCategoryRequired: "Pick the tax category: without it the product cannot be sold.",
+    importErrTaxCategory: "Missing tax category",
+    importTaxMissingLabel: "Rows with no tax category"
   },
   errors: {
     "inventory.insufficient_stock": "Not enough stock to complete the operation.",
@@ -4723,6 +4741,12 @@ function printBarcodeLabel(sku, name, deps = {}) {
 
 // ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/modules/inventory/ui/components/erp-inventory-products/erp-inventory-products.ts
 var CATALOG4 = { es: es_default, en: en_default };
+var STATUS_UNCONFIGURED = "unconfigured";
+function statusOf(row) {
+  const key = row.tax_category_key;
+  if (key == null || String(key).trim() === "") return STATUS_UNCONFIGURED;
+  return Number(row.is_active) ? "active" : "inactive";
+}
 function erplora4() {
   const c5 = globalThis.erplora;
   if (!c5) throw new Error("erplora SDK no inicializado por el shell");
@@ -4823,27 +4847,77 @@ var ErpInventoryProducts = class extends i3 {
       },
       {
         key: "is_active",
-        header: t5("ui.active"),
+        header: t5("ui.status"),
         align: "center",
         filterable: true,
         filterType: "select",
+        // TRES estados, no dos (inventory#38). El tercero no es una columna aparte a propósito: si
+        // «sin configurar» viviera al lado del toggle, un producto que no se puede vender seguiría
+        // pintándose «activo» — que es exactamente la mentira que costaba una venta en el mostrador.
         options: [
           { value: "1", label: t5("ui.yes") },
-          { value: "0", label: t5("ui.no") }
+          { value: "0", label: t5("ui.no") },
+          { value: STATUS_UNCONFIGURED, label: t5("ui.statusUnconfigured") }
         ],
-        // Celda interactiva: ion-toggle (verde = activo). Al cambiar, persiste vía command.
-        // El color va por CSS var (--background-checked) y no por `color=`, porque las clases
-        // .ion-color-* no penetran el shadow DOM de ok-data-table; las custom props sí heredan.
-        render: (r6) => can2("inventory.change_product") ? b2`
-            <ion-toggle
-              aria-label=${t5("ui.active")}
-              style="--track-background-checked: rgba(var(--ion-color-success-rgb, 45,211,111), 0.5); --handle-background-checked: var(--ion-color-success, #2dd36f);"
-              ?checked=${!!r6.is_active}
-              @ionChange=${(e5) => this.toggleActive(r6, e5)}
-            ></ion-toggle>
-          ` : r6.is_active ? t5("ui.yes") : t5("ui.no")
+        render: (r6) => {
+          if (statusOf(r6) === STATUS_UNCONFIGURED) return this.renderUnconfigured(r6);
+          return can2("inventory.change_product") ? b2`
+              <ion-toggle
+                aria-label=${t5("ui.active")}
+                style="--track-background-checked: rgba(var(--ion-color-success-rgb, 45,211,111), 0.5); --handle-background-checked: var(--ion-color-success, #2dd36f);"
+                ?checked=${!!r6.is_active}
+                @ionChange=${(e5) => this.toggleActive(r6, e5)}
+              ></ion-toggle>
+            ` : r6.is_active ? t5("ui.yes") : t5("ui.no");
+        }
       }
     ];
+  }
+  /**
+   * Estado de la fila para la columna de estado, ya traducido. Público (y puro) para que el
+   * contrato del TERCER estado se pueda fijar en un test sin renderizar la tabla entera.
+   */
+  productStatus(row) {
+    const t5 = (k2) => erplora4().t(CATALOG4, k2);
+    const id = statusOf(row);
+    if (id === STATUS_UNCONFIGURED) {
+      return { id, label: t5("ui.statusUnconfigured"), reason: t5("ui.statusUnconfiguredReason") };
+    }
+    return { id, label: id === "active" ? t5("ui.yes") : t5("ui.no"), reason: "" };
+  }
+  /** Celda del tercer estado: DICE el motivo y, con permiso, es el atajo para arreglarlo. */
+  renderUnconfigured(row) {
+    const { label, reason } = this.productStatus(row);
+    const editable = can2("inventory.change_product");
+    return b2`
+      <ion-chip
+        color="warning"
+        title=${reason}
+        ?disabled=${!editable}
+        style=${editable ? "cursor:pointer;" : ""}
+        @click=${() => editable && this.onRowAction(
+      new CustomEvent("rowAction", { detail: { actionId: "edit", row } })
+    )}
+      >
+        <ion-icon name="alert-circle-outline"></ion-icon>
+        <ion-label>${label} · ${reason}</ion-label>
+      </ion-chip>
+    `;
+  }
+  /**
+   * Filtro de estado: los TRES valores son EXCLUYENTES entre sí, pero viajan al servidor por DOS
+   * columnas distintas (`is_active` y `needs_tax_setup`), así que se aplican juntos y con UNA sola
+   * recarga — encadenar dos `setFilter` haría dos viajes y dejaría el filtro anterior puesto en el
+   * primero de ellos.
+   */
+  applyStatusFilter(value) {
+    const v3 = value == null ? "" : String(value);
+    delete this.ctrl.state.filters.is_active;
+    delete this.ctrl.state.filters.needs_tax_setup;
+    if (v3 === STATUS_UNCONFIGURED) this.ctrl.state.filters.needs_tax_setup = "1";
+    else if (v3 !== "") this.ctrl.state.filters.is_active = v3;
+    this.ctrl.state.page = 0;
+    void this.ctrl.load();
   }
   /** Diferencia del recuento (nuevo − actual), o null si aún no hay valor tecleado. */
   get countDifference() {
@@ -4980,7 +5054,9 @@ var ErpInventoryProducts = class extends i3 {
         low_stock_threshold: p4.low_stock_threshold ?? 10,
         ean13: full.ean13 ?? null,
         description: full.description ?? "",
-        tax_category_key: p4.tax_category_key ?? null,
+        // De la ficha COMPLETA (autoridad), no de la fila: desde inventory#38 el command exige
+        // una categoría no vacía, y un reenvío en blanco tumbaría el toggle con un error de schema.
+        tax_category_key: full.tax_category_key ?? p4.tax_category_key,
         is_active: checked ? 1 : 0
       });
       await this.ctrl.load();
@@ -5008,6 +5084,9 @@ var ErpInventoryProducts = class extends i3 {
       unresolved = res.unresolved;
     } catch (e5) {
       console.warn("[inventory] No se pudieron resolver las categor\xEDas fiscales del CSV:", e5);
+    }
+    if (rows.some((r6) => !pickTaxValue(r6)) && !map.has("")) {
+      unresolved = [...unresolved, ""];
     }
     if (unresolved.length > 0) {
       this.importRows = rows;
@@ -5076,8 +5155,11 @@ var ErpInventoryProducts = class extends i3 {
         continue;
       }
       seenSkus.add(sku);
-      const taxValue = pickTaxValue(r6);
-      const taxCategoryKey = taxValue ? map.get(normalizeAlias(taxValue)) ?? null : null;
+      const taxCategoryKey = map.get(normalizeAlias(pickTaxValue(r6))) ?? null;
+      if (!taxCategoryKey) {
+        failed.push({ line, sku, reason: t5("ui.importErrTaxCategory") });
+        continue;
+      }
       const unitCode = (r6.unit_code ?? "ud").trim() || "ud";
       const stock = r6.stock?.trim() ? parseQuantity2(r6.stock) : 0;
       const threshold = r6.low_stock_threshold?.trim() ? parseQuantity2(r6.low_stock_threshold) : 1e7;
@@ -5149,7 +5231,9 @@ var ErpInventoryProducts = class extends i3 {
           ${this.importUnresolved.map((text) => {
       const c5 = this.importChoice[text] ?? { mode: "pick", key: "", newKey: "", newName: text };
       return b2`<div style="border:1px solid var(--ion-border-color,#e6e2d8);border-radius:10px;padding:.6rem .8rem;margin-bottom:.7rem;">
-              <strong>"${text}"</strong>
+              <!-- La cadena vacía no es un texto del CSV: es el cajón de las filas que no traen
+                   columna fiscal (inventory#38). Pintarla entre comillas no diría nada. -->
+              <strong>${text === "" ? t5("ui.importTaxMissingLabel") : `"${text}"`}</strong>
               <ion-segment .value=${c5.mode} @ionChange=${(e5) => setChoice(text, { mode: e5.detail.value })} style="margin:.5rem 0;">
                 <ion-segment-button value="pick"><ion-label>${t5("ui.importPick")}</ion-label></ion-segment-button>
                 <ion-segment-button value="create"><ion-label>${t5("ui.importCreate")}</ion-label></ion-segment-button>
@@ -5213,9 +5297,10 @@ var ErpInventoryProducts = class extends i3 {
     super.disconnectedCallback();
     this.unsub?.();
   }
-  // Carga las CATEGORÍAS fiscales para el selector del formulario (ADR-0085). Best-effort: si falla
-  // (módulo `taxes` no instalado, sin permiso…), el select queda con solo "— (sin categoría)" y el
-  // alta sigue funcionando (tax_category_key = null). El % lo resuelve `taxes` por país+categoría.
+  // Carga las CATEGORÍAS fiscales para el selector del formulario (ADR-0085). Que la query falle
+  // (sin permiso, `taxes` degradado…) NO puede tumbar la página, pero desde inventory#38 tampoco
+  // deja pasar el alta: sin catálogo no hay categoría que elegir, y el formulario lo dice en vez de
+  // guardar un producto que nadie podrá cobrar. El % lo resuelve `taxes` por país+categoría.
   async loadTaxCategories() {
     try {
       const res = await erplora4().queryAll("taxes.categories.list", { sort: "name", dir: "asc" });
@@ -5224,16 +5309,13 @@ var ErpInventoryProducts = class extends i3 {
       this.taxCategories = [];
     }
   }
-  // Opciones del ion-select: "— (sin categoría)" (valor '') + una categoría por fila.
-  // Etiqueta = "Nombre (key)".
+  // Opciones del ion-select: una categoría por fila, etiqueta "Nombre (key)". SIN opción vacía
+  // (inventory#38): "— (por defecto)" era la puerta trasera por la que entraba un producto que no
+  // sabía cómo tributa. El hueco se cubre con el `placeholder` del select, que no es elegible.
   taxOptions() {
-    const t5 = (k2) => erplora4().t(CATALOG4, k2);
-    return b2`
-      <ion-select-option value="">${t5("ui.taxDefault")}</ion-select-option>
-      ${this.taxCategories.map(
+    return this.taxCategories.map(
       (c5) => b2`<ion-select-option .value=${c5.key}>${c5.name} (${c5.key})</ion-select-option>`
-    )}
-    `;
+    );
   }
   // Registro de unidades (ADR-0147) para el selector de la ficha. Best-effort como el de
   // categorías fiscales: si la query falla, el select se queda con 'ud' y el alta sigue.
@@ -5315,9 +5397,13 @@ var ErpInventoryProducts = class extends i3 {
     ev.preventDefault();
     const requiredPermission = this.editingId ? "inventory.change_product" : "inventory.add_product";
     if (!can2(requiredPermission) || !this.newName.trim() || !this.newSku.trim()) return;
+    const t5 = (k2) => erplora4().t(CATALOG4, k2);
+    if (!this.newTaxCategoryKey) {
+      this.formError = t5("ui.errTaxCategoryRequired");
+      return;
+    }
     this.saving = true;
     this.formError = "";
-    const t5 = (k2) => erplora4().t(CATALOG4, k2);
     try {
       const threshold = this.newThreshold.trim() === "" ? 1e7 : parseQuantity2(this.newThreshold);
       if (threshold === null) throw new Error(t5("ui.errQuantity"));
@@ -5333,7 +5419,7 @@ var ErpInventoryProducts = class extends i3 {
           low_stock_threshold: threshold,
           ean13: this.newEan.trim() || null,
           description: this.newDescription,
-          tax_category_key: this.newTaxCategoryKey || null,
+          tax_category_key: this.newTaxCategoryKey,
           is_active: this.newActive ? 1 : 0,
           // Se envía SIEMPRE (no solo si cambió): el comando hace COALESCE y reenviar la
           // actual es idempotente; omitirla también sería válido (se conservaría).
@@ -5371,7 +5457,7 @@ var ErpInventoryProducts = class extends i3 {
           product_type: this.newType,
           ean13: this.newEan.trim() || null,
           description: this.newDescription,
-          tax_category_key: this.newTaxCategoryKey || null,
+          tax_category_key: this.newTaxCategoryKey,
           unit_code: this.newUnitCode,
           image: ""
         });
@@ -5427,10 +5513,13 @@ var ErpInventoryProducts = class extends i3 {
           @pageSizeChange=${(e5) => this.ctrl.setPageSize(e5.detail)}
           @sortChange=${(e5) => this.ctrl.setSort(e5.detail.sort, e5.detail.dir)}
           @searchChange=${(e5) => this.ctrl.setSearch(e5.detail)}
-          @filterChange=${(e5) => this.ctrl.setFilter(
-      e5.detail.col,
-      e5.detail.col === "stock" ? this.stockFilterValue(e5.detail.value) : e5.detail.value
-    )}
+          @filterChange=${(e5) => {
+      if (e5.detail.col === "is_active") return this.applyStatusFilter(e5.detail.value);
+      this.ctrl.setFilter(
+        e5.detail.col,
+        e5.detail.col === "stock" ? this.stockFilterValue(e5.detail.value) : e5.detail.value
+      );
+    }}
         >
           <!-- Formulario de alta: el botón "+" del data-table despliega este acordeón. -->
           <form slot="create" class="form" @submit=${(e5) => this.createProduct(e5)}>
@@ -5524,15 +5613,23 @@ var ErpInventoryProducts = class extends i3 {
             >
               ${this.unitOptions()}
             </ion-select>
+            <!-- Categoría fiscal: campo OBLIGATORIO (inventory#38), no un asterisco decorativo.
+                 Sin catálogo de categorías no hay nada que elegir, así que se dice en vez de
+                 dejar guardar un producto que después nadie puede cobrar. -->
             <ion-select
               fill="outline"
               label-placement="floating"
-              label=${erplora4().t(CATALOG4, "ui.taxRate")}
+              required
+              label=${erplora4().t(CATALOG4, "ui.fieldTaxCategory")}
+              placeholder=${erplora4().t(CATALOG4, "ui.taxCategoryPlaceholder")}
               .value=${this.newTaxCategoryKey}
               @ionChange=${(e5) => this.newTaxCategoryKey = e5.target.value}
             >
               ${this.taxOptions()}
             </ion-select>
+            ${this.taxCategories.length === 0 ? b2`<ok-inline-feedback tone="warning" icon="alert-circle-outline">
+                  ${erplora4().t(CATALOG4, "ui.taxNoneAvailable")}
+                </ok-inline-feedback>` : A}
             ${this.productCategories.length ? b2`<ion-select
                   fill="outline"
                   label-placement="floating"
@@ -5548,7 +5645,7 @@ var ErpInventoryProducts = class extends i3 {
       (c5) => b2`<ion-select-option .value=${c5.id}>${c5.name}</ion-select-option>`
     )}
                 </ion-select>` : A}
-            <ion-button type="submit" ?disabled=${this.saving || !this.newName || !this.newSku}>
+            <ion-button type="submit" ?disabled=${this.saving || !this.newName || !this.newSku || !this.newTaxCategoryKey}>
               ${this.saving ? erplora4().t(CATALOG4, "ui.saving") : this.editingId ? erplora4().t(CATALOG4, "ui.saveChanges") : erplora4().t(CATALOG4, "ui.save")}
             </ion-button>
           </form>
@@ -5581,8 +5678,14 @@ var ErpInventoryProducts = class extends i3 {
                       <ion-note slot="end">${formatQuantity2(this.detail.stock)}</ion-note>
                     </ion-item>
                     <ion-item>
-                      <ion-label>${t5("ui.active")}</ion-label>
-                      <ion-note slot="end">${this.detail.is_active ? t5("ui.yes") : t5("ui.no")}</ion-note>
+                      <ion-label>${t5("ui.status")}</ion-label>
+                      <ion-note
+                        slot="end"
+                        color=${this.productStatus(this.detail).id === "unconfigured" ? "warning" : "medium"}
+                      >
+                        ${this.productStatus(this.detail).label}
+                        ${this.productStatus(this.detail).reason}
+                      </ion-note>
                     </ion-item>
                   </ion-list>
                   <div style="text-align:center; margin:1rem 0; padding:1rem; border:1px solid var(--ion-border-color,#e6e2d8); border-radius:10px;">

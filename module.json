@@ -149,6 +149,9 @@
           "is_active": {
             "op": "eq"
           },
+          "needs_tax_setup": {
+            "op": "eq"
+          },
           "product_type": {
             "op": "eq"
           },
@@ -162,7 +165,7 @@
         "page_size": 50
       },
       "ai": {
-        "description": "Lists inventory products with their current stock."
+        "description": "Lists inventory products with their current stock. `needs_tax_setup` = 1 marks the products that still have no fiscal category (`tax_category_key`): they cannot be sold until it is set."
       }
     },
     "inventory.products.get": {
@@ -326,8 +329,7 @@
         {
           "field": "tax_category_key",
           "query": "taxes.categories.get",
-          "param": "key",
-          "optional": true
+          "param": "key"
         }
       ]
     },
@@ -349,8 +351,7 @@
         {
           "field": "tax_category_key",
           "query": "taxes.categories.get",
-          "param": "key",
-          "optional": true
+          "param": "key"
         }
       ]
     },
