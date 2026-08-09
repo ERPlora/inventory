@@ -696,7 +696,15 @@
       "sale.voided": {
         "command": "inventory._restock_on_void"
       }
-    }
+    },
+    "emits": [
+      "inventory.product.categorized",
+      "inventory.product.created",
+      "inventory.product.deleted",
+      "inventory.product.uncategorized",
+      "inventory.product.updated",
+      "inventory.stock_changed"
+    ]
   },
   "ui": {
     "entry": "dist/inventory.esm.js"
