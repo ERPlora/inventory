@@ -16,7 +16,8 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "name"
+          "name",
+          "tax_category_key"
         ],
         "properties": {
           "name": {
@@ -72,11 +73,9 @@
             "description": "Umbral por producto en punto fijo de escala 10⁶ (10000000 = 10)."
           },
           "tax_category_key": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "default": null
+            "description": "Fiscal category the product links its tax to (ADR-0085). REQUIRED, same as in `product_create.json`: a batch is just another door into the catalog, and a product that does not know how it is taxed cannot be sold — the rejection would land at the till.",
+            "type": "string",
+            "minLength": 1
           },
           "image": {
             "type": "string",

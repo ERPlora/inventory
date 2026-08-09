@@ -614,6 +614,17 @@ describe('el contrato exige la categoría fiscal (inventory#38)', () => {
     expect(prop.default, 'un `default: null` reabriría el hueco al omitir el campo').toBeUndefined();
   });
 
+  it('el ALTA EN BLOQUE tampoco es una puerta trasera', () => {
+    // `bulk_create` es la otra puerta de alta (el handler WASM, y la herramienta que usa el
+    // asistente para «mete estos 20 platos»). Si ahí siguiera siendo opcional, la regla sería
+    // mentira: entrarían por lote justo los productos que no se pueden cobrar.
+    const item = jsonDelModulo('schemas/products_bulk_create.json').properties.products.items;
+    expect(item.required).toContain('tax_category_key');
+    expect(item.properties.tax_category_key.type).toBe('string');
+    expect(item.properties.tax_category_key.minLength).toBe(1);
+    expect(item.properties.tax_category_key.default).toBeUndefined();
+  });
+
   it('el schema de EDICIÓN no deja VACIARLA', () => {
     const schema = jsonDelModulo('schemas/product_update.json');
     expect(schema.required).toContain('tax_category_key');
