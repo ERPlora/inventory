@@ -133,6 +133,8 @@
     "errSaveCategory": "The category could not be saved",
     "saving": "Saving…",
     "printBarcode": "Print barcode",
+    "errPrintBarcode": "The barcode label could not be printed",
+    "errPrintBarcodeNoPrinter": "No printer is assigned to the «Label» role: assign one in Printing",
     "deleteCatTitle": "Delete category",
     "deleteCatImpact": "product(s) will lose this category (unlinked; products are kept)",
     "deleteCatConfirm": "Delete and unlink",

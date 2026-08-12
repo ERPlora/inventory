@@ -52,13 +52,104 @@ export function printHtmlInIframe(html: string, doc: Document = document): void 
 /** Test seam for the no-gate fallback (mirrors the shell's own `iframePrint` injection). */
 export interface PrintBarcodeDeps {
   iframePrint?: (html: string) => void;
+  /**
+   * Are we inside the INSTALLED app? Injected for tests; by default it probes the same global the
+   * shell probes (`window.__TAURI__.core.invoke`, `hub/apps/web/src/lib/device.ts`). It matters
+   * because the browser fallback is a **false success** there: the webview has no print dialog.
+   */
+  isInstalledApp?: () => boolean;
 }
 
-/** Prints the product's SKU barcode through the print cascade (gate → iframe → dialog). */
-export function printBarcodeLabel(sku: string, name: string, deps: PrintBarcodeDeps = {}): void {
-  const html = barcodeLabelHtml(sku, name);
-  const sdk = (globalThis as { erplora?: { print?: (r: Record<string, unknown>) => Promise<unknown> } }).erplora;
-  if (sdk?.print) void sdk.print({ role: 'label', documentType: 'label', html, jobId: `barcode-${sku}` });
-  else if (html) (deps.iframePrint ?? printHtmlInIframe)(html);
-  else window.print();
+/** What goes on the label. Money in CENTS, like everywhere else in the module (ADR-0007/0123). */
+export interface BarcodeLabel {
+  sku: string;
+  name: string;
+  /** Shelf price in **cents**, or nothing to leave the price off the label. */
+  priceCents?: number | null;
+}
+
+/**
+ * How the print ended, so the caller can SAY it (issue #44). The old `void sdk.print(...)` threw
+ * this away: a refused document type, an empty label or a missing printer all looked identical to
+ * a clean print — nothing on screen, nothing on paper.
+ */
+export interface BarcodePrintOutcome {
+  /** `false` = nothing came out of a printer and the user MUST be told. */
+  ok: boolean;
+  /** Route taken: the gate's `via` (`bridge`/`queue`/`browser`/`none`) or `iframe` with no gate. */
+  via: string;
+  /** Machine-readable cause; the caller maps it to a translated message. */
+  reason?: 'no_printer' | 'gate_error' | 'threw';
+  /** Technical detail from the gate, for the tail of that message. */
+  detail?: string;
+}
+
+/**
+ * The document the THERMAL path prints. The gate forwards `req.data` (not `req.html`) to
+ * `peripherals.print`, and `render_barcode_label` (`hub/crates/peripherals/src/escpos.rs`) reads
+ * exactly three keys: `product_name` (title), `barcode` (the GS k symbol) and an optional `price`.
+ *
+ * `price` goes in MAJOR units: the renderer formats `{price:.2}` with no scaling, so cents would
+ * turn a 2,20 € coffee into a 220 € one.
+ */
+export function barcodeLabelData(label: BarcodeLabel): Record<string, unknown> {
+  const data: Record<string, unknown> = { product_name: label.name, barcode: label.sku };
+  if (label.priceCents != null && Number.isFinite(Number(label.priceCents))) {
+    data.price = Number(label.priceCents) / 100;
+  }
+  return data;
+}
+
+/** True inside the installed app (Tauri shell), where there is no print dialog to fall back to. */
+function runningInInstalledApp(): boolean {
+  const g = globalThis as { __TAURI__?: { core?: { invoke?: unknown } } };
+  return typeof g.__TAURI__?.core?.invoke === 'function';
+}
+
+/** Prints the product's barcode label through the print cascade (gate → iframe → dialog). */
+export async function printBarcodeLabel(
+  label: BarcodeLabel,
+  deps: PrintBarcodeDeps = {},
+): Promise<BarcodePrintOutcome> {
+  const html = barcodeLabelHtml(label.sku, label.name);
+  const sdk = (
+    globalThis as {
+      erplora?: { print?: (r: Record<string, unknown>) => Promise<{ via?: string; error?: string } | undefined> };
+    }
+  ).erplora;
+
+  if (sdk?.print) {
+    let result: { via?: string; error?: string } | undefined;
+    try {
+      result = await sdk.print({
+        role: 'label',
+        // Closed vocabulary (`DocumentType::parse`, `_ => return None`): `label` was refused AFTER
+        // crossing the gate, which is why the button looked like it worked and never printed.
+        documentType: 'barcode_label',
+        data: barcodeLabelData(label),
+        html,
+        jobId: `barcode-${label.sku}`,
+      });
+    } catch (e) {
+      return { ok: false, via: 'none', reason: 'threw', detail: e instanceof Error ? e.message : String(e) };
+    }
+    const via = result?.via ?? 'none';
+    // Printed, or queued for a print host to drain: the job is not lost either way.
+    if (via === 'bridge' || via === 'queue') return { ok: true, via };
+    if (via === 'browser') {
+      const installed = (deps.isInstalledApp ?? runningInInstalledApp)();
+      // In a browser the dialog really opens; in the installed app it resolves and prints NOTHING.
+      return installed
+        ? { ok: false, via, reason: 'no_printer', detail: result?.error }
+        : { ok: true, via };
+    }
+    return { ok: false, via, reason: 'gate_error', detail: result?.error };
+  }
+
+  if (html) {
+    (deps.iframePrint ?? printHtmlInIframe)(html);
+    return { ok: true, via: 'iframe' };
+  }
+  window.print();
+  return { ok: true, via: 'browser' };
 }

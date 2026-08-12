@@ -872,3 +872,135 @@ describe('hallazgos del QA sectorial (07-16)', () => {
     expect(wc.deleteTarget).toBeNull();
   });
 });
+
+describe('imprimir el código de barras avisa cuando NO sale (inventory#44)', () => {
+  // El botón llamaba a la puerta con `void`: el resultado (`PrintResult{via, error}`) se tiraba, así
+  // que un documento rechazado, una etiqueta en blanco o «ninguna impresora con el rol Etiqueta»
+  // se veían igual que un tique impreso — nada en pantalla y nada en papel.
+  const detalle = { id: 'p1', name: 'Café solo', sku: 'CAF', price: 220, stock: 10_000_000, is_active: 1 };
+
+  async function abrirDetalle() {
+    const el = await montar();
+    const wc = el as unknown as {
+      detail: Record<string, unknown> | null;
+      printBarcode: (p: Record<string, unknown>) => Promise<void>;
+      updateComplete: Promise<unknown>;
+      shadowRoot: ShadowRoot;
+    };
+    wc.detail = { ...detalle };
+    await wc.updateComplete;
+    return wc;
+  }
+
+  it('un fallo de la puerta se PINTA junto al botón, no se traga', async () => {
+    const sdk = (globalThis as Record<string, unknown>).erplora as Record<string, unknown>;
+    sdk.print = async () => ({ via: 'none', role: 'label', error: 'el runtime rechazó el encolado' });
+    const wc = await abrirDetalle();
+
+    await wc.printBarcode(wc.detail!);
+    await wc.updateComplete;
+
+    const aviso = wc.shadowRoot.querySelector('ok-inline-feedback[tone="danger"]');
+    expect(aviso, 'el usuario tiene que ver que la etiqueta no salió').not.toBeNull();
+    expect(aviso!.textContent, 'mensaje traducido del módulo').toContain('ui.errPrintBarcode');
+    expect(aviso!.textContent, 'con el motivo técnico de la puerta para poder actuar')
+      .toContain('encolado');
+  });
+
+  it('sin impresora del rol Etiqueta en la app instalada lo dice (falso éxito `via:browser`)', async () => {
+    const sdk = (globalThis as Record<string, unknown>).erplora as Record<string, unknown>;
+    sdk.print = async () => ({ via: 'browser', role: 'label' });
+    // La app instalada no tiene diálogo de impresión: el respaldo del navegador resuelve bien y NO
+    // imprime nada. Misma sonda que el shell (`window.__TAURI__.core.invoke`).
+    (globalThis as Record<string, unknown>).__TAURI__ = { core: { invoke: async () => null } };
+    const wc = await abrirDetalle();
+
+    await wc.printBarcode(wc.detail!);
+    await wc.updateComplete;
+
+    const aviso = wc.shadowRoot.querySelector('ok-inline-feedback[tone="danger"]');
+    expect(aviso!.textContent).toContain('ui.errPrintBarcodeNoPrinter');
+    delete (globalThis as Record<string, unknown>).__TAURI__;
+  });
+
+  it('un envío correcto no deja aviso, y reintentar limpia el anterior', async () => {
+    const sdk = (globalThis as Record<string, unknown>).erplora as Record<string, unknown>;
+    sdk.print = async () => ({ via: 'none', role: 'label', error: 'boom' });
+    const wc = await abrirDetalle();
+    await wc.printBarcode(wc.detail!);
+    await wc.updateComplete;
+    expect(wc.shadowRoot.querySelector('ok-inline-feedback[tone="danger"]')).not.toBeNull();
+
+    sdk.print = async () => ({ via: 'bridge', role: 'label', printerId: 'network:10.0.0.5:9100' });
+    await wc.printBarcode(wc.detail!);
+    await wc.updateComplete;
+
+    expect(wc.shadowRoot.querySelector('ok-inline-feedback[tone="danger"]'),
+      'salió por el Bridge: no hay nada que avisar').toBeNull();
+  });
+
+  it('manda el documento ESTRUCTURADO que la impresora entiende (no solo el HTML)', async () => {
+    const peticiones: Record<string, unknown>[] = [];
+    const sdk = (globalThis as Record<string, unknown>).erplora as Record<string, unknown>;
+    sdk.print = async (req: Record<string, unknown>) => {
+      peticiones.push(req);
+      return { via: 'bridge', role: 'label' };
+    };
+    const wc = await abrirDetalle();
+
+    await wc.printBarcode(wc.detail!);
+
+    const data = peticiones[0].data as Record<string, unknown>;
+    expect(peticiones[0].documentType, 'el vocabulario ESC/POS no tiene `label`').toBe('barcode_label');
+    expect(data.product_name).toBe('Café solo');
+    expect(data.barcode).toBe('CAF');
+    // El precio persistido son CÉNTIMOS (ADR-0007) y la etiqueta lo imprime en crudo: 220 en la
+    // etiqueta sería un café de 220 €.
+    expect(data.price, '220 céntimos = 2,20 € en la etiqueta').toBe(2.2);
+  });
+});
+
+describe('el código de barras del detalle es ESCANEABLE en tema oscuro (inventory#45)', () => {
+  // El contenedor definía `border` pero no `background`, así que heredaba el fondo oscuro del
+  // `ion-modal`: barras negras sobre negro → ningún escáner lee eso. Y el arreglo NO puede ir en la
+  // clase `.barcode` del shadow: Ionic reparenta el modal a <body> y esas reglas no llegan.
+  async function placa() {
+    const el = await montar();
+    const wc = el as unknown as {
+      detail: Record<string, unknown> | null;
+      updateComplete: Promise<unknown>;
+      shadowRoot: ShadowRoot;
+    };
+    wc.detail = { id: 'p1', name: 'Café solo', sku: 'CAF', price: 220, stock: 0, is_active: 1 };
+    await wc.updateComplete;
+    const svg = wc.shadowRoot.querySelector('svg.bc') as SVGElement;
+    expect(svg, 'el detalle pinta el código de barras').not.toBeNull();
+    return { wc, svg, contenedor: svg.closest('div') as HTMLElement };
+  }
+
+  it('la placa lleva fondo BLANCO inline (no heredado del tema)', async () => {
+    const { contenedor } = await placa();
+    const estilo = contenedor.getAttribute('style') ?? '';
+    expect(estilo, 'fondo blanco explícito, en los dos temas').toMatch(/background\s*:\s*(#fff{1,2}(f{3})?|white)/i);
+    expect(estilo, 'un token del tema volvería a oscurecerse en dark').not.toMatch(/background[^;]*var\(/i);
+  });
+
+  it('las barras son NEGRAS fijas, no `currentColor`', async () => {
+    const { svg } = await placa();
+    expect(svg.getAttribute('fill'), 'un código de barras no se tematiza').toBe('#000');
+  });
+
+  it('el SKU de debajo también se pinta oscuro (heredaba el color claro del tema)', async () => {
+    const { contenedor } = await placa();
+    const pie = Array.from(contenedor.querySelectorAll('div')).find((d) => d.textContent?.trim() === 'CAF');
+    expect(pie, 'el SKU se lee bajo las barras').toBeTruthy();
+    expect(pie!.getAttribute('style') ?? '', 'color oscuro explícito sobre la placa blanca')
+      .toMatch(/color\s*:\s*(#[0-9a-f]{3,6}|black)/i);
+  });
+
+  it('el SVG no se sale de la placa en pantallas estrechas (la regla `.barcode .bc` no llega)', async () => {
+    const { svg } = await placa();
+    expect(svg.getAttribute('style') ?? '', 'max-width inline: el shadow CSS no aplica tras el reparent')
+      .toMatch(/max-width\s*:\s*100%/i);
+  });
+});

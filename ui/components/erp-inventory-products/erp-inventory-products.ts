@@ -128,9 +128,9 @@ export class ErpInventoryProducts extends LitElement {
     .detail { display:flex; flex-direction:column; gap:.6rem; }
     .drow { display:flex; justify-content:space-between; border-bottom:1px solid var(--ion-border-color,#eee); padding:.4rem 0; }
     .drow span { color:var(--ion-color-medium,#6b6557); }
-    .barcode { text-align:center; margin:1rem 0; padding:1rem; border:1px solid var(--ion-border-color,#e6e2d8); border-radius: var(--ok-radius-sm, 10px); }
-    .barcode .bc { max-width:100%; height:auto; }
-    .bccode { font:14px ui-monospace,monospace; margin-top:.4rem; letter-spacing:.08em; }
+    /* Sin reglas .barcode/.bc/.bccode a propósito (inventory#45): el código de barras vive dentro
+       del ion-modal del detalle, que Ionic REPARENTA a body, así que esas reglas del shadow no le
+       llegarían nunca. La placa se estila INLINE donde se pinta. */
   `;
 
   @state() newName = '';
@@ -292,6 +292,8 @@ export class ErpInventoryProducts extends LitElement {
   }
 
   @state() private detail: Product | null = null;
+  /** Por qué no salió la etiqueta (inventory#44). Se pinta en el propio modal del detalle. */
+  @state() private printError = '';
 
   // ── Recuento y recepción (inventory#7) ──────────────────────────────────────
   // Estado de los dos modales de stock. El recuento es ABSOLUTO: se enseña la
@@ -693,18 +695,36 @@ export class ErpInventoryProducts extends LitElement {
     `;
   }
 
-  // Código de barras Code128 (SVG) del SKU.
+  // Código de barras Code128 (SVG) del SKU. Barras NEGRAS fijas y `max-width` INLINE
+  // (inventory#45): un código de barras no se tematiza —el escáner necesita oscuro sobre claro— y
+  // las reglas del shadow no llegan al modal, que Ionic reparenta a <body>.
   private renderBarcode(text: string) {
     const bc = code128b(text, 2, 70);
-    return html`<svg class="bc" width=${bc.width} height=${bc.height} viewBox="0 0 ${bc.width} ${bc.height}" fill="#000">
+    return html`<svg
+      class="bc"
+      style="max-width:100%; height:auto; background:#fff;"
+      width=${bc.width}
+      height=${bc.height}
+      viewBox="0 0 ${bc.width} ${bc.height}"
+      fill="#000"
+    >
       ${bc.bars.map((b) => svg`<rect x=${b.x} y="0" width=${b.w} height=${bc.height}></rect>`)}
     </svg>`;
   }
-  // Prints the SKU barcode through the SINGLE print gate (issue #30, ADR-0196 decision 5):
+  // Prints the barcode label through the SINGLE print gate (issue #30, ADR-0196 decision 5):
   // `erplora.print` (Bridge/label printer first) → isolated iframe. The old `window.open` popup
   // with an inline `window.print()` script bypassed the gate; contract in barcode-print.test.ts.
-  private printBarcode(p: Product): void {
-    printBarcodeLabel(p.sku, p.name);
+  //
+  // The outcome is READ and SHOWN (inventory#44): the gate can cross fine and still print nothing
+  // (no printer holding the `label` role, a refused document, the webview's dialog-less fallback),
+  // and the old `void` turned every one of those into a button that did nothing without a word.
+  private async printBarcode(p: Product): Promise<void> {
+    this.printError = '';
+    const t = (k: string): string => erplora().t(CATALOG, k);
+    const out = await printBarcodeLabel({ sku: p.sku, name: p.name, priceCents: Number(p.price) });
+    if (out.ok) return;
+    const head = out.reason === 'no_printer' ? t('ui.errPrintBarcodeNoPrinter') : t('ui.errPrintBarcode');
+    this.printError = out.detail ? `${head} (${out.detail})` : head;
   }
 
   // Init una sola vez tras el primer render (equivalente a `componentWillLoad` de Stencil: el shell
@@ -1148,12 +1168,18 @@ export class ErpInventoryProducts extends LitElement {
           </form>
         </ok-data-table>
 
-        <ion-modal .isOpen=${!!this.detail} @ionModalDidDismiss=${() => (this.detail = null)}>
+        <ion-modal
+          .isOpen=${!!this.detail}
+          @ionModalDidDismiss=${() => {
+            this.detail = null;
+            this.printError = '';
+          }}
+        >
           <ion-header class="ion-no-border">
             <ion-toolbar>
               <ion-title>${this.detail?.name ?? ''}</ion-title>
               <ion-buttons slot="end">
-                <ion-button aria-label=${erplora().t(CATALOG, 'ui.btnClose')} @click=${() => (this.detail = null)}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
+                <ion-button aria-label=${erplora().t(CATALOG, 'ui.btnClose')} @click=${() => { this.detail = null; this.printError = ''; }}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
               </ion-buttons>
             </ion-toolbar>
           </ion-header>
@@ -1186,11 +1212,17 @@ export class ErpInventoryProducts extends LitElement {
                       </ion-note>
                     </ion-item>
                   </ion-list>
-                  <div style="text-align:center; margin:1rem 0; padding:1rem; border:1px solid var(--ion-border-color,#e6e2d8); border-radius:10px;">
+                  <!-- Placa BLANCA con barras negras SIEMPRE, en los dos temas (inventory#45): sin
+                       fondo propio heredaba el del modal (oscuro) y quedaba negro sobre negro,
+                       ilegible para cualquier escáner. Inline porque el modal está reparentado. -->
+                  <div style="text-align:center; margin:1rem 0; padding:1rem; border:1px solid #d7d2c8; border-radius:10px; background:#fff; color:#000;">
                     ${this.renderBarcode(this.detail.sku)}
-                    <div style="font:14px ui-monospace,monospace; margin-top:.4rem; letter-spacing:.08em;">${this.detail.sku}</div>
+                    <div style="font:14px ui-monospace,monospace; margin-top:.4rem; letter-spacing:.08em; color:#000;">${this.detail.sku}</div>
                   </div>
-                  <ion-button expand="block" @click=${() => this.detail && this.printBarcode(this.detail)}>
+                  ${this.printError
+                    ? html`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.printError}</ok-inline-feedback>`
+                    : nothing}
+                  <ion-button expand="block" @click=${() => this.detail && void this.printBarcode(this.detail)}>
                     <ion-icon name="print-outline" slot="start"></ion-icon> ${t('ui.printBarcode')}
                   </ion-button>
                 `
