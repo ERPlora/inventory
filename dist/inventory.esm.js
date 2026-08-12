@@ -9,7 +9,7 @@ var __decorateClass = (decorators, target, key, kind) => {
   return result;
 };
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/element-internals.js
+// ../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/element-internals.js
 var ElementInternalsShim = class ElementInternals {
   get shadowRoot() {
     return this.__host.__shadowRoot;
@@ -88,7 +88,7 @@ var ElementInternalsShim = class ElementInternals {
   }
 };
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/events.js
+// ../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/events.js
 var __classPrivateFieldSet = function(receiver, state, value, kind, f3) {
   if (kind === "m") throw new TypeError("Private method is not writable");
   if (kind === "a" && !f3) throw new TypeError("Private accessor was defined without a setter");
@@ -246,7 +246,7 @@ Object.defineProperties(CustomEventShim.prototype, {
 var EventShimWithRealType = EventShim;
 var CustomEventShimWithRealType = CustomEventShim;
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/css.js
+// ../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/lib/css.js
 var _a2;
 var CSSRuleShim = (_a2 = class CSSRule {
   constructor() {
@@ -277,7 +277,7 @@ var CSSRuleShim = (_a2 = class CSSRule {
   }
 }, _a2.STYLE_RULE = 1, _a2.CHARSET_RULE = 2, _a2.IMPORT_RULE = 3, _a2.MEDIA_RULE = 4, _a2.FONT_FACE_RULE = 5, _a2.PAGE_RULE = 6, _a2.NAMESPACE_RULE = 10, _a2.KEYFRAMES_RULE = 7, _a2.KEYFRAME_RULE = 8, _a2.SUPPORTS_RULE = 12, _a2.COUNTER_STYLE_RULE = 11, _a2.FONT_FEATURE_VALUES_RULE = 14, _a2.MARGIN_RULE = 9, _a2);
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/module-toolkit/node_modules/@lit-labs/ssr-dom-shim/index.js
+// ../module-toolkit/node_modules/@lit-labs/ssr-dom-shim/index.js
 globalThis.Event ??= EventShimWithRealType;
 globalThis.CustomEvent ??= CustomEventShimWithRealType;
 var constructionToken = Symbol();
@@ -674,7 +674,7 @@ var CustomElementRegistryShimWithRealType = CustomElementRegistry;
 var customElements2 = new CustomElementRegistryShimWithRealType();
 var windowShim = new WindowShim(constructionToken);
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/module-toolkit/node_modules/@lit/reactive-element/node/css-tag.js
+// ../module-toolkit/node_modules/@lit/reactive-element/node/css-tag.js
 var t = globalThis;
 var e = t.ShadowRoot && (void 0 === t.ShadyCSS || t.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype;
 var s = Symbol();
@@ -719,7 +719,7 @@ var c = e || void 0 === t.CSSStyleSheet ? (t5) => t5 : (t5) => t5 instanceof CSS
   return r(e5);
 })(t5) : t5;
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/module-toolkit/node_modules/@lit/reactive-element/node/reactive-element.js
+// ../module-toolkit/node_modules/@lit/reactive-element/node/reactive-element.js
 var { is: h, defineProperty: r2, getOwnPropertyDescriptor: o2, getOwnPropertyNames: n2, getOwnPropertySymbols: a, getPrototypeOf: c2 } = Object;
 var l = globalThis;
 l.customElements ??= customElements2;
@@ -942,7 +942,7 @@ var g = class extends (globalThis.HTMLElement ?? HTMLElementShimWithRealType) {
 };
 g.elementStyles = [], g.shadowRootOptions = { mode: "open" }, g[f("elementProperties")] = /* @__PURE__ */ new Map(), g[f("finalized")] = /* @__PURE__ */ new Map(), u?.({ ReactiveElement: g }), (l.reactiveElementVersions ??= []).push("2.1.2");
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/lit-html.js
+// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/lit-html.js
 var t2 = globalThis;
 var i2 = (t5) => t5;
 var s2 = t2.trustedTypes;
@@ -1197,7 +1197,7 @@ var D = (t5, i7, s5) => {
   return h4._$AI(t5), h4;
 };
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/node_modules/.pnpm/lit-element@4.2.2/node_modules/lit-element/lit-element.js
+// node_modules/.pnpm/lit-element@4.2.2/node_modules/lit-element/lit-element.js
 var s3 = globalThis;
 var i3 = class extends g {
   constructor() {
@@ -1226,7 +1226,7 @@ var o4 = s3.litElementPolyfillSupport;
 o4?.({ LitElement: i3 });
 (s3.litElementVersions ??= []).push("4.2.2");
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/module-toolkit/node_modules/@lit/reactive-element/node/decorators/property.js
+// ../module-toolkit/node_modules/@lit/reactive-element/node/decorators/property.js
 var o5 = { attribute: true, type: String, converter: b, reflect: false, hasChanged: m };
 var r4 = (t5 = o5, e5, r6) => {
   const { kind: n6, metadata: i7 } = r6;
@@ -1256,12 +1256,12 @@ function n4(t5) {
   })(t5, e5, o7);
 }
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/module-toolkit/node_modules/@lit/reactive-element/node/decorators/state.js
+// ../module-toolkit/node_modules/@lit/reactive-element/node/decorators/state.js
 function r5(r6) {
   return n4({ ...r6, state: true, attribute: false });
 }
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/modules/inventory/ui/lib/tax-resolve.ts
+// modules/inventory/ui/lib/tax-resolve.ts
 var TAX_HEADERS = [
   "tax_category",
   "tax_category_key",
@@ -1336,7 +1336,7 @@ async function createCategoryWithAlias(client, key, name, aliasText) {
   return key;
 }
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/modules/inventory/locales/es.json
+// modules/inventory/locales/es.json
 var es_default = {
   name: "Inventario",
   navigation: {
@@ -1472,6 +1472,8 @@ var es_default = {
     errSaveCategory: "No se pudo guardar la categor\xEDa",
     saving: "Guardando\u2026",
     printBarcode: "Imprimir c\xF3digo de barras",
+    errPrintBarcode: "No se pudo imprimir la etiqueta del c\xF3digo de barras",
+    errPrintBarcodeNoPrinter: "Ninguna impresora tiene el rol \xABEtiqueta\xBB: as\xEDgnale una en Impresi\xF3n",
     deleteCatTitle: "Eliminar categor\xEDa",
     deleteCatImpact: "producto(s) quedar\xE1n sin esta categor\xEDa (se desvinculan; los productos no se borran)",
     deleteCatConfirm: "Eliminar y desvincular",
@@ -1510,7 +1512,7 @@ var es_default = {
   }
 };
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/modules/inventory/locales/en.json
+// modules/inventory/locales/en.json
 var en_default = {
   name: "Inventory",
   navigation: {
@@ -1646,6 +1648,8 @@ var en_default = {
     errSaveCategory: "The category could not be saved",
     saving: "Saving\u2026",
     printBarcode: "Print barcode",
+    errPrintBarcode: "The barcode label could not be printed",
+    errPrintBarcodeNoPrinter: "No printer is assigned to the \xABLabel\xBB role: assign one in Printing",
     deleteCatTitle: "Delete category",
     deleteCatImpact: "product(s) will lose this category (unlinked; products are kept)",
     deleteCatConfirm: "Delete and unlink",
@@ -1667,14 +1671,14 @@ var en_default = {
   }
 };
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/outfitkit/dist/define.js
+// ../outfitkit/dist/define.js
 function define(tag, ctor) {
   if (typeof customElements !== "undefined" && !customElements.get(tag)) {
     customElements.define(tag, ctor);
   }
 }
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/outfitkit/dist/shared/icons.js
+// ../outfitkit/dist/shared/icons.js
 var rawAdd = '<svg viewBox="0 0 512 512" width="1.2em" height="1.2em" ><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M256 112v288m144-144H112"/></svg>';
 var rawAlertCircle = '<svg viewBox="0 0 512 512" width="1.2em" height="1.2em" ><path fill="currentColor" d="M256 48C141.31 48 48 141.31 48 256s93.31 208 208 208s208-93.31 208-208S370.69 48 256 48m0 319.91a20 20 0 1 1 20-20a20 20 0 0 1-20 20m21.72-201.15l-5.74 122a16 16 0 0 1-32 0l-5.74-121.94v-.05a21.74 21.74 0 1 1 43.44 0Z"/></svg>';
 var rawAlertCircleOutline = '<svg viewBox="0 0 512 512" width="1.2em" height="1.2em" ><path fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" d="M448 256c0-106-86-192-192-192S64 150 64 256s86 192 192 192s192-86 192-192Z"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M250.26 166.05L256 288l5.73-121.95a5.74 5.74 0 0 0-5.79-6h0a5.74 5.74 0 0 0-5.68 6"/><path fill="currentColor" d="M256 367.91a20 20 0 1 1 20-20a20 20 0 0 1-20 20"/></svg>';
@@ -1822,7 +1826,7 @@ function okIcon(value) {
   return BY_NAME[value] ?? value;
 }
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/outfitkit/dist/ok-inline-feedback.js
+// ../outfitkit/dist/ok-inline-feedback.js
 var __defProp2 = Object.defineProperty;
 var __decorateClass2 = (decorators, target, key, kind) => {
   var result = void 0;
@@ -2039,7 +2043,7 @@ __decorateClass2([
 ], OkInlineFeedback.prototype, "hasActions");
 define("ok-inline-feedback", OkInlineFeedback);
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directive.js
+// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directive.js
 var t3 = { ATTRIBUTE: 1, CHILD: 2, PROPERTY: 3, BOOLEAN_ATTRIBUTE: 4, EVENT: 5, ELEMENT: 6 };
 var e4 = (t5) => (...e5) => ({ _$litDirective$: t5, values: e5 });
 var i4 = class {
@@ -2059,7 +2063,7 @@ var i4 = class {
   }
 };
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directive-helpers.js
+// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directive-helpers.js
 var { I: t4 } = j;
 var i5 = (o7) => o7;
 var s4 = () => document.createComment("");
@@ -2092,7 +2096,7 @@ var h3 = (o7) => {
   o7._$AR(), o7._$AA.remove();
 };
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directives/repeat.js
+// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directives/repeat.js
 var u4 = (e5, s5, t5) => {
   const r6 = /* @__PURE__ */ new Map();
   for (let l3 = s5; l3 <= t5; l3++) r6.set(e5[l3], l3);
@@ -2145,7 +2149,7 @@ var c4 = e4(class extends i4 {
   }
 });
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directives/style-map.js
+// node_modules/.pnpm/lit-html@3.3.3/node_modules/lit-html/directives/style-map.js
 var n5 = "important";
 var i6 = " !" + n5;
 var o6 = e4(class extends i4 {
@@ -2174,7 +2178,7 @@ var o6 = e4(class extends i4 {
   }
 });
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/outfitkit/dist/ok-data-table.js
+// ../outfitkit/dist/ok-data-table.js
 var CSV_BOM = "\uFEFF";
 function decodeCsvBuffer(buf) {
   let text;
@@ -3602,7 +3606,7 @@ __decorateClass3([
 var OkDataTable = _OkDataTable;
 define("ok-data-table", OkDataTable);
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/hub/packages/module-sdk/src/index.ts
+// ../hub/packages/module-sdk/src/index.ts
 var DATA_TABLE_LABELS_ES = {
   search: "Buscar\u2026",
   empty: "Sin resultados",
@@ -3805,7 +3809,7 @@ function centsToEuros(cents) {
   return cents == null ? "" : (cents / 100).toFixed(2);
 }
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/modules/inventory/ui/components/erp-inventory-categories/erp-inventory-categories.ts
+// modules/inventory/ui/components/erp-inventory-categories/erp-inventory-categories.ts
 var CATALOG = { es: es_default, en: en_default };
 function erplora() {
   const c5 = globalThis.erplora;
@@ -4148,7 +4152,7 @@ __decorateClass([
 ], ErpInventoryCategories.prototype, "deleteImpact", 2);
 define("erp-inventory-categories", ErpInventoryCategories);
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/outfitkit/dist/ok-kpi.js
+// ../outfitkit/dist/ok-kpi.js
 var __defProp4 = Object.defineProperty;
 var __decorateClass4 = (decorators, target, key, kind) => {
   var result = void 0;
@@ -4291,7 +4295,7 @@ __decorateClass4([
 ], OkKpi.prototype, "icon");
 define("ok-kpi", OkKpi);
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/modules/inventory/ui/lib/quantity.ts
+// modules/inventory/ui/lib/quantity.ts
 var QUANTITY_SCALE2 = 1e6;
 function fromMicro2(raw) {
   return raw / QUANTITY_SCALE2;
@@ -4310,7 +4314,7 @@ function onGrid2(raw, increment) {
   return !Number.isFinite(increment) || increment <= 0 || raw % increment === 0;
 }
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/modules/inventory/ui/components/erp-inventory-dashboard/erp-inventory-dashboard.ts
+// modules/inventory/ui/components/erp-inventory-dashboard/erp-inventory-dashboard.ts
 var CATALOG2 = { es: es_default, en: en_default };
 function erplora2() {
   const c5 = globalThis.erplora;
@@ -4440,7 +4444,7 @@ __decorateClass([
 ], ErpInventoryDashboard.prototype, "statsError", 2);
 define("erp-inventory-dashboard", ErpInventoryDashboard);
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/modules/inventory/ui/components/erp-inventory-movements/erp-inventory-movements.ts
+// modules/inventory/ui/components/erp-inventory-movements/erp-inventory-movements.ts
 var CATALOG3 = { es: es_default, en: en_default };
 function erplora3() {
   const c5 = globalThis.erplora;
@@ -4559,7 +4563,7 @@ var ErpInventoryMovements = class extends i3 {
 };
 define("erp-inventory-movements", ErpInventoryMovements);
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/modules/inventory/ui/lib/code128.ts
+// modules/inventory/ui/lib/code128.ts
 var PATTERNS = [
   "212222",
   "222122",
@@ -4697,7 +4701,7 @@ function code128b(text, module = 2, height = 70) {
   return { width: x2, height, bars };
 }
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/modules/inventory/ui/lib/barcode-print.ts
+// modules/inventory/ui/lib/barcode-print.ts
 function esc(s5) {
   return s5.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
@@ -4731,15 +4735,52 @@ function printHtmlInIframe(html, doc = document) {
   if (d3.readyState === "complete") setTimeout(fire, 50);
   else w2.addEventListener("load", () => setTimeout(fire, 50), { once: true });
 }
-function printBarcodeLabel(sku, name, deps = {}) {
-  const html = barcodeLabelHtml(sku, name);
+function barcodeLabelData(label) {
+  const data = { product_name: label.name, barcode: label.sku };
+  if (label.priceCents != null && Number.isFinite(Number(label.priceCents))) {
+    data.price = Number(label.priceCents) / 100;
+  }
+  return data;
+}
+function runningInInstalledApp() {
+  const g3 = globalThis;
+  return typeof g3.__TAURI__?.core?.invoke === "function";
+}
+async function printBarcodeLabel(label, deps = {}) {
+  const html = barcodeLabelHtml(label.sku, label.name);
   const sdk = globalThis.erplora;
-  if (sdk?.print) void sdk.print({ role: "label", documentType: "label", html, jobId: `barcode-${sku}` });
-  else if (html) (deps.iframePrint ?? printHtmlInIframe)(html);
-  else window.print();
+  if (sdk?.print) {
+    let result;
+    try {
+      result = await sdk.print({
+        role: "label",
+        // Closed vocabulary (`DocumentType::parse`, `_ => return None`): `label` was refused AFTER
+        // crossing the gate, which is why the button looked like it worked and never printed.
+        documentType: "barcode_label",
+        data: barcodeLabelData(label),
+        html,
+        jobId: `barcode-${label.sku}`
+      });
+    } catch (e5) {
+      return { ok: false, via: "none", reason: "threw", detail: e5 instanceof Error ? e5.message : String(e5) };
+    }
+    const via = result?.via ?? "none";
+    if (via === "bridge" || via === "queue") return { ok: true, via };
+    if (via === "browser") {
+      const installed = (deps.isInstalledApp ?? runningInInstalledApp)();
+      return installed ? { ok: false, via, reason: "no_printer", detail: result?.error } : { ok: true, via };
+    }
+    return { ok: false, via, reason: "gate_error", detail: result?.error };
+  }
+  if (html) {
+    (deps.iframePrint ?? printHtmlInIframe)(html);
+    return { ok: true, via: "iframe" };
+  }
+  window.print();
+  return { ok: true, via: "browser" };
 }
 
-// ../../../../../../../Users/ioan.beilic/workspace/code/ERPlora/modules-workspace/modules/inventory/ui/components/erp-inventory-products/erp-inventory-products.ts
+// modules/inventory/ui/components/erp-inventory-products/erp-inventory-products.ts
 var CATALOG4 = { es: es_default, en: en_default };
 var STATUS_UNCONFIGURED = "unconfigured";
 function statusOf(row) {
@@ -4787,6 +4828,7 @@ var ErpInventoryProducts = class extends i3 {
     this.deleteTarget = null;
     this.importReport = null;
     this.detail = null;
+    this.printError = "";
     this.countTarget = null;
     this.countValue = "";
     this.countReason = "";
@@ -4813,9 +4855,9 @@ var ErpInventoryProducts = class extends i3 {
     .detail { display:flex; flex-direction:column; gap:.6rem; }
     .drow { display:flex; justify-content:space-between; border-bottom:1px solid var(--ion-border-color,#eee); padding:.4rem 0; }
     .drow span { color:var(--ion-color-medium,#6b6557); }
-    .barcode { text-align:center; margin:1rem 0; padding:1rem; border:1px solid var(--ion-border-color,#e6e2d8); border-radius: var(--ok-radius-sm, 10px); }
-    .barcode .bc { max-width:100%; height:auto; }
-    .bccode { font:14px ui-monospace,monospace; margin-top:.4rem; letter-spacing:.08em; }
+    /* Sin reglas .barcode/.bc/.bccode a propósito (inventory#45): el código de barras vive dentro
+       del ion-modal del detalle, que Ionic REPARENTA a body, así que esas reglas del shadow no le
+       llegarían nunca. La placa se estila INLINE donde se pinta. */
   `;
   }
   // Getter (no campo): se re-evalúa en cada render, así los textos cambian con el idioma activo
@@ -5253,18 +5295,36 @@ var ErpInventoryProducts = class extends i3 {
       </ion-modal>
     `;
   }
-  // Código de barras Code128 (SVG) del SKU.
+  // Código de barras Code128 (SVG) del SKU. Barras NEGRAS fijas y `max-width` INLINE
+  // (inventory#45): un código de barras no se tematiza —el escáner necesita oscuro sobre claro— y
+  // las reglas del shadow no llegan al modal, que Ionic reparenta a <body>.
   renderBarcode(text) {
     const bc = code128b(text, 2, 70);
-    return b2`<svg class="bc" width=${bc.width} height=${bc.height} viewBox="0 0 ${bc.width} ${bc.height}" fill="#000">
+    return b2`<svg
+      class="bc"
+      style="max-width:100%; height:auto; background:#fff;"
+      width=${bc.width}
+      height=${bc.height}
+      viewBox="0 0 ${bc.width} ${bc.height}"
+      fill="#000"
+    >
       ${bc.bars.map((b3) => w`<rect x=${b3.x} y="0" width=${b3.w} height=${bc.height}></rect>`)}
     </svg>`;
   }
-  // Prints the SKU barcode through the SINGLE print gate (issue #30, ADR-0196 decision 5):
+  // Prints the barcode label through the SINGLE print gate (issue #30, ADR-0196 decision 5):
   // `erplora.print` (Bridge/label printer first) → isolated iframe. The old `window.open` popup
   // with an inline `window.print()` script bypassed the gate; contract in barcode-print.test.ts.
-  printBarcode(p4) {
-    printBarcodeLabel(p4.sku, p4.name);
+  //
+  // The outcome is READ and SHOWN (inventory#44): the gate can cross fine and still print nothing
+  // (no printer holding the `label` role, a refused document, the webview's dialog-less fallback),
+  // and the old `void` turned every one of those into a button that did nothing without a word.
+  async printBarcode(p4) {
+    this.printError = "";
+    const t5 = (k2) => erplora4().t(CATALOG4, k2);
+    const out = await printBarcodeLabel({ sku: p4.sku, name: p4.name, priceCents: Number(p4.price) });
+    if (out.ok) return;
+    const head = out.reason === "no_printer" ? t5("ui.errPrintBarcodeNoPrinter") : t5("ui.errPrintBarcode");
+    this.printError = out.detail ? `${head} (${out.detail})` : head;
   }
   connectedCallback() {
     super.connectedCallback();
@@ -5651,12 +5711,21 @@ var ErpInventoryProducts = class extends i3 {
           </form>
         </ok-data-table>
 
-        <ion-modal .isOpen=${!!this.detail} @ionModalDidDismiss=${() => this.detail = null}>
+        <ion-modal
+          .isOpen=${!!this.detail}
+          @ionModalDidDismiss=${() => {
+      this.detail = null;
+      this.printError = "";
+    }}
+        >
           <ion-header class="ion-no-border">
             <ion-toolbar>
               <ion-title>${this.detail?.name ?? ""}</ion-title>
               <ion-buttons slot="end">
-                <ion-button aria-label=${erplora4().t(CATALOG4, "ui.btnClose")} @click=${() => this.detail = null}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
+                <ion-button aria-label=${erplora4().t(CATALOG4, "ui.btnClose")} @click=${() => {
+      this.detail = null;
+      this.printError = "";
+    }}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
               </ion-buttons>
             </ion-toolbar>
           </ion-header>
@@ -5688,11 +5757,15 @@ var ErpInventoryProducts = class extends i3 {
                       </ion-note>
                     </ion-item>
                   </ion-list>
-                  <div style="text-align:center; margin:1rem 0; padding:1rem; border:1px solid var(--ion-border-color,#e6e2d8); border-radius:10px;">
+                  <!-- Placa BLANCA con barras negras SIEMPRE, en los dos temas (inventory#45): sin
+                       fondo propio heredaba el del modal (oscuro) y quedaba negro sobre negro,
+                       ilegible para cualquier escáner. Inline porque el modal está reparentado. -->
+                  <div style="text-align:center; margin:1rem 0; padding:1rem; border:1px solid #d7d2c8; border-radius:10px; background:#fff; color:#000;">
                     ${this.renderBarcode(this.detail.sku)}
-                    <div style="font:14px ui-monospace,monospace; margin-top:.4rem; letter-spacing:.08em;">${this.detail.sku}</div>
+                    <div style="font:14px ui-monospace,monospace; margin-top:.4rem; letter-spacing:.08em; color:#000;">${this.detail.sku}</div>
                   </div>
-                  <ion-button expand="block" @click=${() => this.detail && this.printBarcode(this.detail)}>
+                  ${this.printError ? b2`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.printError}</ok-inline-feedback>` : A}
+                  <ion-button expand="block" @click=${() => this.detail && void this.printBarcode(this.detail)}>
                     <ion-icon name="print-outline" slot="start"></ion-icon> ${t5("ui.printBarcode")}
                   </ion-button>
                 ` : A}
@@ -5958,6 +6031,9 @@ __decorateClass([
 __decorateClass([
   r5()
 ], ErpInventoryProducts.prototype, "detail", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "printError", 2);
 __decorateClass([
   r5()
 ], ErpInventoryProducts.prototype, "countTarget", 2);
