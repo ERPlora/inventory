@@ -3,7 +3,7 @@
 SELECT c.id, c.name, c.slug, c.icon, c.color, c.image, c."order", c.tax_category_key,
        (SELECT COUNT(*)
         FROM inventory_product_categories pc
-        JOIN inventory_product p ON p.id = pc.product_id
+        JOIN inventory_product p ON p.id = pc.product_id AND p.hub_id = :hub_id
         WHERE pc.category_id = c.id AND p.is_active = 1 AND p.is_deleted = 0) AS product_count
 FROM inventory_category c
 WHERE c.hub_id = :hub_id AND c.is_deleted = 0 AND c.is_active = 1

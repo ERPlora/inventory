@@ -3,5 +3,5 @@
 -- activos del hub. Runtime inyecta :hub_id; NO lleva ORDER BY / LIMIT / `;`.
 SELECT pc.product_id, pc.category_id
 FROM inventory_product_categories pc
-JOIN inventory_product p ON p.id = pc.product_id
+JOIN inventory_product p ON p.id = pc.product_id AND p.hub_id = :hub_id
 WHERE p.hub_id = :hub_id AND p.is_deleted = 0 AND p.is_active = 1
