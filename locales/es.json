@@ -1,5 +1,6 @@
 {
   "name": "Inventario",
+  "description": "Productos, stock y almacenes: consulta disponibilidad, ajusta existencias y da entrada a la mercancía.",
   "navigation": {
     "dashboard": {
       "label": "Panel"
