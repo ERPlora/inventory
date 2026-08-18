@@ -36,6 +36,11 @@
     "admin": [
       "*"
     ],
+    "cashier": [
+      "inventory.view_product",
+      "inventory.view_category",
+      "inventory.view_stock"
+    ],
     "manager": [
       "inventory.view_product",
       "inventory.add_product",
