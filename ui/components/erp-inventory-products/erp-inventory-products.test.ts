@@ -1004,3 +1004,123 @@ describe('el código de barras del detalle es ESCANEABLE en tema oscuro (invento
       .toMatch(/max-width\s*:\s*100%/i);
   });
 });
+
+describe('controlar stock es una casilla POR ARTÍCULO (inventory#48)', () => {
+  // Decisión de mercado (sales#25): Square, Odoo, Shopify, WooCommerce y Business Central llevan
+  // el «track stock» en la ficha del artículo; el ajuste del hub es solo el valor por defecto.
+  // Contrato con el servidor: `track_stock` es tri-estado (ADR-0210) — 1/0 explícito, y
+  // null/ausente = «sigue el ajuste del hub».
+  it('el contrato acepta 1/0/null en alta y edición (edición: ausente = conserva)', () => {
+    const alta = jsonDelModulo('schemas/product_create.json');
+    expect(alta.properties.track_stock.enum).toEqual([0, 1, null]);
+    expect(alta.required, 'opcional en el alta: ausente = hereda el hub').not.toContain('track_stock');
+    const edicion = jsonDelModulo('schemas/product_update.json');
+    expect(edicion.properties.track_stock.enum).toEqual([0, 1, null]);
+    expect(edicion.required, 'opcional en la edición: un caller viejo no lo pisa').not.toContain('track_stock');
+    expect(ficheroDelModulo('commands/product_update.sql')).toMatch(/track_stock\s*=\s*COALESCE\(/);
+  });
+
+  it('ALTA: sin tocar la casilla se envía null (el artículo SIGUE al hub, no congela el valor de hoy)', async () => {
+    const el = await montar();
+    const wc = el as unknown as { newName: string; newSku: string; newPrice: string; newTaxCategoryKey: string;
+                                  createProduct: (ev: Event) => Promise<void> };
+    wc.newName = 'Café';
+    wc.newSku = 'CAF';
+    wc.newPrice = '2.20';
+    wc.newTaxCategoryKey = 'standard';
+    await wc.createProduct(new Event('submit'));
+    const alta = comandos.find((c) => c.name === 'inventory.products.create')!;
+    expect('track_stock' in alta.payload, 'la clave viaja (contrato explícito), con null').toBe(true);
+    expect(alta.payload.track_stock).toBeNull();
+  });
+
+  it('ALTA: desmarcar la casilla envía 0 (solo catálogo, sin movimientos)', async () => {
+    const el = await montar();
+    const wc = el as unknown as { newName: string; newSku: string; newPrice: string; newTaxCategoryKey: string;
+                                  setTrackStock: (v: boolean) => void;
+                                  createProduct: (ev: Event) => Promise<void> };
+    wc.newName = 'Menú del día';
+    wc.newSku = 'MENU';
+    wc.newPrice = '12.00';
+    wc.newTaxCategoryKey = 'standard';
+    wc.setTrackStock(false);
+    await wc.createProduct(new Event('submit'));
+    expect(comandos.find((c) => c.name === 'inventory.products.create')!.payload.track_stock).toBe(0);
+  });
+
+  it('la casilla se pinta con el valor EFECTIVO: null + hub apagado → desmarcada; marcarla envía 1', async () => {
+    (globalThis as Record<string, unknown>).erplora = {
+      ...(globalThis as { erplora: object }).erplora,
+      query: async (name: string) =>
+        name === 'inventory.settings.get'
+          ? [{ allow_sell_without_stock: 0, low_stock_threshold: 10, track_stock: 0 }]
+          : name === 'inventory.products.get'
+            ? [{ id: 'p1', name: 'Café', sku: 'CAF', price: 220, cost: 0, stock: 0, low_stock_threshold: 5_000_000,
+                 ean13: null, description: '', tax_category_key: 'standard', is_active: 1,
+                 product_type: 'physical', track_stock: null }]
+            : [],
+    };
+    const el = await montar();
+    const wc = el as unknown as {
+      trackStockEffective: () => boolean; hubTracksStock: boolean;
+      onRowAction: (ev: CustomEvent) => Promise<void>; setTrackStock: (v: boolean) => void;
+      createProduct: (ev: Event) => Promise<void>; updateComplete: Promise<unknown>;
+    };
+    await wc.updateComplete;
+    expect(wc.hubTracksStock, 'el ajuste del hub se lee (best-effort)').toBe(false);
+    await wc.onRowAction(new CustomEvent('rowAction', { detail: { actionId: 'edit', row: { id: 'p1' } } }));
+    await wc.updateComplete;
+    expect(wc.trackStockEffective(), 'null hereda el hub → apagado').toBe(false);
+    // Guardar sin tocarla: sigue null (el artículo sigue al hub).
+    await wc.createProduct(new Event('submit'));
+    expect(comandos.find((c) => c.name === 'inventory.products.update')!.payload.track_stock).toBeNull();
+    // Marcarla: fija 1 aunque el hub esté apagado (el artículo manda). Guardar cerró la ficha, se reabre.
+    comandos.length = 0;
+    await wc.onRowAction(new CustomEvent('rowAction', { detail: { actionId: 'edit', row: { id: 'p1' } } }));
+    await wc.updateComplete;
+    wc.setTrackStock(true);
+    expect(wc.trackStockEffective()).toBe(true);
+    await wc.createProduct(new Event('submit'));
+    expect(comandos.find((c) => c.name === 'inventory.products.update')!.payload.track_stock).toBe(1);
+  });
+
+  it('EDICIÓN: un artículo con 0 guardado se carga desmarcado aunque el hub controle', async () => {
+    (globalThis as Record<string, unknown>).erplora = {
+      ...(globalThis as { erplora: object }).erplora,
+      query: async (name: string) =>
+        name === 'inventory.settings.get'
+          ? [{ allow_sell_without_stock: 0, low_stock_threshold: 10, track_stock: 1 }]
+          : name === 'inventory.products.get'
+            ? [{ id: 'p1', name: 'Menú', sku: 'MENU', price: 1200, cost: 0, stock: 0, low_stock_threshold: 5_000_000,
+                 ean13: null, description: '', tax_category_key: 'standard', is_active: 1,
+                 product_type: 'physical', track_stock: 0 }]
+            : [],
+    };
+    const el = await montar();
+    const wc = el as unknown as {
+      trackStockEffective: () => boolean;
+      onRowAction: (ev: CustomEvent) => Promise<void>; updateComplete: Promise<unknown>;
+    };
+    await wc.onRowAction(new CustomEvent('rowAction', { detail: { actionId: 'edit', row: { id: 'p1' } } }));
+    await wc.updateComplete;
+    expect(wc.trackStockEffective()).toBe(false);
+  });
+
+  it('cancelar la edición vuelve al default (null): el siguiente alta no hereda la casilla', async () => {
+    const el = await montar();
+    const wc = el as unknown as { newTrackStock: number | null; setTrackStock: (v: boolean) => void; cancelEdit: () => void };
+    wc.setTrackStock(false);
+    expect(wc.newTrackStock).toBe(0);
+    wc.cancelEdit();
+    expect(wc.newTrackStock).toBeNull();
+  });
+
+  it('la ficha tiene su etiqueta traducida (inglés fuente + es)', () => {
+    const en = jsonDelModulo('locales/en.json');
+    const es = jsonDelModulo('locales/es.json');
+    expect(en.ui.fieldTrackStock).toBeTruthy();
+    expect(es.ui.fieldTrackStock).toBeTruthy();
+    expect(en.ui.trackStockInherit).toBeTruthy();
+    expect(es.ui.trackStockInherit).toBeTruthy();
+  });
+});

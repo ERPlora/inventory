@@ -10,21 +10,31 @@
 --   * `products_without_cost` — físicos que valoran a 0 por no tener coste
 --     registrado; la UI muestra esa limitación en vez de callarla.
 --   * Contadores de existencias (seguidos/en stock/agotados/bajo umbral) SOLO
---     sobre físicos activos: un servicio no tiene existencias.
---   * `total_products` — el catálogo activo entero (servicios incluidos).
+--     sobre físicos activos QUE CONTROLAN STOCK (inventory#48: flag por artículo, NULL = hereda el
+--     hub): un servicio no tiene existencias, y un artículo sin control tampoco tiene un saldo
+--     que contar. `products_without_cost` y la valoración también van sobre los que controlan.
+--   * `total_products` — el catálogo activo entero (servicios y no controlados incluidos).
 -- Portable SQLite+Postgres (CASE WHEN, sin funciones dialectales).
 SELECT
   COUNT(*)                                                                    AS total_products,
-  COALESCE(SUM(CASE WHEN product_type != 'service' THEN 1 ELSE 0 END), 0)     AS products_tracked,
-  COALESCE(SUM(CASE WHEN product_type != 'service' AND stock > 0
+  COALESCE(SUM(CASE WHEN t.tracked = 1 THEN 1 ELSE 0 END), 0)                 AS products_tracked,
+  COALESCE(SUM(CASE WHEN t.tracked = 1 AND stock > 0
                     THEN 1 ELSE 0 END), 0)                                    AS products_in_stock,
-  COALESCE(SUM(CASE WHEN product_type != 'service' AND stock <= 0
+  COALESCE(SUM(CASE WHEN t.tracked = 1 AND stock <= 0
                     THEN 1 ELSE 0 END), 0)                                    AS products_out_of_stock,
-  COALESCE(SUM(CASE WHEN product_type != 'service' AND stock <= low_stock_threshold
+  COALESCE(SUM(CASE WHEN t.tracked = 1 AND stock <= low_stock_threshold
                     THEN 1 ELSE 0 END), 0)                                    AS products_low_stock,
-  COALESCE(SUM(CASE WHEN product_type != 'service' AND cost <= 0
+  COALESCE(SUM(CASE WHEN t.tracked = 1 AND cost <= 0
                     THEN 1 ELSE 0 END), 0)                                    AS products_without_cost,
-  COALESCE(SUM(CASE WHEN product_type != 'service' AND stock > 0
+  COALESCE(SUM(CASE WHEN t.tracked = 1 AND stock > 0
                     THEN cost * stock / 1000000 ELSE 0 END), 0)               AS total_inventory_value
-FROM inventory_product
-WHERE hub_id = :hub_id AND is_deleted = 0 AND is_active = 1;
+FROM (
+  SELECT p.*,
+         CASE WHEN p.product_type = 'service' THEN 0
+              ELSE COALESCE(p.track_stock,
+                            (SELECT s.track_stock FROM inventory_settings s
+                             WHERE s.hub_id = :hub_id AND s.is_deleted = 0), 1)
+         END AS tracked
+  FROM inventory_product p
+  WHERE p.hub_id = :hub_id AND p.is_deleted = 0 AND p.is_active = 1
+) t;

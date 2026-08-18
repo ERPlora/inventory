@@ -41,6 +41,12 @@ are really "we are in another mode".
    - **off** — the decrease is rejected with `inventory.insufficient_stock`;
    - **on** — the sale goes through and stock may go negative.
 
+Since #48 the mode is decided **per item**: the product card has a *Track stock for this item*
+checkbox (as in Square, Odoo, Shopify or WooCommerce). An item that has never been touched follows
+the hub setting; one that says *no* is catalogue-only even if the hub tracks, and one that says
+*yes* is tracked even if the hub does not. Untracked items show no balance, never move on a sale or
+a void, and never appear in the low-stock list. Services never track.
+
 ## Physical products versus services
 
 `product_type` decides whether stock exists at all.

@@ -9,6 +9,7 @@
       "inventory.products.list",
       "inventory.products.low_stock",
       "inventory.products.stats",
+      "inventory.settings.get",
       "inventory.stock.movements",
       "inventory.units.list",
       "taxes.aliases.resolve",

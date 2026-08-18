@@ -8,7 +8,10 @@
 -- Operating modes (the WHERE is the authoritative, in-transaction guard for EVERY caller —
 -- POS, API, events, assistant; the WASM handler's read-based check is the informative
 -- fast-path that surfaces the loud domain error, ADR-0205):
---   * track_stock = 0            -> NO-OP: no automatic movements (mode 2).
+--   * effective track_stock = 0  -> NO-OP: no automatic movements (mode 2). Since inventory#48
+--                                   the flag is PER PRODUCT (tri-state, ADR-0210): the row's own
+--                                   `track_stock` wins; NULL follows the hub setting; no settings
+--                                   row = 1.
 --   * allow_sell_without_stock=1 -> always decreases; the resulting balance is represented
 --                                   as is (negative included) — never truncated to 0.
 --   * allow_sell_without_stock=0 -> only decreases with sufficient stock (stock >= :qty);
@@ -27,7 +30,8 @@ WITH dec AS (
         updated_at = :now
     WHERE id = :product_id AND hub_id = :hub_id AND is_deleted = 0
       AND product_type != 'service'
-      AND COALESCE((SELECT s.track_stock
+      AND COALESCE(track_stock,
+                   (SELECT s.track_stock
                     FROM inventory_settings s
                     WHERE s.hub_id = :hub_id AND s.is_deleted = 0), 1) = 1
       AND (COALESCE((SELECT s.allow_sell_without_stock

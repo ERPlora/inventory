@@ -1339,6 +1339,7 @@ async function createCategoryWithAlias(client, key, name, aliasText) {
 // modules/inventory/locales/es.json
 var es_default = {
   name: "Inventario",
+  description: "Productos, stock y almacenes: consulta disponibilidad, ajusta existencias y da entrada a la mercanc\xEDa.",
   navigation: {
     dashboard: {
       label: "Panel"
@@ -1487,7 +1488,10 @@ var es_default = {
     taxNoneAvailable: "Todav\xEDa no hay categor\xEDas fiscales. Cr\xE9alas en Impuestos: un producto no se puede vender sin saber c\xF3mo tributa.",
     errTaxCategoryRequired: "Elige la categor\xEDa fiscal: sin ella el producto no se puede vender.",
     importErrTaxCategory: "Falta la categor\xEDa fiscal",
-    importTaxMissingLabel: "Filas sin categor\xEDa fiscal"
+    importTaxMissingLabel: "Filas sin categor\xEDa fiscal",
+    fieldTrackStock: "Controlar stock de este art\xEDculo",
+    trackStockInherit: "Sigue el ajuste del hub",
+    trackStockOff: "Solo cat\xE1logo: las ventas no mueven su stock"
   },
   widgets: {
     "inventory.low_stock_count": {
@@ -1663,7 +1667,10 @@ var en_default = {
     taxNoneAvailable: "There are no tax categories yet. Create them in Taxes: a product cannot be sold until it is known how it is taxed.",
     errTaxCategoryRequired: "Pick the tax category: without it the product cannot be sold.",
     importErrTaxCategory: "Missing tax category",
-    importTaxMissingLabel: "Rows with no tax category"
+    importTaxMissingLabel: "Rows with no tax category",
+    fieldTrackStock: "Track stock for this item",
+    trackStockInherit: "Following the hub setting",
+    trackStockOff: "Catalog only: sales do not move its stock"
   },
   errors: {
     "inventory.insufficient_stock": "Not enough stock to complete the operation.",
@@ -4811,6 +4818,8 @@ var ErpInventoryProducts = class extends i3 {
     this.newDescription = "";
     this.newType = "physical";
     this.newActive = true;
+    this.newTrackStock = null;
+    this.hubTracksStock = true;
     this.newUnitCode = "ud";
     this.units = [];
     this.editingId = null;
@@ -4850,6 +4859,7 @@ var ErpInventoryProducts = class extends i3 {
     .page > ok-data-table { flex:1 1 auto; min-height:0; }
     .form { display:flex; flex-direction:column; gap:.7rem; }
     .form ion-button { align-self:flex-end; }
+    .track-note { font-size:.8rem; color:var(--ion-color-medium,#6b6557); margin-top:-.4rem; }
     .err { color:#d9480f; font-weight:600; }
     /* Detalle de producto */
     .detail { display:flex; flex-direction:column; gap:.6rem; }
@@ -4885,7 +4895,8 @@ var ErpInventoryProducts = class extends i3 {
         sortable: true,
         filterable: true,
         filterType: "range",
-        format: (r6) => formatQuantity2(Number(r6.stock))
+        // inventory#48: an item that does not track stock has no balance worth showing.
+        format: (r6) => this.rowTracksStock(r6) ? formatQuantity2(Number(r6.stock)) : "\u2014"
       },
       {
         key: "is_active",
@@ -5056,6 +5067,8 @@ var ErpInventoryProducts = class extends i3 {
         this.newDescription = String(full.description ?? "");
         this.newType = full.product_type === "service" ? "service" : "physical";
         this.newActive = Number(full.is_active ?? 1) === 1;
+        const rawTrack = full.track_stock;
+        this.newTrackStock = rawTrack == null || rawTrack === "" ? null : Number(rawTrack) !== 0 ? 1 : 0;
         this.newUnitCode = String(full.unit_code || "ud");
         this.newTaxCategoryKey = full.tax_category_key ?? "";
         const links = await erplora4().query("inventory.product_categories");
@@ -5341,6 +5354,7 @@ var ErpInventoryProducts = class extends i3 {
     void this.loadTaxCategories();
     void this.loadProductCategories();
     void this.loadUnits();
+    void this.loadStockSettings();
     try {
       const reload = () => this.ctrl.load();
       const off1 = erplora4().on("inventory.stock_changed", reload);
@@ -5386,6 +5400,31 @@ var ErpInventoryProducts = class extends i3 {
     } catch {
       this.units = [];
     }
+  }
+  /** Hub default for stock control (inventory#48). Best-effort: without permission or a settings
+   *  row the schema default (tracking on) stands — the server resolves the truth anyway. */
+  async loadStockSettings() {
+    try {
+      const rows = await erplora4().query("inventory.settings.get");
+      const row = Array.isArray(rows) ? rows[0] : void 0;
+      this.hubTracksStock = row?.track_stock == null ? true : Number(row.track_stock) !== 0;
+    } catch {
+      this.hubTracksStock = true;
+    }
+  }
+  /** What the checkbox shows: the item's own choice, or the hub default when it has none. */
+  trackStockEffective() {
+    return this.newTrackStock == null ? this.hubTracksStock : this.newTrackStock === 1;
+  }
+  /** Touching the checkbox makes the choice EXPLICIT (1/0); only "never touched" stays null. */
+  setTrackStock(on) {
+    this.newTrackStock = on ? 1 : 0;
+  }
+  /** Effective flag of a LIST row (raw 1/0/null + hub default); services never track. */
+  rowTracksStock(row) {
+    if (row.product_type === "service") return false;
+    const raw = row.track_stock;
+    return raw == null || raw === "" ? this.hubTracksStock : Number(raw) !== 0;
   }
   /** Incremento exacto de la unidad. Sin catálogo, `ud` conserva su rejilla natural de 1. */
   unitIncrement(code) {
@@ -5445,6 +5484,7 @@ var ErpInventoryProducts = class extends i3 {
     this.newDescription = "";
     this.newType = "physical";
     this.newActive = true;
+    this.newTrackStock = null;
     this.newUnitCode = "ud";
     this.newTaxCategoryKey = "";
     this.initialCategoryIds = /* @__PURE__ */ new Set();
@@ -5483,7 +5523,9 @@ var ErpInventoryProducts = class extends i3 {
           is_active: this.newActive ? 1 : 0,
           // Se envía SIEMPRE (no solo si cambió): el comando hace COALESCE y reenviar la
           // actual es idempotente; omitirla también sería válido (se conservaría).
-          unit_code: this.newUnitCode
+          unit_code: this.newUnitCode,
+          // inventory#48: null = keep following the hub (COALESCE keeps the stored value).
+          track_stock: this.newTrackStock
         });
         for (const cid of this.selectedCategoryIds) {
           if (!this.initialCategoryIds.has(cid)) {
@@ -5519,7 +5561,9 @@ var ErpInventoryProducts = class extends i3 {
           description: this.newDescription,
           tax_category_key: this.newTaxCategoryKey,
           unit_code: this.newUnitCode,
-          image: ""
+          image: "",
+          // inventory#48: null = follows the hub setting; 1/0 only when the user decided.
+          track_stock: this.newTrackStock
         });
       }
       this.cancelEdit();
@@ -5663,6 +5707,18 @@ var ErpInventoryProducts = class extends i3 {
                   <ion-select-option value="physical">${erplora4().t(CATALOG4, "ui.typePhysical")}</ion-select-option>
                   <ion-select-option value="service">${erplora4().t(CATALOG4, "ui.typeService")}</ion-select-option>
                 </ion-select>` : A}
+            ${this.newType !== "service" ? b2`<!-- Stock control PER ITEM (inventory#48): the market's checkbox
+                          (Square «Track stock», Odoo «Track Inventory», Shopify «Track quantity»).
+                          Shows the EFFECTIVE value; touching it makes the choice explicit. -->
+                  <ion-checkbox
+                    label-placement="end"
+                    justify="start"
+                    .checked=${this.trackStockEffective()}
+                    @ionChange=${(e5) => this.setTrackStock(!!e5.detail.checked)}
+                  >${erplora4().t(CATALOG4, "ui.fieldTrackStock")}</ion-checkbox>
+                  <ion-note class="track-note">
+                    ${this.newTrackStock == null ? erplora4().t(CATALOG4, "ui.trackStockInherit") : this.newTrackStock === 0 ? erplora4().t(CATALOG4, "ui.trackStockOff") : A}
+                  </ion-note>` : A}
             <ion-select
               fill="outline"
               label-placement="floating"
@@ -5983,6 +6039,12 @@ __decorateClass([
 __decorateClass([
   r5()
 ], ErpInventoryProducts.prototype, "newActive", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "newTrackStock", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "hubTracksStock", 2);
 __decorateClass([
   r5()
 ], ErpInventoryProducts.prototype, "newUnitCode", 2);
