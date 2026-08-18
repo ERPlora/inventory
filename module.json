@@ -187,6 +187,13 @@
         "description": "Sale catalogue: the fields the server needs to price a sale line authoritatively (price, cost, tax category, units) plus the EFFECTIVE `track_stock` per article (inventory#48). Not paginated on purpose."
       }
     },
+    "inventory.products.stock_levels": {
+      "permission": "inventory.view_product",
+      "sql": "queries/stock_levels.sql",
+      "ai": {
+        "description": "Stock levels of the active catalogue: balance, per-product low-stock threshold and the EFFECTIVE track_stock flag (inventory#47/#48). Pre-loaded by the stock handlers to decide `inventory.low_stock_crossed`; not paginated on purpose."
+      }
+    },
     "inventory.products.low_stock": {
       "permission": "inventory.view_product",
       "sql": "queries/low_stock.sql",
@@ -389,16 +396,25 @@
       "permission": "inventory.adjust_stock",
       "schema": "schemas/stock_adjust.json",
       "transaction": true,
-      "sql": [
-        "commands/_ensure_location.sql",
-        "commands/_movement_on_adjust.sql",
-        "commands/stock_adjust.sql"
+      "handler": {
+        "type": "wasm",
+        "file": "dist/handler.wasm",
+        "function": "adjust_stock"
+      },
+      "reads": [
+        "inventory.settings.get",
+        {
+          "query": "inventory.products.get",
+          "params": {
+            "product_id": "payload.product_id"
+          }
+        }
       ],
       "emit": [
         "inventory.stock_changed"
       ],
       "ai": {
-        "description": "Stock count/correction: sets the counted ABSOLUTE stock value (mandatory reason); the ledger records the difference."
+        "description": "Stock count/correction: sets the counted ABSOLUTE stock value (mandatory reason); the ledger records the difference. Emits `inventory.low_stock_crossed` when the count crosses the product's threshold in either direction (#47)."
       }
     },
     "inventory.stock.decrease": {
@@ -426,7 +442,7 @@
         }
       ],
       "ai": {
-        "description": "Decreases a product's stock, governed by the stock-control settings (#6) and the product's own `track_stock` flag (#48): rejects an insufficient decrease when overselling is not allowed, is a no-op when the article does not track stock, and rejects quantities off the unit's minimum increment (ADR-0147)."
+        "description": "Decreases a product's stock, governed by the stock-control settings (#6) and the product's own `track_stock` flag (#48): rejects an insufficient decrease when overselling is not allowed, is a no-op when the article does not track stock, and rejects quantities off the unit's minimum increment (ADR-0147). Emits `inventory.low_stock_crossed` (below) when the decrease crosses the product's threshold (#47)."
       }
     },
     "inventory.stock.receive": {
@@ -438,8 +454,12 @@
         "function": "receive_stock"
       },
       "ai": {
-        "description": "Records goods received and increases the stock of the received products."
-      }
+        "description": "Records goods received and increases the stock of the received products; emits `inventory.low_stock_crossed` (recovered) when a tracked article climbs back above its threshold (#47)."
+      },
+      "reads": [
+        "inventory.settings.get",
+        "inventory.products.stock_levels"
+      ]
     },
     "inventory.categories.create": {
       "permission": "inventory.add_category",
@@ -542,11 +562,11 @@
         "function": "decrease_on_sale"
       },
       "ai": {
-        "description": "Automatically decreases stock of sold products when a sale is completed — only for the articles that track stock (per-product `track_stock`, inventory#48; NULL follows the hub setting)."
+        "description": "Automatically decreases stock of sold products when a sale is completed — only for the articles that track stock (per-product `track_stock`, inventory#48; NULL follows the hub setting). Emits `inventory.low_stock_crossed` per article whose aggregated decrease crosses its threshold (#47)."
       },
       "reads": [
         "inventory.settings.get",
-        "inventory.products.for_sale"
+        "inventory.products.stock_levels"
       ]
     },
     "inventory._restock_on_void": {
@@ -576,6 +596,18 @@
       "permission": "inventory.change_product",
       "sql": [
         "commands/stock_decrease.sql"
+      ]
+    },
+    "inventory._movement_on_adjust": {
+      "permission": "inventory.adjust_stock",
+      "sql": [
+        "commands/_movement_on_adjust.sql"
+      ]
+    },
+    "inventory._adjust_stock": {
+      "permission": "inventory.adjust_stock",
+      "sql": [
+        "commands/stock_adjust.sql"
       ]
     }
   },
@@ -703,6 +735,7 @@
       }
     },
     "emits": [
+      "inventory.low_stock_crossed",
       "inventory.product.categorized",
       "inventory.product.created",
       "inventory.product.deleted",
