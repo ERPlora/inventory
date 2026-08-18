@@ -10,6 +10,8 @@
 -- marcador lo inserta la hoja 3/3, DESPUÉS de este UPDATE). Va DESPUÉS del movimiento
 -- (hoja 1/3), que captura el saldo previo; ambos comparten la misma transacción.
 --
+-- inventory#48: solo los productos cuyo `track_stock` EFECTIVO está activo (propio, o el del hub
+-- si es NULL) — los que no controlan stock nunca descontaron. Misma guarda que la hoja 1/3.
 -- Runtime inyecta :hub_id, :current_user_id, :now; :sale_id viene del evento.
 UPDATE inventory_product
 SET stock = stock + (
@@ -24,6 +26,9 @@ SET stock = stock + (
 WHERE hub_id = :hub_id
   AND is_deleted = 0
   AND product_type != 'service'
+  AND COALESCE(track_stock,
+               (SELECT s.track_stock FROM inventory_settings s
+                WHERE s.hub_id = :hub_id AND s.is_deleted = 0), 1) = 1
   AND id IN (
       SELECT li.product_id FROM sales_sale_item li
       WHERE li.sale_id = :sale_id AND li.hub_id = :hub_id

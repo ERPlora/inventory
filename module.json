@@ -115,7 +115,8 @@
       "migrations/postgres/004_tax_category_key.sql",
       "migrations/postgres/005_stock_ledger.sql",
       "migrations/postgres/006_quantity_fixed_point.sql",
-      "migrations/postgres/007_quantity_threshold.sql"
+      "migrations/postgres/007_quantity_threshold.sql",
+      "migrations/postgres/008_track_stock_per_product.sql"
     ]
   },
   "queries": {
@@ -160,6 +161,9 @@
           },
           "stock": {
             "op": "range"
+          },
+          "track_stock": {
+            "op": "eq"
           }
         },
         "page_size": 50
@@ -180,7 +184,7 @@
       "permission": "inventory.view_product",
       "sql": "queries/products_for_sale.sql",
       "ai": {
-        "description": "Sale catalogue: the fields the server needs to price a sale line authoritatively (price, cost, tax category, units). Not paginated on purpose."
+        "description": "Sale catalogue: the fields the server needs to price a sale line authoritatively (price, cost, tax category, units) plus the EFFECTIVE `track_stock` per article (inventory#48). Not paginated on purpose."
       }
     },
     "inventory.products.low_stock": {
@@ -308,7 +312,7 @@
         "commands/settings_update.sql"
       ],
       "ai": {
-        "description": "Updates inventory module settings (allow selling without stock, low-stock threshold, stock tracking)."
+        "description": "Updates inventory module settings (allow selling without stock, low-stock threshold, default stock tracking — the per-product `track_stock` flag overrides it)."
       }
     },
     "inventory.products.create": {
@@ -422,7 +426,7 @@
         }
       ],
       "ai": {
-        "description": "Decreases a product's stock, governed by the stock-control settings (#6): rejects an insufficient decrease when overselling is not allowed, is a no-op when stock tracking is off, and rejects quantities off the unit's minimum increment (ADR-0147)."
+        "description": "Decreases a product's stock, governed by the stock-control settings (#6) and the product's own `track_stock` flag (#48): rejects an insufficient decrease when overselling is not allowed, is a no-op when the article does not track stock, and rejects quantities off the unit's minimum increment (ADR-0147)."
       }
     },
     "inventory.stock.receive": {
@@ -538,10 +542,11 @@
         "function": "decrease_on_sale"
       },
       "ai": {
-        "description": "Automatically decreases stock of sold products when a sale is completed."
+        "description": "Automatically decreases stock of sold products when a sale is completed — only for the articles that track stock (per-product `track_stock`, inventory#48; NULL follows the hub setting)."
       },
       "reads": [
-        "inventory.settings.get"
+        "inventory.settings.get",
+        "inventory.products.for_sale"
       ]
     },
     "inventory._restock_on_void": {

@@ -148,7 +148,10 @@
     "taxNoneAvailable": "There are no tax categories yet. Create them in Taxes: a product cannot be sold until it is known how it is taxed.",
     "errTaxCategoryRequired": "Pick the tax category: without it the product cannot be sold.",
     "importErrTaxCategory": "Missing tax category",
-    "importTaxMissingLabel": "Rows with no tax category"
+    "importTaxMissingLabel": "Rows with no tax category",
+    "fieldTrackStock": "Track stock for this item",
+    "trackStockInherit": "Following the hub setting",
+    "trackStockOff": "Catalog only: sales do not move its stock"
   },
   "errors": {
     "inventory.insufficient_stock": "Not enough stock to complete the operation.",

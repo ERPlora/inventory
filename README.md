@@ -60,6 +60,12 @@ contrato idempotente. Sin ese módulo, inventory funciona con productos simples.
 | Instalado, `track_stock = false` | Solo catálogo, precios y categorías: no bloquea ventas ni crea movimientos automáticos. |
 | Instalado, `track_stock = true` | Control real: con `allow_sell_without_stock = false` rechaza atómicamente stock insuficiente; con `true` permite la venta y representa el saldo resultante (también negativo, sin truncar a cero). |
 
+Desde [#48] `track_stock` se decide **por artículo** (`inventory_product.track_stock`, tri-estado:
+`1` controla · `0` solo catálogo · `NULL` sigue el ajuste del hub — ADR-0210). El ajuste de
+`inventory_settings` es el **valor por defecto** que heredan los artículos que no lo fijan, no el
+interruptor que decide en la venta. Es lo que hacen Square, Odoo, Shopify, WooCommerce y Business
+Central (sales#25): el catálogo no está acoplado al control de stock. Los servicios nunca controlan.
+
 La comprobación desde el POS es solo informativa (feedback inmediato); la validación
 **autoritativa y atómica** la hace siempre el comando que registra el consumo.
 
@@ -123,3 +129,4 @@ módulo).
 [#9]: https://github.com/ERPlora/inventory/issues/9
 [#10]: https://github.com/ERPlora/inventory/issues/10
 [#11]: https://github.com/ERPlora/inventory/issues/11
+[#48]: https://github.com/ERPlora/inventory/issues/48

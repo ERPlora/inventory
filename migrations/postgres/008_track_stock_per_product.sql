@@ -1,0 +1,17 @@
+-- inventory#48 — stock control is a PER-PRODUCT flag, not a hub-wide switch.
+--
+-- Decision of the market (sales#25): Square (`Track stock` per item), Odoo (`Track Inventory`
+-- checkbox), Business Central (`Inventory` / `Non-Inventory` / `Service` on the same card),
+-- Shopify (`Track quantity`), WooCommerce (`Manage stock?`) — the catalog is the core of the till,
+-- stock is an OPTIONAL layer per article. Until now `inventory_settings.track_stock` decided for
+-- every product at once, so a restaurant with three retail items had to track everything or
+-- nothing (the reason a hub would want to uninstall `inventory`, sales#30).
+--
+-- TRI-STATE, like `pricing_price_list.tax_included` (ADR-0210): `1` = tracks · `0` = does not ·
+-- `NULL` = FOLLOWS the hub setting. NULL is not "unknown, assume something": it is "inherit", and
+-- that is why existing rows stay NULL — no live hub changes behaviour with this migration; the
+-- hub setting becomes the DEFAULT a product inherits, not the switch that decides at sale time.
+-- Effective value everywhere: COALESCE(product.track_stock, settings.track_stock, 1); services
+-- never track (`product_type = 'service'`), as before.
+-- Additive, append-only (001..007 untouched).
+ALTER TABLE inventory_product ADD COLUMN IF NOT EXISTS track_stock INTEGER;

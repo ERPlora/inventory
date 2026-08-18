@@ -201,6 +201,8 @@ pub fn bulk_create_pure(input: Value) -> Output {
         );
         p.insert("tax_category_key".into(), opt_str(item, "tax_category_key"));
         p.insert("image".into(), json!(as_str(item.get("image").unwrap_or(&Value::Null))));
+        // inventory#48: per-product tracking flag; absent = NULL = follow the hub setting.
+        p.insert("track_stock".into(), track_stock_flag(item.get("track_stock")));
         ops.push(Operation::sql("inventory._insert_product", p));
     }
     Output { operations: ops, events: vec![], ..Default::default() }
@@ -270,6 +272,43 @@ fn track_stock_enabled(input: &Value) -> bool {
     stock_settings(input).map(|s| s.track).unwrap_or(true)
 }
 
+/// A per-product `track_stock` value as it travels on the wire (inventory#48): `0`/`1` when the
+/// row (or the caller) says so, `Null` when it is unset — the tri-state of ADR-0210, where NULL
+/// means "follow the hub setting", never "unknown".
+fn track_stock_flag(v: Option<&Value>) -> Value {
+    match v {
+        None | Some(Value::Null) => Value::Null,
+        Some(Value::Bool(b)) => json!(if *b { 1 } else { 0 }),
+        Some(other) => json!(if as_i64(other, 1) != 0 { 1 } else { 0 }),
+    }
+}
+
+/// Effective tracking of ONE product row (inventory#48): the product's own flag when set,
+/// otherwise the hub setting (`hub_default`). Services never track stock.
+fn product_tracks_stock(product: &Value, hub_default: bool) -> bool {
+    if product.get("product_type").map(as_str).unwrap_or_default() == "service" {
+        return false;
+    }
+    match track_stock_flag(product.get("track_stock")) {
+        Value::Null => hub_default,
+        v => as_i64(&v, 1) != 0,
+    }
+}
+
+/// The sale catalogue pre-loaded by the host (`context.reads["inventory.products.for_sale"]`,
+/// sales#68 shape) indexed by product id. `None` when the read is absent — the handler then
+/// defers to the SQL WHERE, which carries the same per-product guard.
+fn catalog_by_id(input: &Value) -> Option<Map<String, Value>> {
+    let rows = read_rows(input, "inventory.products.for_sale")?;
+    let mut by_id = Map::new();
+    for row in rows {
+        if let Some(id) = row.get("id") {
+            by_id.insert(as_str(id), row.clone());
+        }
+    }
+    Some(by_id)
+}
+
 /// Lógica pura del listener de `sale.completed`: por cada línea con product_id
 /// que NO sea servicio, emite una op `inventory.stock.decrease` (product_id, qty).
 /// El payload del evento (lo emite sales) trae `sale_id` + `items: [{product_id,
@@ -283,9 +322,30 @@ fn track_stock_enabled(input: &Value) -> bool {
 /// operación original generó movimientos).
 pub fn decrease_on_sale_pure(input: Value) -> Output {
     let (payload, _ids) = payload_context(&input);
-    if !track_stock_enabled(&input) {
+    let empty: Vec<Value> = Vec::new();
+    let items = payload.get("items").and_then(|v| v.as_array()).unwrap_or(&empty);
+    // Reference to the source document (#7): the `sale` ledger movement records it.
+    let sale_id = payload.get("sale_id").cloned().unwrap_or(Value::Null);
+    let hub_tracks = track_stock_enabled(&input);
+    // inventory#48: tracking is decided PER ARTICLE. The pre-loaded catalogue (`for_sale`)
+    // projects the effective flag; a line whose product opted out is skipped here (and the SQL
+    // WHERE of `_decrease_stock` skips it again, authoritatively). Without the read the handler
+    // defers to the SQL for the per-product guard and keeps the hub-level fast-path.
+    let catalog = catalog_by_id(&input);
+    let line_tracks = |product_id: &Value| -> bool {
+        match &catalog {
+            Some(by_id) => by_id
+                .get(&as_str(product_id))
+                .map(|row| product_tracks_stock(row, hub_tracks))
+                .unwrap_or(hub_tracks),
+            None => hub_tracks,
+        }
+    };
+    let any_line_tracks = items.iter().any(|it| {
+        it.get("product_id").map(|id| !id.is_null() && line_tracks(id)).unwrap_or(false)
+    });
+    if !hub_tracks && !any_line_tracks {
         let mut ops: Vec<Operation> = Vec::new();
-        let sale_id = payload.get("sale_id").cloned().unwrap_or(Value::Null);
         if !sale_id.is_null() {
             let mut p = Map::new();
             p.insert("sale_id".into(), sale_id);
@@ -293,10 +353,6 @@ pub fn decrease_on_sale_pure(input: Value) -> Output {
         }
         return Output { operations: ops, events: vec![], ..Default::default() };
     }
-    let empty: Vec<Value> = Vec::new();
-    let items = payload.get("items").and_then(|v| v.as_array()).unwrap_or(&empty);
-    // Reference to the source document (#7): the `sale` ledger movement records it.
-    let sale_id = payload.get("sale_id").cloned().unwrap_or(Value::Null);
     // A handler's ops may only reference SQL commands of its OWN module (§5.3): pointing at the
     // WASM command `inventory.stock.decrease` resolved to ZERO statements and the event-driven
     // decrease silently never happened. Since #6, ledger movement + stock UPDATE are ONE atomic
@@ -313,7 +369,7 @@ pub fn decrease_on_sale_pure(input: Value) -> Output {
             _ => false,
         };
         let product_id = it.get("product_id").cloned().unwrap_or(Value::Null);
-        if is_service || product_id.is_null() {
+        if is_service || product_id.is_null() || !line_tracks(&product_id) {
             continue;
         }
         let qty = as_qty(it.get("quantity").unwrap_or(&Value::Null)); // 10⁶ scale (ADR-0147)
@@ -389,19 +445,24 @@ pub fn decrease_stock_pure(input: Value) -> Result<HandlerOutput, String> {
     // `inventory._decrease_stock` remains the authoritative, in-transaction guard, so a race
     // between the read and the transaction can never oversell — it only loses the loud error.
     if let Some(settings) = stock_settings(&input) {
+        let product_rows = read_rows(&input, "inventory.products.get");
         // Mode 2 (`track_stock = 0`): no automatic movements and no blocking — a clean no-op.
-        if !settings.track {
+        // Since inventory#48 the hub flag is only the DEFAULT: a product that opted in still
+        // decreases, so the hub-level short-circuit only applies when the product row is absent.
+        if !settings.track && product_rows.is_none() {
             return Ok(HandlerOutput::noop());
         }
-        if let Some(rows) = read_rows(&input, "inventory.products.get") {
+        if let Some(rows) = product_rows {
             let Some(product) = rows.first() else {
                 return Ok(HandlerOutput::rejected(
                     "inventory.unknown_product",
                     format!("Product `{}` does not exist in this hub", as_str(&product_id)),
                 ));
             };
-            // Services never move stock: benign no-op, parity with the sale listener.
-            if product.get("product_type").map(as_str).unwrap_or_default() == "service" {
+            // Services never move stock, and neither does an article whose effective
+            // `track_stock` is off (own flag, or NULL inheriting the hub) — benign no-op,
+            // parity with the sale listener.
+            if !product_tracks_stock(product, settings.track) {
                 return Ok(HandlerOutput::noop());
             }
             let stock = product.get("stock").map(as_qty).unwrap_or(0);
@@ -764,6 +825,165 @@ mod tests {
         .unwrap();
         assert!(out.error.is_none());
         assert_eq!(op_names(&out), ["inventory._ensure_location", "inventory._decrease_stock"]);
+    }
+
+    // ── inventory#48: `track_stock` is a PER-PRODUCT flag (tri-state, NULL = follow the hub) ──
+    //
+    // The market (Square, Odoo, Shopify, WooCommerce, Business Central — sales#25) does not couple
+    // the catalog to stock control: tracking is an opt-in per article. The hub setting is only the
+    // default a NULL product inherits. Effective = product.track_stock ?? settings.track_stock ?? 1.
+
+    fn sale_input(payload: Value, settings_track: i64, catalog: Value) -> Value {
+        json!({
+            "payload": payload,
+            "context": {
+                "new_ids": [],
+                "reads": {
+                    "inventory.settings.get": [
+                        { "allow_sell_without_stock": 0, "low_stock_threshold": 10, "track_stock": settings_track }
+                    ],
+                    "inventory.products.for_sale": catalog
+                }
+            }
+        })
+    }
+
+    /// Hub tracks stock, but ONE article opted out: its line generates no decrease, the other
+    /// line still does — and no skip marker (the sale DID move stock).
+    #[test]
+    fn decrease_on_sale_skips_lines_whose_product_does_not_track_stock() {
+        let payload = json!({ "sale_id": "s-48", "items": [
+            { "product_id": "p-tracked", "quantity": 1_000_000, "is_service": false },
+            { "product_id": "p-untracked", "quantity": 2_000_000, "is_service": false }
+        ]});
+        let catalog = json!([
+            { "id": "p-tracked", "price": 100, "track_stock": 1 },
+            { "id": "p-untracked", "price": 100, "track_stock": 0 }
+        ]);
+        let out = decrease_on_sale_pure(sale_input(payload, 1, catalog));
+        let names: Vec<&str> = out.operations.iter().map(|o| o.command.as_str()).collect();
+        assert_eq!(names, ["inventory._ensure_location", "inventory._decrease_stock"], "{:?}", out.operations);
+        assert_eq!(out.operations[1].params["product_id"], json!("p-tracked"));
+        assert!(!names.contains(&"inventory._skip_void_restock"), "the sale moved stock: no skip marker");
+    }
+
+    /// Hub does NOT track, but ONE article opted in: only that line decreases. The marker is NOT
+    /// written either — a void must restock the tracked line (the void SQL filters per product).
+    #[test]
+    fn decrease_on_sale_hub_off_but_product_on_decreases_that_line() {
+        let payload = json!({ "sale_id": "s-49", "items": [
+            { "product_id": "p-on", "quantity": 1_000_000, "is_service": false },
+            { "product_id": "p-inherit", "quantity": 1_000_000, "is_service": false }
+        ]});
+        let catalog = json!([
+            { "id": "p-on", "price": 100, "track_stock": 1 },
+            { "id": "p-inherit", "price": 100, "track_stock": 0 } // effective (inherits hub = off)
+        ]);
+        let out = decrease_on_sale_pure(sale_input(payload, 0, catalog));
+        let names: Vec<&str> = out.operations.iter().map(|o| o.command.as_str()).collect();
+        assert_eq!(names, ["inventory._ensure_location", "inventory._decrease_stock"], "{:?}", out.operations);
+        assert_eq!(out.operations[1].params["product_id"], json!("p-on"));
+    }
+
+    /// Hub off and NO article opted in (every line effective 0): the historical mode-2 outcome —
+    /// only the skip marker, so a later void does not restock a sale that never decreased.
+    #[test]
+    fn decrease_on_sale_hub_off_and_no_product_on_keeps_only_the_marker() {
+        let payload = json!({ "sale_id": "s-50", "items": [
+            { "product_id": "p-a", "quantity": 1_000_000, "is_service": false }
+        ]});
+        let catalog = json!([{ "id": "p-a", "price": 100, "track_stock": 0 }]);
+        let out = decrease_on_sale_pure(sale_input(payload, 0, catalog));
+        assert_eq!(out.operations.len(), 1, "{:?}", out.operations);
+        assert_eq!(out.operations[0].command, "inventory._skip_void_restock");
+    }
+
+    /// Catalog read ABSENT (older manifest): the handler defers to the SQL WHERE, which carries the
+    /// per-product guard — it must not skip anything on its own.
+    #[test]
+    fn decrease_on_sale_without_catalog_read_defers_to_sql() {
+        let payload = json!({ "sale_id": "s-51", "items": [
+            { "product_id": "p1", "quantity": 1_000_000, "is_service": false }
+        ]});
+        let out = decrease_on_sale_pure(input_with_settings(payload, 1));
+        assert_eq!(op_names_out(&out), ["inventory._ensure_location", "inventory._decrease_stock"]);
+    }
+
+    fn op_names_out(out: &Output) -> Vec<&str> {
+        out.operations.iter().map(|o| o.command.as_str()).collect()
+    }
+
+    fn product_rows_tracking(stock: i64, track_stock: Value) -> Value {
+        json!([{ "id": "p1", "stock": stock, "product_type": "physical", "track_stock": track_stock }])
+    }
+
+    /// Direct decrease on an article that opted OUT while the hub tracks: clean no-op, no event.
+    #[test]
+    fn decrease_product_track_off_is_a_clean_noop_even_if_hub_tracks() {
+        let out = decrease_stock_pure(decrease_input(
+            json!({ "product_id": "p1", "qty": 1_000_000 }),
+            Some(settings_rows(1, 0)),
+            Some(product_rows_tracking(0, json!(0))),
+        ))
+        .unwrap();
+        assert!(out.operations.is_empty(), "{:?}", out.operations);
+        assert!(out.events.is_empty());
+        assert!(out.error.is_none(), "opting out is a supported state, not an error");
+    }
+
+    /// Direct decrease on an article that opted IN while the hub does NOT track: it decreases and
+    /// the insufficient-stock rule applies to it.
+    #[test]
+    fn decrease_product_track_on_overrides_hub_off() {
+        let ok = decrease_stock_pure(decrease_input(
+            json!({ "product_id": "p1", "qty": 1_000_000 }),
+            Some(settings_rows(0, 0)),
+            Some(product_rows_tracking(5_000_000, json!(1))),
+        ))
+        .unwrap();
+        assert!(ok.error.is_none());
+        assert_eq!(op_names(&ok), ["inventory._ensure_location", "inventory._decrease_stock"]);
+        assert_eq!(ok.events.len(), 1);
+
+        let short = decrease_stock_pure(decrease_input(
+            json!({ "product_id": "p1", "qty": 9_000_000 }),
+            Some(settings_rows(0, 0)),
+            Some(product_rows_tracking(5_000_000, json!(1))),
+        ))
+        .unwrap();
+        assert_eq!(short.error.expect("tracked article must reject").code, "inventory.insufficient_stock");
+    }
+
+    /// NULL on the product = follow the hub: hub off → no-op; hub on → decreases.
+    #[test]
+    fn decrease_product_track_null_inherits_the_hub_setting() {
+        let off = decrease_stock_pure(decrease_input(
+            json!({ "product_id": "p1", "qty": 1_000_000 }),
+            Some(settings_rows(0, 0)),
+            Some(product_rows_tracking(5_000_000, Value::Null)),
+        ))
+        .unwrap();
+        assert!(off.operations.is_empty() && off.error.is_none());
+
+        let on = decrease_stock_pure(decrease_input(
+            json!({ "product_id": "p1", "qty": 1_000_000 }),
+            Some(settings_rows(1, 0)),
+            Some(product_rows_tracking(5_000_000, Value::Null)),
+        ))
+        .unwrap();
+        assert_eq!(op_names(&on), ["inventory._ensure_location", "inventory._decrease_stock"]);
+    }
+
+    /// bulk_create forwards the per-line `track_stock` (NULL when the line does not say).
+    #[test]
+    fn bulk_create_forwards_track_stock_per_line() {
+        let payload = json!({ "products": [
+            { "name": "A", "price": 1, "track_stock": 0 },
+            { "name": "B", "price": 1 }
+        ]});
+        let out = bulk_create_pure(merge(payload, ctx(2)));
+        assert_eq!(out.operations[0].params["track_stock"], json!(0));
+        assert_eq!(out.operations[1].params["track_stock"], Value::Null);
     }
 
     /// receive_stock accepts qty in 10⁶ scale (receiving 1.75 kg = 1750000) and forwards `reference`.

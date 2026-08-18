@@ -12,6 +12,9 @@
 -- Se inserta ANTES del UPDATE para capturar el saldo PREVIO (`p.stock + SUM`), con las
 -- MISMAS condiciones que el UPDATE (incluido el marcador `inventory_void_restock`).
 --
+-- inventory#48: SOLO se restituyen las líneas cuyo producto controla stock (flag por artículo,
+-- NULL = hereda el ajuste del hub): un artículo sin control nunca descontó, así que no hay nada
+-- que devolver — misma guarda que `_decrease_stock`, y la misma en la hoja 2/3.
 -- Runtime inyecta :hub_id, :current_user_id, :now; :sale_id viene del evento.
 INSERT INTO inventory_stock_movement
     (id, hub_id, location_id, product_id, movement_type, qty, stock_after,
@@ -27,6 +30,9 @@ JOIN inventory_product p
 WHERE li.sale_id = :sale_id AND li.hub_id = :hub_id
   AND li.is_service = 0 AND li.product_id IS NOT NULL
   AND p.is_deleted = 0 AND p.product_type != 'service'
+  AND COALESCE(p.track_stock,
+               (SELECT s.track_stock FROM inventory_settings s
+                WHERE s.hub_id = :hub_id AND s.is_deleted = 0), 1) = 1
   AND NOT EXISTS (
       SELECT 1 FROM inventory_void_restock m
       WHERE m.hub_id = :hub_id AND m.sale_id = :sale_id

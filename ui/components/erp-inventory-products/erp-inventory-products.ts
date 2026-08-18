@@ -62,6 +62,8 @@ interface Product {
   is_active: number;
   /** 1 = the product still has no fiscal category (projected by `queries/products_list.sql`). */
   needs_tax_setup?: number;
+  /** Per-item stock control (inventory#48): 1/0 explicit, null = follows the hub setting. */
+  track_stock?: number | null;
 }
 
 /** Value of the status filter that means «the product does not know how it is taxed» (inventory#38). */
@@ -123,6 +125,7 @@ export class ErpInventoryProducts extends LitElement {
     .page > ok-data-table { flex:1 1 auto; min-height:0; }
     .form { display:flex; flex-direction:column; gap:.7rem; }
     .form ion-button { align-self:flex-end; }
+    .track-note { font-size:.8rem; color:var(--ion-color-medium,#6b6557); margin-top:-.4rem; }
     .err { color:#d9480f; font-weight:600; }
     /* Detalle de producto */
     .detail { display:flex; flex-direction:column; gap:.6rem; }
@@ -145,6 +148,12 @@ export class ErpInventoryProducts extends LitElement {
   @state() newDescription = '';
   @state() newType: 'physical' | 'service' = 'physical';
   @state() newActive = true;
+  // Stock control PER ITEM (inventory#48, market: Square/Odoo/Shopify). Tri-state like ADR-0210:
+  // 1/0 = the item decided; null = follows the hub setting. Untouched on create → null, so the
+  // item keeps following the hub if the hub changes its mind later (never frozen at creation).
+  @state() newTrackStock: 0 | 1 | null = null;
+  /** The hub default (`inventory.settings.get`, best-effort — the setting needs manage_settings). */
+  @state() hubTracksStock = true;
   // Unidad maestra de inventario (ADR-0147): default 'ud' (la unidad suelta). Se envía SIEMPRE
   // (create y update): tras el COALESCE del comando, reenviar la actual es idempotente.
   @state() newUnitCode = 'ud';
@@ -206,7 +215,8 @@ export class ErpInventoryProducts extends LitElement {
       sortable: true,
       filterable: true,
       filterType: 'range',
-      format: (r) => formatQuantity(Number(r.stock)),
+      // inventory#48: an item that does not track stock has no balance worth showing.
+      format: (r) => (this.rowTracksStock(r) ? formatQuantity(Number(r.stock)) : '—'),
     },
     {
       key: 'is_active',
@@ -414,6 +424,8 @@ export class ErpInventoryProducts extends LitElement {
         this.newDescription = String((full as unknown as { description?: string }).description ?? '');
         this.newType = ((full as unknown as { product_type?: string }).product_type === 'service' ? 'service' : 'physical');
         this.newActive = Number((full as unknown as { is_active?: number }).is_active ?? 1) === 1;
+        const rawTrack = (full as unknown as { track_stock?: number | string | null }).track_stock;
+        this.newTrackStock = rawTrack == null || rawTrack === '' ? null : Number(rawTrack) !== 0 ? 1 : 0;
         this.newUnitCode = String((full as unknown as { unit_code?: string }).unit_code || 'ud');
         this.newTaxCategoryKey = full.tax_category_key ?? '';
         const links = await erplora().query<{ product_id: string; category_id: string }[]>('inventory.product_categories');
@@ -749,6 +761,7 @@ export class ErpInventoryProducts extends LitElement {
     void this.loadTaxCategories();
     void this.loadProductCategories();
     void this.loadUnits();
+    void this.loadStockSettings();
     // Reactividad: al cambiar stock o crearse un producto, recargamos la página actual.
     try {
       const reload = () => this.ctrl.load();
@@ -803,6 +816,35 @@ export class ErpInventoryProducts extends LitElement {
     } catch {
       this.units = [];
     }
+  }
+
+  /** Hub default for stock control (inventory#48). Best-effort: without permission or a settings
+   *  row the schema default (tracking on) stands — the server resolves the truth anyway. */
+  private async loadStockSettings(): Promise<void> {
+    try {
+      const rows = await erplora().query<{ track_stock?: number | string }[]>('inventory.settings.get');
+      const row = Array.isArray(rows) ? rows[0] : undefined;
+      this.hubTracksStock = row?.track_stock == null ? true : Number(row.track_stock) !== 0;
+    } catch {
+      this.hubTracksStock = true;
+    }
+  }
+
+  /** What the checkbox shows: the item's own choice, or the hub default when it has none. */
+  trackStockEffective(): boolean {
+    return this.newTrackStock == null ? this.hubTracksStock : this.newTrackStock === 1;
+  }
+
+  /** Touching the checkbox makes the choice EXPLICIT (1/0); only "never touched" stays null. */
+  setTrackStock(on: boolean): void {
+    this.newTrackStock = on ? 1 : 0;
+  }
+
+  /** Effective flag of a LIST row (raw 1/0/null + hub default); services never track. */
+  private rowTracksStock(row: Record<string, unknown>): boolean {
+    if (row.product_type === 'service') return false;
+    const raw = row.track_stock;
+    return raw == null || raw === '' ? this.hubTracksStock : Number(raw) !== 0;
   }
 
   /** Incremento exacto de la unidad. Sin catálogo, `ud` conserva su rejilla natural de 1. */
@@ -872,6 +914,7 @@ export class ErpInventoryProducts extends LitElement {
     this.newDescription = '';
     this.newType = 'physical';
     this.newActive = true;
+    this.newTrackStock = null;
     this.newUnitCode = 'ud';
     this.newTaxCategoryKey = '';
     this.initialCategoryIds = new Set();
@@ -921,6 +964,8 @@ export class ErpInventoryProducts extends LitElement {
           // Se envía SIEMPRE (no solo si cambió): el comando hace COALESCE y reenviar la
           // actual es idempotente; omitirla también sería válido (se conservaría).
           unit_code: this.newUnitCode,
+          // inventory#48: null = keep following the hub (COALESCE keeps the stored value).
+          track_stock: this.newTrackStock,
         });
         // Sincroniza el M2M por diferencias (solo lo que cambió).
         for (const cid of this.selectedCategoryIds) {
@@ -958,6 +1003,8 @@ export class ErpInventoryProducts extends LitElement {
           tax_category_key: this.newTaxCategoryKey,
           unit_code: this.newUnitCode,
           image: '',
+          // inventory#48: null = follows the hub setting; 1/0 only when the user decided.
+          track_stock: this.newTrackStock,
         });
       }
       this.cancelEdit();
@@ -1111,6 +1158,24 @@ export class ErpInventoryProducts extends LitElement {
                   <ion-select-option value="physical">${erplora().t(CATALOG, 'ui.typePhysical')}</ion-select-option>
                   <ion-select-option value="service">${erplora().t(CATALOG, 'ui.typeService')}</ion-select-option>
                 </ion-select>`
+              : nothing}
+            ${this.newType !== 'service'
+              ? html`<!-- Stock control PER ITEM (inventory#48): the market's checkbox
+                          (Square «Track stock», Odoo «Track Inventory», Shopify «Track quantity»).
+                          Shows the EFFECTIVE value; touching it makes the choice explicit. -->
+                  <ion-checkbox
+                    label-placement="end"
+                    justify="start"
+                    .checked=${this.trackStockEffective()}
+                    @ionChange=${(e: CustomEvent) => this.setTrackStock(!!(e.detail as { checked?: boolean }).checked)}
+                  >${erplora().t(CATALOG, 'ui.fieldTrackStock')}</ion-checkbox>
+                  <ion-note class="track-note">
+                    ${this.newTrackStock == null
+                      ? erplora().t(CATALOG, 'ui.trackStockInherit')
+                      : this.newTrackStock === 0
+                        ? erplora().t(CATALOG, 'ui.trackStockOff')
+                        : nothing}
+                  </ion-note>`
               : nothing}
             <ion-select
               fill="outline"

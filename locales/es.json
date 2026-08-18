@@ -149,7 +149,10 @@
     "taxNoneAvailable": "Todavía no hay categorías fiscales. Créalas en Impuestos: un producto no se puede vender sin saber cómo tributa.",
     "errTaxCategoryRequired": "Elige la categoría fiscal: sin ella el producto no se puede vender.",
     "importErrTaxCategory": "Falta la categoría fiscal",
-    "importTaxMissingLabel": "Filas sin categoría fiscal"
+    "importTaxMissingLabel": "Filas sin categoría fiscal",
+    "fieldTrackStock": "Controlar stock de este artículo",
+    "trackStockInherit": "Sigue el ajuste del hub",
+    "trackStockOff": "Solo catálogo: las ventas no mueven su stock"
   },
   "widgets": {
     "inventory.low_stock_count": {

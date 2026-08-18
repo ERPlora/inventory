@@ -16,6 +16,10 @@
 -- Filas ESTRECHAS a propósito: esto se pre-carga en CADA venta, así que solo van las columnas que
 -- deciden algo en el servidor. Nada de descripción, imagen ni stock.
 --
+-- `track_stock` (inventory#48) es el valor EFECTIVO por artículo — el propio, o el del hub si es
+-- NULL (tri-estado ADR-0210); un servicio nunca controla. El TPV lo usa para saber que ese artículo
+-- no tiene disponibilidad que mostrar, y `decrease_on_sale` para saltar la línea sin descuento.
+--
 -- Solo productos activos y no borrados: vender uno desactivado es una decisión de negocio que el
 -- TPV no debería poder tomar por su cuenta.
 SELECT id,
@@ -24,7 +28,12 @@ SELECT id,
        tax_category_key,        -- con qué regla tributa (ADR-0085)
        unit_code,               -- unidad de medida (ADR-0147)
        pricing_unit_code,       -- unidad en la que se expresa el precio
-       price_quantity_value     -- «0,37 € por 100 ud»: la cantidad de precio
+       price_quantity_value,    -- «0,37 € por 100 ud»: la cantidad de precio
+       CASE WHEN product_type = 'service' THEN 0
+            ELSE COALESCE(track_stock,
+                          (SELECT s.track_stock FROM inventory_settings s
+                           WHERE s.hub_id = :hub_id AND s.is_deleted = 0), 1)
+       END AS track_stock       -- control de stock EFECTIVO por artículo (inventory#48)
 FROM inventory_product
 WHERE hub_id = :hub_id
   AND is_deleted = 0

@@ -10,6 +10,7 @@
 -- in one go. The empty string is the same hole as NULL, so both count.
 SELECT id, name, sku, price, cost, stock, unit_code, price_quantity_value, pricing_unit_code, low_stock_threshold, tax_category_key,
        CASE WHEN tax_category_key IS NULL OR tax_category_key = '' THEN 1 ELSE 0 END AS needs_tax_setup,
-       is_active, product_type, image, created_at
+       is_active, product_type, image, created_at,
+       track_stock  -- crudo 1/0/NULL (inventory#48): NULL = sigue el ajuste del hub
 FROM inventory_product
 WHERE hub_id = :hub_id AND is_deleted = 0
