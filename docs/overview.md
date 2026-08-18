@@ -44,9 +44,21 @@ hub refuses to save a product pointing at a tax category that does not exist.
 | `inventory.product.categorized` | a product is linked to a category |
 | `inventory.product.uncategorized` | a product is unlinked from a category |
 | `inventory.stock_changed` | a stock count is applied, or a decrease is actually applied |
+| `inventory.low_stock_crossed` | a movement takes a tracked article ACROSS its low-stock threshold (#47) |
 
 `inventory.stock_changed` is **conditional** on a decrease: the handler returns the event only when
-stock really moved, so a rejected decrease does not announce a change that never happened.
+stock really moved, so a rejected decrease does not announce a change that never happened. It
+describes the **movement** (`product_id`, `qty`), not the balance.
+
+`inventory.low_stock_crossed` describes the **transition**, so a flow can reorder without computing
+balances. Payload: `product_id`, `sku`, `name`, `previous_quantity`, `current_quantity`,
+`low_stock_threshold` (the product's own, 10⁶ fixed-point like every quantity), `crossing`
+(`below` when previous > threshold and current ≤ threshold; `recovered` when previous ≤ threshold and
+current > threshold), `movement_type` (`sale` · `decrease` · `reception` · `count`), `source_ref`
+(sale id or delivery reference), `occurred_at`, `dedup_key`. The hysteresis lives here: staying below
+the threshold is silence, and only a `recovered` re-arms the next `below`. Articles that do not track
+stock (#48) never cross. A void restock (`sale.voided`) does not emit it today (SQL listener; a
+missed `recovered` only means the next sale below the threshold announces `below` again).
 
 **Events it listens to**
 

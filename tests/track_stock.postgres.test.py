@@ -435,6 +435,40 @@ def run() -> None:
         int(stats["total_products"]),
     )
 
+    print("\n# 8. inventory#47: `products.stock_levels` feeds the crossing handlers (effective flag + numbers)")
+    clear()
+    set_hub_tracking(1)
+    add_product("p-on", track_stock=1, stock=6_000_000, low_stock_threshold=5_000_000)
+    add_product("p-null", stock=1_000_000, low_stock_threshold=5_000_000)
+    add_product("p-off", track_stock=0)
+    add_product("p-svc", product_type="service")
+    add_product("p-archived", is_active=0)
+    lv = {r["id"]: r for r in run_query("inventory.products.stock_levels")}
+    check("stock_levels: every active row, archived excluded", {"p-on", "p-null", "p-off", "p-svc"}, set(lv))
+    for col in ("id", "sku", "name", "stock", "low_stock_threshold", "track_stock", "product_type"):
+        check(f"stock_levels projects `{col}`", True, col in lv["p-on"])
+    check("stock_levels: stock in 10^6 scale as stored", 6_000_000, int(lv["p-on"]["stock"]))
+    check("stock_levels: threshold per product", 5_000_000, int(lv["p-on"]["low_stock_threshold"]))
+    check("stock_levels: NULL inherits hub=1", 1, lv["p-null"]["track_stock"])
+    check("stock_levels: explicit 0", 0, lv["p-off"]["track_stock"])
+    check("stock_levels: service never tracks", 0, lv["p-svc"]["track_stock"])
+
+    print("\n# 9. inventory#47: `stock.adjust` is a handler; its private sheets still count and move")
+    adjust = MANIFEST["commands"]["inventory.stock.adjust"]
+    check("stock.adjust runs through the WASM handler `adjust_stock`", "adjust_stock", (adjust.get("handler") or {}).get("function"))
+    check("stock.adjust pre-loads the product row (previous balance + threshold)", True,
+          any(isinstance(r, dict) and r.get("query") == "inventory.products.get" for r in adjust.get("reads", [])))
+    check("`inventory.low_stock_crossed` is declared in events.emits", True,
+          "inventory.low_stock_crossed" in MANIFEST["events"]["emits"])
+    run_command("inventory._ensure_location")
+    run_command("inventory._movement_on_adjust", product_id="p-on", stock=2_000_000, reason="count")
+    run_command("inventory._adjust_stock", product_id="p-on", stock=2_000_000, reason="count")
+    check("_adjust_stock sets the absolute value", 2_000_000, stock_of("p-on"))
+    check("_movement_on_adjust wrote the `count` movement", "count",
+          scalar("SELECT movement_type FROM inventory_stock_movement WHERE product_id = 'p-on'"))
+    check("the movement carries the difference", "-4000000",
+          scalar("SELECT qty FROM inventory_stock_movement WHERE product_id = 'p-on'"))
+
 
 def main() -> int:
     try:

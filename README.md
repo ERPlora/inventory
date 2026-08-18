@@ -90,11 +90,11 @@ movimientos nacen preparados para ubicación:
 | query | `inventory.categories.list` | `inventory.view_category` |
 | query | `inventory.settings.get` | `inventory.manage_settings` |
 | command | `inventory.products.create/update/delete`, `bulk_create` (WASM) | `inventory.add/change/delete_product` |
-| command | `inventory.stock.adjust/decrease`, `stock.receive` (WASM) | `inventory.change_product` |
+| command | `inventory.stock.adjust/decrease/receive` (WASM los tres) | `inventory.adjust_stock` / `inventory.change_product` |
 | command | `inventory.categories.create/update/delete` | `inventory.add/change/delete_category` |
 | command | `inventory.settings.update` | `inventory.manage_settings` |
 | listener | `sale.completed` → `stock.decrease_on_sale` (WASM) · `sale.voided` → `_restock_on_void` | — |
-| emite | `inventory.product.created/updated/deleted`, `inventory.stock_changed` | — |
+| emite | `inventory.product.created/updated/deleted`, `inventory.stock_changed`, `inventory.low_stock_crossed` ([#47]: el CRUCE del umbral, con `previous_quantity`/`current_quantity`/`low_stock_threshold`/`crossing: below\|recovered`; histéresis en el módulo) | — |
 
 Navegación: `erp-inventory-dashboard`, `erp-inventory-products`,
 `erp-inventory-categories`; ajustes declarativos (ADR-0082).
@@ -129,4 +129,5 @@ módulo).
 [#9]: https://github.com/ERPlora/inventory/issues/9
 [#10]: https://github.com/ERPlora/inventory/issues/10
 [#11]: https://github.com/ERPlora/inventory/issues/11
+[#47]: https://github.com/ERPlora/inventory/issues/47
 [#48]: https://github.com/ERPlora/inventory/issues/48

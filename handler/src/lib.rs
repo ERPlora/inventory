@@ -9,6 +9,10 @@
 //!   por sku no se puede hacer en el guest (no toca BD), así que el host/SDK
 //!   resuelve sku→product_id antes; el handler emite una op por línea con id.
 //!
+//! * `decrease_stock` / `decrease_on_sale` / `adjust_stock` — the stock movements (direct
+//!   decrease, sale listener, absolute count). Since inventory#47 the three, plus
+//!   `receive_stock`, also decide `inventory.low_stock_crossed` from the pre-loaded balance.
+//!
 //! Lógica pura (sin BD): recibe `{payload, context}`, devuelve **intenciones**
 //! (ops SQL por nombre de command del mismo módulo + params) que el host valida
 //! y ejecuta en una transacción. Los ids de filas nuevas salen de
@@ -218,11 +222,17 @@ pub fn receive_stock_pure(input: Value) -> Output {
     let reference = payload.get("reference").cloned().unwrap_or(Value::Null);
 
     let mut ops: Vec<Operation> = Vec::new();
+    // Total received per product: the `recovered` crossing (#47) is decided once, on the sum.
+    let mut received: Vec<(Value, i64)> = Vec::new();
     for item in items.iter().take(MAX_RECEIVE) {
         let qty = as_qty(item.get("qty").unwrap_or(&Value::Null)); // escala 10⁶ (ADR-0147)
         let product_id = item.get("product_id").cloned().unwrap_or(Value::Null);
         if qty <= 0 || product_id.is_null() {
             continue; // líneas inválidas se omiten (el legacy las reporta; aquí se saltan)
+        }
+        match received.iter_mut().find(|(id, _)| *id == product_id) {
+            Some(entry) => entry.1 += qty,
+            None => received.push((product_id.clone(), qty)),
         }
         let mut p = Map::new();
         p.insert("product_id".into(), product_id);
@@ -231,7 +241,25 @@ pub fn receive_stock_pure(input: Value) -> Output {
         p.insert("reference".into(), reference.clone());
         ops.push(Operation::sql("inventory._receive_line", p));
     }
-    Output { operations: ops, events: vec![], ..Default::default() }
+    // A reception APPLIES to every article (explicit human action, like a count) but only an
+    // article that tracks stock can cross its threshold.
+    let hub_tracks = track_stock_enabled(&input);
+    let now = context_now(&input);
+    let events: Vec<Event> = match catalog_by_id(&input) {
+        Some(by_id) => received
+            .iter()
+            .filter_map(|(id, qty)| {
+                let row = by_id.get(&as_str(id))?;
+                if !product_tracks_stock(row, hub_tracks) {
+                    return None;
+                }
+                let previous = row.get("stock").map(as_qty)?;
+                crossing_event(row, previous, previous + qty, "reception", &reference, &now)
+            })
+            .collect(),
+        None => vec![],
+    };
+    Output { operations: ops, events, ..Default::default() }
 }
 
 /// Rows of a pre-loaded read (`context.reads[query]`, ADR-0069). `None` when the read is
@@ -295,11 +323,14 @@ fn product_tracks_stock(product: &Value, hub_default: bool) -> bool {
     }
 }
 
-/// The sale catalogue pre-loaded by the host (`context.reads["inventory.products.for_sale"]`,
-/// sales#68 shape) indexed by product id. `None` when the read is absent — the handler then
-/// defers to the SQL WHERE, which carries the same per-product guard.
+/// The stock catalogue pre-loaded by the host, indexed by product id: `inventory.products.stock_levels`
+/// (id, sku, name, stock, low_stock_threshold, effective track_stock — inventory#47) or, on an
+/// older manifest, `inventory.products.for_sale` (effective track_stock only, #48). `None` when
+/// neither read is present — the handler then defers to the SQL WHERE, which carries the same
+/// per-product guard, and emits no crossing rather than guessing one.
 fn catalog_by_id(input: &Value) -> Option<Map<String, Value>> {
-    let rows = read_rows(input, "inventory.products.for_sale")?;
+    let rows = read_rows(input, "inventory.products.stock_levels")
+        .or_else(|| read_rows(input, "inventory.products.for_sale"))?;
     let mut by_id = Map::new();
     for row in rows {
         if let Some(id) = row.get("id") {
@@ -307,6 +338,53 @@ fn catalog_by_id(input: &Value) -> Option<Map<String, Value>> {
         }
     }
     Some(by_id)
+}
+
+/// `inventory.low_stock_crossed` (inventory#47): the TRANSITION across the product's threshold,
+/// decided by the authority of the balance so a flow can reorder without computing anything.
+/// Hysteresis is inherent: `below` only when `previous > threshold && current <= threshold`,
+/// `recovered` only when `previous <= threshold && current > threshold`; staying on either side
+/// is silence, so no storm while the article remains low. `None` when the row lacks the numbers
+/// (older read shape) — never a guessed crossing. Quantities in 10⁶ fixed-point (ADR-0147).
+fn crossing_event(
+    row: &Value,
+    previous: i64,
+    current: i64,
+    movement_type: &str,
+    source_ref: &Value,
+    now: &Value,
+) -> Option<Event> {
+    let threshold = row.get("low_stock_threshold").map(as_qty)?;
+    let crossing = if previous > threshold && current <= threshold {
+        "below"
+    } else if previous <= threshold && current > threshold {
+        "recovered"
+    } else {
+        return None;
+    };
+    let product_id = row.get("id").cloned().unwrap_or(Value::Null);
+    let source = if source_ref.is_null() { "direct".to_string() } else { as_str(source_ref) };
+    Some(Event::new(
+        "inventory.low_stock_crossed",
+        json!({
+            "product_id": product_id,
+            "sku": row.get("sku").cloned().unwrap_or(Value::Null),
+            "name": row.get("name").cloned().unwrap_or(Value::Null),
+            "previous_quantity": previous,
+            "current_quantity": current,
+            "low_stock_threshold": threshold,
+            "crossing": crossing,
+            "movement_type": movement_type,
+            "source_ref": source_ref.clone(),
+            "occurred_at": now.clone(),
+            "dedup_key": format!("{}:{}:{}:{}->{}", as_str(&product_id), source, crossing, previous, current),
+        }),
+    ))
+}
+
+/// `context.now` (server UTC, injected by the host) — `Null` on an older host.
+fn context_now(input: &Value) -> Value {
+    input.get("context").and_then(|c| c.get("now")).cloned().unwrap_or(Value::Null)
 }
 
 /// Lógica pura del listener de `sale.completed`: por cada línea con product_id
@@ -361,6 +439,9 @@ pub fn decrease_on_sale_pure(input: Value) -> Output {
     // already validated by `sales` at checkout (frozen context); the authoritative mode guard
     // lives in the SQL WHERE.
     let mut ops: Vec<Operation> = Vec::new();
+    // Total decreased per product (a ticket may carry the same article on several lines): the
+    // crossing (#47) is decided ONCE on the aggregate, not per line.
+    let mut decreased: Vec<(Value, i64)> = Vec::new();
     for it in items {
         let is_service = match it.get("is_service") {
             Some(Value::Bool(b)) => *b,
@@ -379,6 +460,10 @@ pub fn decrease_on_sale_pure(input: Value) -> Output {
         if ops.is_empty() {
             ops.push(Operation::sql("inventory._ensure_location", Map::new()));
         }
+        match decreased.iter_mut().find(|(id, _)| *id == product_id) {
+            Some(entry) => entry.1 += qty,
+            None => decreased.push((product_id.clone(), qty)),
+        }
         let mut dec = Map::new();
         dec.insert("product_id".into(), product_id);
         dec.insert("qty".into(), json!(qty));
@@ -386,7 +471,19 @@ pub fn decrease_on_sale_pure(input: Value) -> Output {
         dec.insert("sale_id".into(), sale_id.clone());
         ops.push(Operation::sql("inventory._decrease_stock", dec));
     }
-    Output { operations: ops, events: vec![], ..Default::default() }
+    let now = context_now(&input);
+    let events: Vec<Event> = match &catalog {
+        Some(by_id) => decreased
+            .iter()
+            .filter_map(|(id, qty)| {
+                let row = by_id.get(&as_str(id))?;
+                let previous = row.get("stock").map(as_qty)?;
+                crossing_event(row, previous, previous - qty, "sale", &sale_id, &now)
+            })
+            .collect(),
+        None => vec![],
+    };
+    Output { operations: ops, events, ..Default::default() }
 }
 
 
@@ -497,12 +594,69 @@ pub fn decrease_stock_pure(input: Value) -> Result<HandlerOutput, String> {
     // `inventory.stock_changed` is CONDITIONAL since #6: it only travels when a decrease is
     // actually intended (never for rejections or mode-2 no-ops). Replaces the manifest-level
     // `emit`, which fired even when nothing changed.
-    let events = vec![Event::new(
+    let mut events = vec![Event::new(
         "inventory.stock_changed",
         json!({ "product_id": product_id, "qty": qty }),
     )];
+    // `inventory.low_stock_crossed` (#47): only when the pre-loaded row is there to compare
+    // against — a tracked article, since an untracked one returned above as a no-op.
+    if let Some(row) = read_rows(&input, "inventory.products.get").and_then(|r| r.first()) {
+        if let Some(previous) = row.get("stock").map(as_qty) {
+            let source = payload.get("sale_id").cloned().unwrap_or(Value::Null);
+            let movement = if source.is_null() { "decrease" } else { "sale" };
+            if let Some(ev) = crossing_event(row, previous, previous - qty, movement, &source, &context_now(&input)) {
+                events.push(ev);
+            }
+        }
+    }
 
     Ok(HandlerOutput { operations: ops, events, error: None })
+}
+
+/// `inventory.stock.adjust` — absolute stock count. Exports `adjust_stock`.
+#[cfg(feature = "guest")]
+#[plugin_fn]
+pub fn adjust_stock(input: Json<erplora_guest_sdk::Input>) -> FnResult<Json<HandlerOutput>> {
+    Ok(Json(adjust_stock_pure(input.into_inner().into_value())))
+}
+
+/// `inventory.stock.adjust` — ABSOLUTE stock count (inventory#7): sets the counted value, the
+/// ledger records the difference as a `count` movement (mandatory reason, schema-enforced).
+///
+/// Was Tier-0 (three SQL sheets). It becomes a handler for ONE reason (inventory#47), the same
+/// that moved `stock.decrease` (ADR-0147): a count can cross the low-stock threshold in either
+/// direction and only a handler holding the pre-loaded row (`inventory.products.get`) can tell.
+/// The three sheets are unchanged, now private ops in the same order and transaction. A manual
+/// count is EXPLICIT: it applies even to an article that does not track stock (parity with #6 for
+/// the hub flag) — but such an article never emits a crossing.
+pub fn adjust_stock_pure(input: Value) -> HandlerOutput {
+    let (payload, _ids) = payload_context(&input);
+    let product_id = payload.get("product_id").cloned().unwrap_or(Value::Null);
+    let stock = payload.get("stock").cloned().unwrap_or(Value::Null);
+    let reason = payload.get("reason").cloned().unwrap_or(Value::Null);
+
+    let mut ops: Vec<Operation> = Vec::new();
+    ops.push(Operation::sql("inventory._ensure_location", Map::new()));
+    let mut p = Map::new();
+    p.insert("product_id".into(), product_id.clone());
+    p.insert("stock".into(), stock.clone());
+    p.insert("reason".into(), reason.clone());
+    ops.push(Operation::sql("inventory._movement_on_adjust", p.clone()));
+    ops.push(Operation::sql("inventory._adjust_stock", p));
+
+    let mut events: Vec<Event> = Vec::new();
+    let hub_tracks = track_stock_enabled(&input);
+    if let Some(row) = read_rows(&input, "inventory.products.get").and_then(|r| r.first()) {
+        if product_tracks_stock(row, hub_tracks) {
+            if let Some(previous) = row.get("stock").map(as_qty) {
+                let current = as_qty(&stock);
+                if let Some(ev) = crossing_event(row, previous, current, "count", &Value::Null, &context_now(&input)) {
+                    events.push(ev);
+                }
+            }
+        }
+    }
+    HandlerOutput { operations: ops, events, error: None }
 }
 
 #[cfg(test)]
@@ -984,6 +1138,263 @@ mod tests {
         let out = bulk_create_pure(merge(payload, ctx(2)));
         assert_eq!(out.operations[0].params["track_stock"], json!(0));
         assert_eq!(out.operations[1].params["track_stock"], Value::Null);
+    }
+
+    // ── inventory#47: `inventory.low_stock_crossed` — the TRANSITION, with hysteresis ─────────
+    //
+    // A flow that reorders must not compute balances: inventory (the authority of the balance)
+    // emits the crossing itself. `below` only when previous > threshold AND current <= threshold;
+    // `recovered` only when previous <= threshold AND current > threshold. Staying under the
+    // threshold is silence, and an article that does not track stock never crosses anything.
+    // Quantities travel in 10⁶ fixed-point (ADR-0147), like every quantity of the module.
+
+    fn crossings(events: &[Event]) -> Vec<&Event> {
+        events.iter().filter(|e| e.name == "inventory.low_stock_crossed").collect()
+    }
+
+    fn levels(rows: Value) -> Value {
+        rows
+    }
+
+    #[test]
+    fn direct_decrease_that_crosses_below_emits_the_crossing_with_previous_current_threshold() {
+        let product = json!([{ "id": "p1", "sku": "CAF", "name": "Coffee", "stock": 6_000_000,
+                               "low_stock_threshold": 5_000_000, "product_type": "physical", "track_stock": 1 }]);
+        let out = decrease_stock_pure(decrease_input(
+            json!({ "product_id": "p1", "qty": 2_000_000, "reason": "damaged" }),
+            Some(settings_rows(1, 0)),
+            Some(product),
+        ))
+        .unwrap();
+        let x = crossings(&out.events);
+        assert_eq!(x.len(), 1, "{:?}", out.events);
+        let p = &x[0].payload;
+        assert_eq!(p["product_id"], json!("p1"));
+        assert_eq!(p["sku"], json!("CAF"));
+        assert_eq!(p["name"], json!("Coffee"));
+        assert_eq!(p["previous_quantity"], json!(6_000_000));
+        assert_eq!(p["current_quantity"], json!(4_000_000));
+        assert_eq!(p["low_stock_threshold"], json!(5_000_000));
+        assert_eq!(p["crossing"], json!("below"));
+        assert_eq!(p["movement_type"], json!("decrease"));
+        assert!(p["dedup_key"].as_str().map(|s| !s.is_empty()).unwrap_or(false), "a stable dedup key travels");
+        // `stock_changed` (the movement) still travels alongside.
+        assert!(out.events.iter().any(|e| e.name == "inventory.stock_changed"));
+    }
+
+    #[test]
+    fn direct_decrease_that_stays_below_is_silent() {
+        let product = json!([{ "id": "p1", "stock": 4_000_000, "low_stock_threshold": 5_000_000,
+                               "product_type": "physical", "track_stock": 1 }]);
+        let out = decrease_stock_pure(decrease_input(
+            json!({ "product_id": "p1", "qty": 1_000_000 }),
+            Some(settings_rows(1, 1)),
+            Some(product),
+        ))
+        .unwrap();
+        assert!(crossings(&out.events).is_empty(), "already below: no storm — {:?}", out.events);
+    }
+
+    #[test]
+    fn direct_decrease_that_lands_exactly_on_the_threshold_crosses_below() {
+        let product = json!([{ "id": "p1", "stock": 6_000_000, "low_stock_threshold": 5_000_000,
+                               "product_type": "physical", "track_stock": 1 }]);
+        let out = decrease_stock_pure(decrease_input(
+            json!({ "product_id": "p1", "qty": 1_000_000 }),
+            Some(settings_rows(1, 0)),
+            Some(product),
+        ))
+        .unwrap();
+        assert_eq!(crossings(&out.events).len(), 1, "stock <= threshold is «low», like products.low_stock");
+    }
+
+    #[test]
+    fn a_rejected_decrease_never_crosses() {
+        let product = json!([{ "id": "p1", "stock": 6_000_000, "low_stock_threshold": 5_000_000,
+                               "product_type": "physical", "track_stock": 1 }]);
+        let out = decrease_stock_pure(decrease_input(
+            json!({ "product_id": "p1", "qty": 9_000_000 }),
+            Some(settings_rows(1, 0)),
+            Some(product),
+        ))
+        .unwrap();
+        assert!(out.error.is_some());
+        assert!(out.events.is_empty());
+    }
+
+    fn sale_levels_input(payload: Value, settings_track: i64, levels_rows: Value) -> Value {
+        json!({
+            "payload": payload,
+            "context": {
+                "now": "2026-08-18T10:00:00Z",
+                "new_ids": [],
+                "reads": {
+                    "inventory.settings.get": [
+                        { "allow_sell_without_stock": 1, "low_stock_threshold": 10, "track_stock": settings_track }
+                    ],
+                    "inventory.products.stock_levels": levels_rows
+                }
+            }
+        })
+    }
+
+    /// A sale with TWO lines of the same product aggregates before deciding: 6 → 3 crosses once.
+    #[test]
+    fn sale_crossing_is_decided_on_the_aggregated_quantity_per_product() {
+        let payload = json!({ "sale_id": "s-100", "items": [
+            { "product_id": "p1", "quantity": 2_000_000, "is_service": false },
+            { "product_id": "p1", "quantity": 1_000_000, "is_service": false },
+            { "product_id": "p2", "quantity": 1_000_000, "is_service": false }
+        ]});
+        let rows = levels(json!([
+            { "id": "p1", "sku": "CAF", "name": "Coffee", "stock": 6_000_000, "low_stock_threshold": 5_000_000, "track_stock": 1 },
+            { "id": "p2", "sku": "TEA", "name": "Tea", "stock": 50_000_000, "low_stock_threshold": 5_000_000, "track_stock": 1 }
+        ]));
+        let out = decrease_on_sale_pure(sale_levels_input(payload, 1, rows));
+        let x = crossings(&out.events);
+        assert_eq!(x.len(), 1, "{:?}", out.events);
+        let p = &x[0].payload;
+        assert_eq!(p["product_id"], json!("p1"));
+        assert_eq!(p["previous_quantity"], json!(6_000_000));
+        assert_eq!(p["current_quantity"], json!(3_000_000));
+        assert_eq!(p["crossing"], json!("below"));
+        assert_eq!(p["movement_type"], json!("sale"));
+        assert_eq!(p["source_ref"], json!("s-100"));
+        assert_eq!(p["occurred_at"], json!("2026-08-18T10:00:00Z"));
+        // The stock_levels read carries the effective track flag: it also drives the #48 skip.
+        assert_eq!(out.operations.iter().filter(|o| o.command == "inventory._decrease_stock").count(), 3);
+    }
+
+    /// An article that does not track stock never crosses, even if its numbers would.
+    #[test]
+    fn sale_of_an_untracked_article_never_crosses() {
+        let payload = json!({ "sale_id": "s-101", "items": [
+            { "product_id": "p-off", "quantity": 2_000_000, "is_service": false }
+        ]});
+        let rows = json!([{ "id": "p-off", "stock": 6_000_000, "low_stock_threshold": 5_000_000, "track_stock": 0 }]);
+        let out = decrease_on_sale_pure(sale_levels_input(payload, 1, rows));
+        assert!(crossings(&out.events).is_empty());
+        assert!(out.operations.iter().all(|o| o.command != "inventory._decrease_stock"));
+    }
+
+    /// Without the levels read (older manifest) the sale still decreases (SQL authority) and
+    /// simply emits no crossing — never a wrong one.
+    #[test]
+    fn sale_without_levels_read_decreases_but_does_not_guess_a_crossing() {
+        let payload = json!({ "sale_id": "s-102", "items": [
+            { "product_id": "p1", "quantity": 2_000_000, "is_service": false }
+        ]});
+        let out = decrease_on_sale_pure(input_with_settings(payload, 1));
+        assert_eq!(op_names_out(&out), ["inventory._ensure_location", "inventory._decrease_stock"]);
+        assert!(crossings(&out.events).is_empty());
+    }
+
+    fn receive_levels_input(payload: Value, levels_rows: Value) -> Value {
+        json!({
+            "payload": payload,
+            "context": {
+                "now": "2026-08-18T11:00:00Z",
+                "new_ids": [],
+                "reads": {
+                    "inventory.settings.get": [{ "allow_sell_without_stock": 0, "low_stock_threshold": 10, "track_stock": 1 }],
+                    "inventory.products.stock_levels": levels_rows
+                }
+            }
+        })
+    }
+
+    /// Receiving goods that lifts the balance ABOVE the threshold emits `recovered` — this is
+    /// what re-arms the next `below` for a flow (the hysteresis lives here, not in the flow).
+    #[test]
+    fn reception_that_recovers_emits_recovered_once_per_product() {
+        let payload = json!({ "reference": "ALB-9", "items": [
+            { "product_id": "p1", "qty": 3_000_000 },
+            { "product_id": "p1", "qty": 3_000_000 },
+            { "product_id": "p2", "qty": 1_000_000 }
+        ]});
+        let rows = json!([
+            { "id": "p1", "sku": "CAF", "name": "Coffee", "stock": 4_000_000, "low_stock_threshold": 5_000_000, "track_stock": 1 },
+            { "id": "p2", "sku": "TEA", "name": "Tea", "stock": 1_000_000, "low_stock_threshold": 5_000_000, "track_stock": 1 }
+        ]);
+        let out = receive_stock_pure(receive_levels_input(payload, rows));
+        let x = crossings(&out.events);
+        assert_eq!(x.len(), 1, "{:?}", out.events);
+        let p = &x[0].payload;
+        assert_eq!(p["product_id"], json!("p1"));
+        assert_eq!(p["previous_quantity"], json!(4_000_000));
+        assert_eq!(p["current_quantity"], json!(10_000_000));
+        assert_eq!(p["crossing"], json!("recovered"));
+        assert_eq!(p["movement_type"], json!("reception"));
+        assert_eq!(p["source_ref"], json!("ALB-9"));
+        assert_eq!(out.operations.len(), 3, "the three lines are still received");
+    }
+
+    #[test]
+    fn reception_on_an_untracked_article_applies_but_never_crosses() {
+        let payload = json!({ "items": [{ "product_id": "p-off", "qty": 9_000_000 }] });
+        let rows = json!([{ "id": "p-off", "stock": 1_000_000, "low_stock_threshold": 5_000_000, "track_stock": 0 }]);
+        let out = receive_stock_pure(receive_levels_input(payload, rows));
+        assert_eq!(out.operations.len(), 1, "an explicit reception still applies");
+        assert!(crossings(&out.events).is_empty());
+    }
+
+    // `stock.adjust` becomes a handler (like `stock.decrease` did for the grid, ADR-0147): a
+    // count is ABSOLUTE and can cross in either direction; only a handler with the pre-loaded
+    // row can tell. The three SQL sheets stay the same, now as private ops.
+    fn adjust_input(payload: Value, product: Value) -> Value {
+        json!({
+            "payload": payload,
+            "context": {
+                "now": "2026-08-18T12:00:00Z",
+                "new_ids": ["m-0"],
+                "reads": {
+                    "inventory.settings.get": [{ "allow_sell_without_stock": 0, "low_stock_threshold": 10, "track_stock": 1 }],
+                    "inventory.products.get": product
+                }
+            }
+        })
+    }
+
+    #[test]
+    fn count_that_drops_below_emits_below_and_keeps_the_three_sheets() {
+        let product = json!([{ "id": "p1", "sku": "CAF", "name": "Coffee", "stock": 8_000_000,
+                               "low_stock_threshold": 5_000_000, "product_type": "physical", "track_stock": null }]);
+        let out = adjust_stock_pure(adjust_input(json!({ "product_id": "p1", "stock": 2_000_000, "reason": "count" }), product));
+        assert_eq!(
+            op_names(&out),
+            ["inventory._ensure_location", "inventory._movement_on_adjust", "inventory._adjust_stock"]
+        );
+        assert_eq!(out.operations[2].params["stock"], json!(2_000_000));
+        assert_eq!(out.operations[2].params["reason"], json!("count"));
+        let x = crossings(&out.events);
+        assert_eq!(x.len(), 1, "{:?}", out.events);
+        assert_eq!(x[0].payload["crossing"], json!("below"));
+        assert_eq!(x[0].payload["previous_quantity"], json!(8_000_000));
+        assert_eq!(x[0].payload["current_quantity"], json!(2_000_000));
+        assert_eq!(x[0].payload["movement_type"], json!("count"));
+    }
+
+    #[test]
+    fn count_that_recovers_emits_recovered_and_a_flat_count_is_silent() {
+        let product = json!([{ "id": "p1", "stock": 2_000_000, "low_stock_threshold": 5_000_000,
+                               "product_type": "physical", "track_stock": 1 }]);
+        let up = adjust_stock_pure(adjust_input(json!({ "product_id": "p1", "stock": 9_000_000, "reason": "found" }), product.clone()));
+        assert_eq!(crossings(&up.events)[0].payload["crossing"], json!("recovered"));
+        let flat = adjust_stock_pure(adjust_input(json!({ "product_id": "p1", "stock": 1_000_000, "reason": "still low" }), product));
+        assert!(crossings(&flat.events).is_empty(), "staying below is silence");
+    }
+
+    #[test]
+    fn count_on_an_untracked_or_unknown_article_applies_without_crossing() {
+        let off = json!([{ "id": "p1", "stock": 9_000_000, "low_stock_threshold": 5_000_000,
+                           "product_type": "physical", "track_stock": 0 }]);
+        let out = adjust_stock_pure(adjust_input(json!({ "product_id": "p1", "stock": 1_000_000, "reason": "count" }), off));
+        assert_eq!(out.operations.len(), 3, "a manual count is explicit: it applies even without tracking");
+        assert!(crossings(&out.events).is_empty());
+        // Reads absent entirely: the ops still travel, no crossing is guessed.
+        let bare = adjust_stock_pure(json!({ "payload": { "product_id": "p1", "stock": 1_000_000, "reason": "x" }, "context": { "new_ids": [] } }));
+        assert_eq!(bare.operations.len(), 3);
+        assert!(bare.events.is_empty());
     }
 
     /// receive_stock accepts qty in 10⁶ scale (receiving 1.75 kg = 1750000) and forwards `reference`.
