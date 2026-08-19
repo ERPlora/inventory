@@ -165,10 +165,17 @@ describe('precios del CRUD de productos (dinero = céntimos, ADR-0007)', () => {
 // así que el mismo catálogo entraba con precios ÷100 — un café a 2 céntimos. Es la misma frontera
 // euros↔céntimos, y por eso pasa por la misma función.
 describe('import CSV de productos (misma frontera euros↔céntimos)', () => {
+  // Desde inventory#13 soltar el fichero abre la VISTA PREVIA y no crea nada: el import empieza
+  // cuando el usuario confirma el mapeo. Estos contratos (euros↔céntimos, escala 10⁶) son los
+  // mismos; lo que cambia es que hay un paso más antes, y estas pruebas lo recorren entero.
   async function importar(rows: Record<string, string>[]) {
     const el = await montar();
-    const wc = el as unknown as { onCsvImport: (ev: CustomEvent) => Promise<void> };
+    const wc = el as unknown as {
+      onCsvImport: (ev: CustomEvent) => Promise<void>;
+      confirmPreview: () => Promise<void>;
+    };
     await wc.onCsvImport(new CustomEvent('csv-import', { detail: { rows } }));
+    await wc.confirmPreview();
     return comandos.filter((c) => c.name === 'inventory.products.create');
   }
 
@@ -396,6 +403,175 @@ describe('importador CSV: los errores se VEN, nunca parcial silencioso (inventor
     const texto = wc.importReportText();
     expect(texto).toContain('2'); // línea 2 (1 = cabecera del CSV)
     expect(texto.length).toBeGreaterThan(10);
+  });
+});
+
+describe('importador CSV: vista previa con mapeo ANTES de importar (inventory#13)', () => {
+  // El paso que faltaba, y que hacen todos: Odoo mapea columnas y ofrece «Test import»;
+  // WooCommerce y Lightspeed no dejan importar hasta que las columnas obligatorias están mapeadas;
+  // Shopify enseña un resumen antes de confirmar. Sin él, un listado de precios español
+  // («Nombre;Código;Precio») entraba con CERO filas y el usuario solo veía el informe de errores.
+  async function soltarFichero(rows: Record<string, string>[]) {
+    const el = await montar();
+    const wc = el as unknown as {
+      onCsvImport: (ev: CustomEvent) => Promise<void>;
+      previewOpen: boolean;
+      previewRows: Record<string, string>[];
+      previewMapping: Record<string, string>;
+      previewSummary: { ready: number; failed: { line: number; reason: string }[] };
+      confirmPreview: () => Promise<void>;
+      cancelPreview: () => void;
+      updateComplete: Promise<unknown>;
+    };
+    await wc.onCsvImport(new CustomEvent('csvImport', { detail: { rows } }) as CustomEvent);
+    return wc;
+  }
+
+  it('soltar el CSV abre la vista previa y NO crea nada todavía', async () => {
+    const wc = await soltarFichero([{ name: 'Café', sku: 'CAF', price: '2.20' }]);
+    expect(wc.previewOpen, 'la vista previa se abre').toBe(true);
+    expect(comandos.filter((c) => c.name === 'inventory.products.create'),
+      'nada entra sin confirmar').toHaveLength(0);
+  });
+
+  it('el mapeo se adivina de las cabeceras, también en español', async () => {
+    const wc = await soltarFichero([{ Nombre: 'Café', 'Código': 'CAF', Precio: '2,20', IVA: 'standard' }]);
+    expect(wc.previewMapping['Nombre']).toBe('name');
+    expect(wc.previewMapping['Código']).toBe('sku');
+    expect(wc.previewMapping['Precio']).toBe('price');
+    expect(wc.previewMapping['IVA']).toBe('tax');
+  });
+
+  it('la vista previa valida TODAS las filas antes de tocar el dispatcher', async () => {
+    const wc = await soltarFichero([
+      { Nombre: 'Café', 'Código': 'CAF', Precio: '2.20' },
+      { Nombre: '', 'Código': '', Precio: '1.00' },
+      { Nombre: 'Té', 'Código': 'TE', Precio: 'abc' },
+    ]);
+    expect(wc.previewSummary.ready, 'una fila lista').toBe(1);
+    expect(wc.previewSummary.failed, 'dos con problema, con su línea física').toHaveLength(2);
+    expect(wc.previewSummary.failed[0].line).toBe(3);
+    expect(comandos, 'un ensayo no escribe').toHaveLength(0);
+  });
+
+  it('cancelar la vista previa no deja efecto ninguno', async () => {
+    const wc = await soltarFichero([{ name: 'Café', sku: 'CAF', price: '2.20' }]);
+    wc.cancelPreview();
+    expect(wc.previewOpen).toBe(false);
+    expect(wc.previewRows).toHaveLength(0);
+    expect(comandos).toHaveLength(0);
+  });
+
+  it('al confirmar, el producto se crea con los valores de las columnas MAPEADAS', async () => {
+    const wc = await soltarFichero([{ Nombre: 'Café', 'Código': 'CAF', Precio: '2.20', IVA: 'standard' }]);
+    await wc.confirmPreview();
+    const alta = comandos.find((c) => c.name === 'inventory.products.create');
+    expect(alta, 'la cabecera en español ya no impide el alta').toBeTruthy();
+    expect(alta!.payload.name).toBe('Café');
+    expect(alta!.payload.sku).toBe('CAF');
+    expect(alta!.payload.price, 'euros → céntimos, ADR-0007').toBe(220);
+  });
+});
+
+describe('importador CSV: ficheros que rompen (inventory#13)', () => {
+  async function soltar(rows: Record<string, string>[]) {
+    const el = await montar();
+    const wc = el as unknown as {
+      onCsvImport: (ev: CustomEvent) => Promise<void>;
+      previewOpen: boolean; previewReady: boolean;
+      previewSummary: { ready: number; failed: { line: number; reason: string }[] };
+      confirmPreview: () => Promise<void>;
+    };
+    await wc.onCsvImport(new CustomEvent('csvImport', { detail: { rows } }) as CustomEvent);
+    return wc;
+  }
+
+  it('un fichero vacío no abre nada ni revienta', async () => {
+    const wc = await soltar([]);
+    expect(wc.previewOpen).toBe(false);
+    expect(comandos).toHaveLength(0);
+  });
+
+  it('cabeceras que no dicen nada: se puede seguir a mano, pero no importar a ciegas', async () => {
+    const wc = await soltar([{ 'Columna 1': 'Café', 'Columna 2': 'CAF' }]);
+    expect(wc.previewOpen, 'la vista previa se abre para poder mapearlas').toBe(true);
+    expect(wc.previewReady, 'sin nombre ni SKU mapeados no se importa').toBe(false);
+    await wc.confirmPreview();
+    expect(comandos, 'confirmar con las obligatorias sin mapear no hace nada').toHaveLength(0);
+  });
+
+  it('la coma decimal española es un precio, no un error', async () => {
+    // Es EL formato del listado de precios que trae el cliente de aquí, y hasta ahora
+    // `Number('2,20')` = NaN tumbaba la fila entera con «precio no válido».
+    const wc = await soltar([
+      { Nombre: 'Café', 'Código': 'CAF', Precio: '2,20', IVA: 'standard' },
+      { Nombre: 'Vino', 'Código': 'VIN', Precio: '1.234,56', IVA: 'standard' },
+      { Nombre: 'Ron', 'Código': 'RON', Precio: '1,234.56', IVA: 'standard' },
+      { Nombre: 'Roto', 'Código': 'ROT', Precio: 'dos euros', IVA: 'standard' },
+    ]);
+    expect(wc.previewSummary.failed, 'solo el que no es un número').toHaveLength(1);
+    await wc.confirmPreview();
+    const altas = comandos.filter((c) => c.name === 'inventory.products.create');
+    expect(altas.map((a) => a.payload.price)).toEqual([220, 123456, 123456]);
+  });
+
+  it('Unicode: el nombre llega tal cual, tildes, ñ y emoji incluidos', async () => {
+    const wc = await soltar([{ Nombre: 'Café con leche ☕ — Niño', 'Código': 'CAF-Ñ', Precio: '2,20', IVA: 'standard' }]);
+    await wc.confirmPreview();
+    const alta = comandos.find((c) => c.name === 'inventory.products.create');
+    expect(alta!.payload.name).toBe('Café con leche ☕ — Niño');
+    expect(alta!.payload.sku).toBe('CAF-Ñ');
+  });
+
+  it('mil filas: el ensayo las juzga TODAS, no solo las que se ven', async () => {
+    const filas = Array.from({ length: 1000 }, (_, i) => ({
+      Nombre: `Producto ${i}`, 'Código': i === 500 ? '' : `SKU-${i}`, Precio: '1.00', IVA: 'standard',
+    }));
+    const wc = await soltar(filas);
+    expect(wc.previewSummary.ready).toBe(999);
+    expect(wc.previewSummary.failed).toHaveLength(1);
+    expect(wc.previewSummary.failed[0].line, 'la fila 501 del fichero = línea física 502').toBe(502);
+  });
+});
+
+describe('importador CSV: progreso y cancelar (inventory#13)', () => {
+  it('durante el alta se sabe por dónde va, y cancelar PARA sin dejarlo en silencio', async () => {
+    // WooCommerce enseña barra de progreso; Shopify ni siquiera deja cancelar («product imports
+    // cannot be cancelled once started»). Aquí se puede: lo que ya entró está contado en el
+    // informe, con la marca de que se paró a medias — nunca un parcial callado.
+    const el = await montar();
+    const wc = el as unknown as {
+      finalizeImport: (rows: Record<string, string>[], map: Map<string, string>) => Promise<void>;
+      cancelImport: () => void;
+      importProgress: { done: number; total: number } | null;
+      importReport: { total: number; created: number; skipped: number; cancelled?: boolean;
+        failed: { line: number; sku: string; reason: string }[] } | null;
+    };
+    const vistos: number[] = [];
+    (globalThis as Record<string, unknown>).erplora = {
+      ...(globalThis as { erplora: object }).erplora,
+      command: async (name: string, payload: Record<string, unknown>) => {
+        comandos.push({ name, payload });
+        vistos.push(wc.importProgress?.done ?? -1);
+        if (payload.sku === 'B') wc.cancelImport(); // el usuario pulsa «Cancelar» a mitad
+        return {};
+      },
+    };
+    await wc.finalizeImport(
+      [
+        { name: 'A', sku: 'A', price: '1.00' },
+        { name: 'B', sku: 'B', price: '2.00' },
+        { name: 'C', sku: 'C', price: '3.00' },
+      ],
+      new Map([['', 'standard']]),
+    );
+    expect(vistos[0], 'el progreso va contando desde la primera fila').toBe(0);
+    expect(comandos.filter((c) => c.name === 'inventory.products.create'),
+      'la tercera fila ya no se manda').toHaveLength(2);
+    const rep = wc.importReport!;
+    expect(rep.created).toBe(2);
+    expect(rep.cancelled, 'el informe dice que se paró a medias').toBe(true);
+    expect(wc.importProgress, 'al terminar ya no hay barra').toBeNull();
   });
 });
 
@@ -822,6 +998,7 @@ describe('import CSV: ninguna fila entra sin saber cómo tributa (inventory#38)'
     const el = await montar();
     const wc = el as unknown as {
       onCsvImport: (ev: CustomEvent) => Promise<void>;
+      confirmPreview: () => Promise<void>;
       confirmImportResolution: () => Promise<void>;
       importOpen: boolean; importUnresolved: string[];
       importChoice: Record<string, { mode: string; key: string; newKey: string; newName: string }>;
@@ -829,6 +1006,7 @@ describe('import CSV: ninguna fila entra sin saber cómo tributa (inventory#38)'
     await wc.onCsvImport(new CustomEvent('csvImport', {
       detail: { rows: [{ name: 'Café', sku: 'CAF', price: '2.20' }, { name: 'Té', sku: 'TE', price: '1.80' }] },
     }));
+    await wc.confirmPreview(); // la vista previa va primero (inventory#13)
     expect(wc.importOpen, 'no se importa a ciegas: se pregunta').toBe(true);
     expect(wc.importUnresolved, 'la entrada «filas sin categoría» es la cadena vacía').toContain('');
     expect(comandos.filter((c) => c.name === 'inventory.products.create'),
@@ -843,10 +1021,14 @@ describe('import CSV: ninguna fila entra sin saber cómo tributa (inventory#38)'
 
   it('un CSV cuya columna fiscal SÍ resuelve no pregunta nada', async () => {
     const el = await montar();
-    const wc = el as unknown as { onCsvImport: (ev: CustomEvent) => Promise<void>; importOpen: boolean };
+    const wc = el as unknown as {
+      onCsvImport: (ev: CustomEvent) => Promise<void>;
+      confirmPreview: () => Promise<void>; importOpen: boolean;
+    };
     await wc.onCsvImport(new CustomEvent('csvImport', {
       detail: { rows: [{ name: 'Café', sku: 'CAF', price: '2.20', tax_category: 'standard' }] },
     }));
+    await wc.confirmPreview();
     expect(wc.importOpen).toBe(false);
     expect(comandos.find((c) => c.name === 'inventory.products.create')!.payload.tax_category_key)
       .toBe('standard');
