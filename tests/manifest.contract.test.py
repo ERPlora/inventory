@@ -543,6 +543,70 @@ def check_setup(m: dict) -> None:
             failures.append("locales/es.json setup.description: missing")
 
 
+# ── Layer 2b: the `settings` block (inventory#43) ────────────────────────────────────────
+#
+# The shell paints the Settings tab itself from `settings.schema` (ADR-0082). Two things this
+# module DOES own:
+#   * `settings.title` is manifest text → English canonical + `es` translation under
+#     `locales/<lang>.json` → `settings.title` (same shape as `setup.title`, ADR-0055). It shipped
+#     hardcoded in Spanish («Inventario») while `name` was English — the header flipped language.
+#   * the global low-stock threshold is a HUMAN preference in whole units (docs/concepts.md): the
+#     schema must declare it as a non-negative integer so the shell paints a number input with a
+#     floor, and its default must be the units default (10), never a 10⁶ raw value.
+
+def check_settings(m: dict) -> None:
+    settings = m.get("settings")
+    if not isinstance(settings, dict):
+        return
+    title = settings.get("title")
+    if isinstance(title, str) and title:
+        if not title.isascii():
+            failures.append(
+                f"settings.title: {title!r} is not English source (non-ASCII) — the manifest "
+                f"carries the English fallback; the translation lives in locales/"
+            )
+        en_settings = locale("en").get("settings") or {}
+        es_settings = locale("es").get("settings") or {}
+        if en_settings.get("title") != title:
+            failures.append(
+                f"locales/en.json settings.title: {en_settings.get('title')!r} does not match "
+                f"the manifest title {title!r}"
+            )
+        if not es_settings.get("title"):
+            failures.append(
+                "locales/es.json settings.title: missing — visible text ships as English source "
+                "PLUS its `es` translation, never English only"
+            )
+        if es_settings.get("title") == title:
+            failures.append(
+                f"locales/es.json settings.title: {title!r} is the English text, not a translation"
+            )
+
+    schema_rel = settings.get("schema")
+    if not isinstance(schema_rel, str):
+        return
+    schema_path = MODULE_DIR / schema_rel
+    if not schema_path.exists():
+        return  # check_declared_files_exist reports it
+    props = (json.loads(schema_path.read_text()).get("properties") or {})
+    threshold = props.get("low_stock_threshold")
+    if threshold is None:
+        failures.append("settings schema: `low_stock_threshold` is not declared — the global "
+                        "threshold would have no control in the Settings tab")
+        return
+    if threshold.get("type") != "integer":
+        failures.append(f"settings schema low_stock_threshold.type: {threshold.get('type')!r}, "
+                        f"expected 'integer' (the shell paints a number input for it)")
+    if threshold.get("minimum") != 0:
+        failures.append(f"settings schema low_stock_threshold.minimum: {threshold.get('minimum')!r}, "
+                        f"expected 0 (a negative threshold is meaningless)")
+    default = threshold.get("default")
+    if not isinstance(default, int) or not 0 <= default < 100_000:
+        failures.append(f"settings schema low_stock_threshold.default: {default!r} — the global "
+                        f"threshold is in WHOLE UNITS (docs/concepts.md); a 10⁶ raw value here "
+                        f"would show the person '10000000' for 10 units")
+
+
 def check_unknown_top_level(m: dict) -> None:
     for key in sorted(set(m) - KNOWN_TOP_LEVEL):
         warnings.append(
@@ -668,6 +732,7 @@ def main() -> int:
     check_events_and_slots(manifest)
     check_scheduled_tasks(manifest)
     check_setup(manifest)
+    check_settings(manifest)
     check_unknown_top_level(manifest)
     check_against_canonical_schema(manifest)
     check_declared_files_exist(manifest)

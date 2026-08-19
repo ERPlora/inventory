@@ -17,6 +17,9 @@
       "label": "Movements"
     }
   },
+  "settings": {
+    "title": "Inventory"
+  },
   "setup": {
     "title": "Your catalog",
     "description": "Add at least one product so there is something to sell."

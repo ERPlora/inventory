@@ -89,7 +89,7 @@
     }
   ],
   "settings": {
-    "title": "Inventario",
+    "title": "Inventory",
     "icon": "cube-outline",
     "schema": "schemas/settings_update.json",
     "get": "inventory.settings.get",
