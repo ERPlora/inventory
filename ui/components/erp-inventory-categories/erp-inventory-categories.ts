@@ -165,14 +165,13 @@ export class ErpInventoryCategories extends LitElement {
     } else if (actionId === 'delete' && can('inventory.delete_category')) {
       // Nunca borra directo (inventory#8): confirma enseñando el IMPACTO (productos
       // vinculados que quedarán sin esta categoría).
-      let impact = 0;
-      try {
-        const links = await erplora().query<{ product_id: string; category_id: string }[]>('inventory.product_categories');
-        impact = (Array.isArray(links) ? links : []).filter((l) => l.category_id === c.id).length;
-      } catch {
-        impact = 0;
-      }
-      this.deleteImpact = impact;
+      //
+      // La cifra viene EN LA FILA (`product_count` de `categories.list`, la misma columna que se
+      // ve en la rejilla, con el mismo criterio: productos activos y no borrados). Antes se pedía
+      // `inventory.product_categories` y se contaba en cliente: una query sin bloque `list`
+      // devuelve TODAS sus filas (`queries.rs::execute`), o sea una por pareja producto-categoría
+      // de todo el catálogo, para pintar un número que ya estaba en pantalla.
+      this.deleteImpact = Number(row.product_count ?? 0);
       this.deleteTarget = c;
     }
   }

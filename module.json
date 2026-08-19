@@ -511,10 +511,11 @@
       "schema": "schemas/category_id.json",
       "transaction": true,
       "sql": [
+        "commands/category_unlink_products.sql",
         "commands/category_delete.sql"
       ],
       "ai": {
-        "description": "Deletes a product category from the inventory (destructive)."
+        "description": "Deletes a product category from the inventory. The products keep existing: they are only unlinked from this category (destructive for the category, never for the catalogue)."
       }
     },
     "inventory.products.add_category": {
