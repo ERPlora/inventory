@@ -155,7 +155,17 @@
     "importTaxMissingLabel": "Filas sin categoría fiscal",
     "fieldTrackStock": "Controlar stock de este artículo",
     "trackStockInherit": "Sigue el ajuste del hub",
-    "trackStockOff": "Solo catálogo: las ventas no mueven su stock"
+    "trackStockOff": "Solo catálogo: las ventas no mueven su stock",
+    "previewTitle": "Revisa la importación",
+    "previewHint": "Dinos qué columna es cada cosa. No se crea nada hasta que confirmes.",
+    "previewIgnore": "No importar",
+    "previewRowsTitle": "Primeras {n} filas de {total}",
+    "previewSummary": "{ready} fila(s) listas · {failed} con problemas",
+    "previewMissingRequired": "Asigna las columnas de Nombre y SKU: sin ellas no se puede crear ningún producto.",
+    "previewConfirm": "Importar {n} producto(s)",
+    "importProgress": "Importando {done}/{total}…",
+    "importStop": "Parar",
+    "importCancelledNote": "La importación se paró a medias. Lo que ya se había creado está contado abajo; el resto del fichero se quedó como estaba."
   },
   "widgets": {
     "inventory.low_stock_count": {

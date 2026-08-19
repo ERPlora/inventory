@@ -154,7 +154,17 @@
     "importTaxMissingLabel": "Rows with no tax category",
     "fieldTrackStock": "Track stock for this item",
     "trackStockInherit": "Following the hub setting",
-    "trackStockOff": "Catalog only: sales do not move its stock"
+    "trackStockOff": "Catalog only: sales do not move its stock",
+    "previewTitle": "Check the import",
+    "previewHint": "Tell us which column is which. Nothing is created until you confirm.",
+    "previewIgnore": "Do not import",
+    "previewRowsTitle": "First {n} rows of {total}",
+    "previewSummary": "{ready} row(s) ready · {failed} with problems",
+    "previewMissingRequired": "Map the Name and SKU columns: without them no product can be created.",
+    "previewConfirm": "Import {n} product(s)",
+    "importProgress": "Importing {done}/{total}…",
+    "importStop": "Stop",
+    "importCancelledNote": "The import was stopped halfway. What had already been created is counted below; the rest of the file was left untouched."
   },
   "errors": {
     "inventory.insufficient_stock": "Not enough stock to complete the operation.",

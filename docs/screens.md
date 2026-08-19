@@ -52,14 +52,30 @@ A product with no category still sells; it simply is not grouped in the POS menu
 
 ### Import products from a CSV
 
-Bulk import creates up to **100 products in one operation**. The tax column of your CSV (`tax`,
-`tax_category`, and similar names) is resolved to a canonical tax category before the products are
-created; if a value is not recognised the hub asks you what it means and remembers the answer for
-next time. An empty tax column falls back to the hub's default category. There is a per-import flag
-for "prices include VAT". Rows without a SKU get one generated as `PROD-001`, `PROD-002`, …
-continuing from the products you already have.
+Dropping the file **creates nothing**. It opens a preview first:
 
-Requires `inventory.add_product`.
+1. **Which column is which.** Headers are matched on their own — in English and in Spanish, accents
+   and all (`Nombre`, `Código`, `Precio`, `IVA`) — and every column has a dropdown to correct it or
+   to leave it out. **Name** and **SKU** must be mapped; until they are, the import button stays
+   disabled, because nothing can be created without them.
+2. **The first five rows**, painted under the field each column has been mapped to, so a wrong
+   guess is visible before it costs anything.
+3. **A dry run over the whole file**: how many rows are ready and, for the rest, the physical line
+   number and the reason. Cancelling here leaves the catalogue exactly as it was.
+
+Confirming starts the import. The tax column (`tax`, `tax_category`, `iva`, and similar names) is
+resolved to a canonical tax category first; if a value is not recognised — or the file brings no tax
+column at all — the hub asks what it means and remembers the answer for next time. **A row with no
+tax category is not created**: a product that does not know how it is taxed breaks at the counter.
+
+While it runs there is a counter (`x/N`) and a **Stop** button. Stopping is not silent: the report
+says the import was stopped and counts what had already been created.
+
+Rows are created one by one, on purpose: it is the only way to report line by line today. Each row
+ends up **created**, **skipped** (its SKU already exists — fix and re-import) or **failed** (with its
+line and reason), and the final report is copyable.
+
+Requires `inventory.import_product` and `inventory.add_product`.
 
 ## Movements
 

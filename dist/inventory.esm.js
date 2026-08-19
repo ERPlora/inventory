@@ -1494,7 +1494,17 @@ var es_default = {
     importTaxMissingLabel: "Filas sin categor\xEDa fiscal",
     fieldTrackStock: "Controlar stock de este art\xEDculo",
     trackStockInherit: "Sigue el ajuste del hub",
-    trackStockOff: "Solo cat\xE1logo: las ventas no mueven su stock"
+    trackStockOff: "Solo cat\xE1logo: las ventas no mueven su stock",
+    previewTitle: "Revisa la importaci\xF3n",
+    previewHint: "Dinos qu\xE9 columna es cada cosa. No se crea nada hasta que confirmes.",
+    previewIgnore: "No importar",
+    previewRowsTitle: "Primeras {n} filas de {total}",
+    previewSummary: "{ready} fila(s) listas \xB7 {failed} con problemas",
+    previewMissingRequired: "Asigna las columnas de Nombre y SKU: sin ellas no se puede crear ning\xFAn producto.",
+    previewConfirm: "Importar {n} producto(s)",
+    importProgress: "Importando {done}/{total}\u2026",
+    importStop: "Parar",
+    importCancelledNote: "La importaci\xF3n se par\xF3 a medias. Lo que ya se hab\xEDa creado est\xE1 contado abajo; el resto del fichero se qued\xF3 como estaba."
   },
   widgets: {
     "inventory.low_stock_count": {
@@ -1676,7 +1686,17 @@ var en_default = {
     importTaxMissingLabel: "Rows with no tax category",
     fieldTrackStock: "Track stock for this item",
     trackStockInherit: "Following the hub setting",
-    trackStockOff: "Catalog only: sales do not move its stock"
+    trackStockOff: "Catalog only: sales do not move its stock",
+    previewTitle: "Check the import",
+    previewHint: "Tell us which column is which. Nothing is created until you confirm.",
+    previewIgnore: "Do not import",
+    previewRowsTitle: "First {n} rows of {total}",
+    previewSummary: "{ready} row(s) ready \xB7 {failed} with problems",
+    previewMissingRequired: "Map the Name and SKU columns: without them no product can be created.",
+    previewConfirm: "Import {n} product(s)",
+    importProgress: "Importing {done}/{total}\u2026",
+    importStop: "Stop",
+    importCancelledNote: "The import was stopped halfway. What had already been created is counted below; the rest of the file was left untouched."
   },
   errors: {
     "inventory.insufficient_stock": "Not enough stock to complete the operation.",
@@ -4794,6 +4814,84 @@ function statusOf(row) {
   if (key == null || String(key).trim() === "") return STATUS_UNCONFIGURED;
   return Number(row.is_active) ? "active" : "inactive";
 }
+var IMPORT_FIELDS = [
+  "name",
+  "sku",
+  "price",
+  "cost",
+  "stock",
+  "low_stock_threshold",
+  "ean13",
+  "description",
+  "unit_code",
+  "tax"
+];
+var IMPORT_REQUIRED = ["name", "sku"];
+var IMPORT_ALIASES = {
+  name: ["name", "nombre", "producto", "product", "articulo", "item", "titulo"],
+  sku: ["sku", "codigo", "code", "referencia", "ref", "reference", "cod"],
+  price: ["price", "precio", "pvp", "precio venta", "sale price", "precio de venta"],
+  cost: ["cost", "coste", "costo", "precio coste", "purchase price", "precio de compra"],
+  stock: ["stock", "existencias", "cantidad", "qty", "quantity", "unidades"],
+  low_stock_threshold: ["low_stock_threshold", "umbral", "minimo", "stock minimo", "min stock", "reorder point"],
+  ean13: ["ean13", "ean", "barcode", "codigo de barras", "gtin", "codigo barras"],
+  description: ["description", "descripcion", "detalle", "notas"],
+  unit_code: ["unit_code", "unidad", "unit", "medida", "uom"],
+  tax: [
+    "tax_category",
+    "tax_category_key",
+    "category_tax",
+    "fiscal_category",
+    "tax",
+    "iva",
+    "vat",
+    "impuesto",
+    "tax_class",
+    "categoria fiscal",
+    "tipo de iva"
+  ]
+};
+function normalizeHeader(header) {
+  return (header ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase().replace(/[\s_-]+/g, " ");
+}
+function guessMapping(headers) {
+  const out = {};
+  const taken = /* @__PURE__ */ new Set();
+  for (const header of headers) {
+    const norm = normalizeHeader(header);
+    const field = IMPORT_FIELDS.find(
+      (f3) => !taken.has(f3) && IMPORT_ALIASES[f3].some((a3) => normalizeHeader(a3) === norm)
+    );
+    out[header] = field ?? "";
+    if (field) taken.add(field);
+  }
+  return out;
+}
+function applyMapping(rows, mapping) {
+  return rows.map((row) => {
+    const out = {};
+    for (const [header, field] of Object.entries(mapping)) {
+      if (!field) continue;
+      out[field === "tax" ? "tax_category_key" : field] = row[header] ?? "";
+    }
+    return out;
+  });
+}
+var PREVIEW_ROWS = 5;
+function parseMoneyText(text) {
+  const raw = (text ?? "").trim();
+  if (raw === "") return 0;
+  const lastComma = raw.lastIndexOf(",");
+  const lastDot = raw.lastIndexOf(".");
+  let normalized = raw;
+  if (lastComma >= 0 && lastDot >= 0) {
+    normalized = lastComma > lastDot ? raw.replace(/\./g, "").replace(",", ".") : raw.replace(/,/g, "");
+  } else if (lastComma >= 0) {
+    normalized = raw.replace(/\./g, "").replace(",", ".");
+  }
+  const n6 = Number(normalized);
+  return Number.isFinite(n6) ? n6 : null;
+}
 function erplora4() {
   const c5 = globalThis.erplora;
   if (!c5) throw new Error("erplora SDK no inicializado por el shell");
@@ -4835,6 +4933,11 @@ var ErpInventoryProducts = class extends i3 {
     this.importChoice = {};
     this.deleteTarget = null;
     this.importReport = null;
+    this.previewOpen = false;
+    this.previewRows = [];
+    this.previewMapping = {};
+    this.importProgress = null;
+    this.importCancelled = false;
     this.detail = null;
     this.printError = "";
     this.countTarget = null;
@@ -5130,6 +5233,56 @@ var ErpInventoryProducts = class extends i3 {
   async onCsvImport(ev) {
     if (!can2("inventory.import_product") || !can2("inventory.add_product")) return;
     const rows = ev.detail.rows ?? [];
+    if (rows.length === 0) return;
+    this.previewRows = rows;
+    this.previewMapping = guessMapping(Object.keys(rows[0] ?? {}));
+    this.previewOpen = true;
+    if (this.units.length === 0) await this.loadUnits();
+  }
+  /** Filas del fichero ya con NUESTRAS claves, según el mapeo elegido. */
+  get mappedPreviewRows() {
+    return applyMapping(this.previewRows, this.previewMapping);
+  }
+  /** ¿Están mapeadas las columnas sin las que no se puede crear un producto? */
+  get previewReady() {
+    const mapped = new Set(Object.values(this.previewMapping));
+    return IMPORT_REQUIRED.every((f3) => mapped.has(f3));
+  }
+  /**
+   * Ensayo: valida TODAS las filas con el mapeo actual sin mandar nada al dispatcher, igual que el
+   * «Test import» de Odoo. Lo que aquí sale limpio es lo que entrará; lo que sale con motivo se
+   * corrige en el fichero (o en el mapeo) antes de tocar el catálogo.
+   */
+  get previewSummary() {
+    const seen = /* @__PURE__ */ new Set();
+    const failed = [];
+    let ready = 0;
+    this.mappedPreviewRows.forEach((r6, i7) => {
+      const parsed = this.parseCsvRow(r6, seen);
+      if ("error" in parsed) failed.push({ line: i7 + 2, reason: parsed.error });
+      else ready++;
+    });
+    return { ready, failed };
+  }
+  /** Cierra la vista previa sin efecto ninguno: el fichero se descarta tal cual llegó. */
+  cancelPreview() {
+    this.previewOpen = false;
+    this.previewRows = [];
+    this.previewMapping = {};
+  }
+  /** Confirma la vista previa: a partir de aquí, el camino de siempre (categorías fiscales + alta). */
+  async confirmPreview() {
+    if (!this.previewReady) return;
+    const rows = this.mappedPreviewRows;
+    this.previewOpen = false;
+    this.previewRows = [];
+    await this.startImport(rows);
+  }
+  /** El usuario pulsa «Cancelar» con la importación en marcha: se para en la fila siguiente. */
+  cancelImport() {
+    this.importCancelled = true;
+  }
+  async startImport(rows) {
     let map = /* @__PURE__ */ new Map();
     let unresolved = [];
     try {
@@ -5184,61 +5337,78 @@ var ErpInventoryProducts = class extends i3 {
   // `catch {}` — cada fila acaba en creada / omitida (duplicado en BD, política definida:
   // se salta y se cuenta, reintentable) / fallida (con línea FÍSICA del fichero y motivo).
   // El resumen se enseña en un modal y es copiable para corregir y reintentar.
+  /**
+   * Juzga UNA fila y devuelve o su motivo de rechazo o el alta lista para mandar.
+   *
+   * La misma función la usan el ensayo de la vista previa y la importación de verdad
+   * (inventory#13): si fueran dos, el ensayo diría «5 listas» y luego entrarían 3, que es
+   * exactamente la clase de mentira que un ensayo tiene que evitar. Lo único que el ensayo no
+   * puede saber todavía es la categoría fiscal —se resuelve/pregunta después (ADR-0085)—, así que
+   * eso se comprueba fuera, donde ya hay mapa.
+   *
+   * `seenSkus` se muta a propósito: el duplicado DENTRO del fichero solo existe en el recorrido.
+   */
+  parseCsvRow(r6, seenSkus) {
+    const t5 = (k2) => erplora4().t(CATALOG4, k2);
+    const sku = (r6.sku ?? "").trim();
+    const name = (r6.name ?? "").trim();
+    if (!name || !sku) return { error: t5("ui.importErrNameSku") };
+    const price = parseMoneyText(r6.price);
+    const cost = parseMoneyText(r6.cost);
+    if (price === null || cost === null) return { error: t5("ui.importErrPrice") };
+    if (seenSkus.has(sku)) return { error: t5("ui.importErrDupFile") };
+    seenSkus.add(sku);
+    const unitCode = (r6.unit_code ?? "ud").trim() || "ud";
+    const stock = r6.stock?.trim() ? parseQuantity2(r6.stock) : 0;
+    const threshold = r6.low_stock_threshold?.trim() ? parseQuantity2(r6.low_stock_threshold) : 1e7;
+    if (stock === null || threshold === null) return { error: t5("ui.errQuantity") };
+    if (!this.quantityMatchesUnit(stock, unitCode) || !this.quantityMatchesUnit(threshold, unitCode)) {
+      return { error: t5("ui.errQuantityGrid") };
+    }
+    return {
+      sku,
+      payload: {
+        name,
+        sku,
+        price: eurosToCents(price),
+        stock,
+        cost: eurosToCents(cost),
+        low_stock_threshold: threshold,
+        product_type: "physical",
+        ean13: r6.ean13 || null,
+        description: r6.description ?? "",
+        unit_code: unitCode,
+        image: ""
+      }
+    };
+  }
   async finalizeImport(rows, map) {
     const t5 = (k2) => erplora4().t(CATALOG4, k2);
     const failed = [];
     let created = 0;
     let skipped = 0;
     const seenSkus = /* @__PURE__ */ new Set();
+    this.importCancelled = false;
+    this.importProgress = { done: 0, total: rows.length };
     for (let i7 = 0; i7 < rows.length; i7++) {
+      if (this.importCancelled) break;
+      this.importProgress = { done: i7, total: rows.length };
       const r6 = rows[i7];
       const line = i7 + 2;
-      const sku = (r6.sku ?? "").trim();
-      const name = (r6.name ?? "").trim();
-      if (!name || !sku) {
-        failed.push({ line, sku, reason: t5("ui.importErrNameSku") });
+      const parsed = this.parseCsvRow(r6, seenSkus);
+      if ("error" in parsed) {
+        failed.push({ line, sku: (r6.sku ?? "").trim(), reason: parsed.error });
         continue;
       }
-      const price = eurosToCents(r6.price);
-      if (r6.price !== void 0 && r6.price.trim() !== "" && !Number.isFinite(Number(r6.price))) {
-        failed.push({ line, sku, reason: t5("ui.importErrPrice") });
-        continue;
-      }
-      if (seenSkus.has(sku)) {
-        failed.push({ line, sku, reason: t5("ui.importErrDupFile") });
-        continue;
-      }
-      seenSkus.add(sku);
       const taxCategoryKey = map.get(normalizeAlias(pickTaxValue(r6))) ?? null;
       if (!taxCategoryKey) {
-        failed.push({ line, sku, reason: t5("ui.importErrTaxCategory") });
-        continue;
-      }
-      const unitCode = (r6.unit_code ?? "ud").trim() || "ud";
-      const stock = r6.stock?.trim() ? parseQuantity2(r6.stock) : 0;
-      const threshold = r6.low_stock_threshold?.trim() ? parseQuantity2(r6.low_stock_threshold) : 1e7;
-      if (stock === null || threshold === null) {
-        failed.push({ line, sku, reason: t5("ui.errQuantity") });
-        continue;
-      }
-      if (!this.quantityMatchesUnit(stock, unitCode) || !this.quantityMatchesUnit(threshold, unitCode)) {
-        failed.push({ line, sku, reason: t5("ui.errQuantityGrid") });
+        failed.push({ line, sku: parsed.sku, reason: t5("ui.importErrTaxCategory") });
         continue;
       }
       try {
         await erplora4().command("inventory.products.create", {
-          name,
-          sku,
-          price,
-          stock,
-          cost: eurosToCents(r6.cost),
-          low_stock_threshold: threshold,
-          product_type: "physical",
-          ean13: r6.ean13 || null,
-          description: r6.description ?? "",
-          tax_category_key: taxCategoryKey,
-          unit_code: unitCode,
-          image: ""
+          ...parsed.payload,
+          tax_category_key: taxCategoryKey
         });
         created++;
       } catch (e5) {
@@ -5246,11 +5416,14 @@ var ErpInventoryProducts = class extends i3 {
         if (/unique|duplicate/i.test(msg)) {
           skipped++;
         } else {
-          failed.push({ line, sku, reason: msg });
+          failed.push({ line, sku: parsed.sku, reason: msg });
         }
       }
     }
-    this.importReport = { total: rows.length, created, skipped, failed };
+    const cancelled = this.importCancelled;
+    this.importProgress = null;
+    this.importCancelled = false;
+    this.importReport = { total: rows.length, created, skipped, failed, ...cancelled ? { cancelled } : {} };
     this.importRows = [];
     this.importUnresolved = [];
     await this.ctrl.load();
@@ -5587,6 +5760,13 @@ var ErpInventoryProducts = class extends i3 {
       <div class="page">
         ${this.formError ? b2`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.formError}</ok-inline-feedback>` : A}
         ${this.ctrl?.error ? b2`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : A}
+        <!-- Importación en marcha (inventory#13): por dónde va y una salida. Con 280 filas, lo
+             único que había era una pantalla quieta durante minutos. -->
+        ${this.importProgress ? b2`<ok-inline-feedback tone="info" icon="cloud-upload-outline">
+              ${erplora4().t(CATALOG4, "ui.importProgress", { done: this.importProgress.done, total: this.importProgress.total })}
+              <ion-progress-bar .value=${this.importProgress.total ? this.importProgress.done / this.importProgress.total : 0}></ion-progress-bar>
+              <ion-button size="small" fill="clear" @click=${() => this.cancelImport()}>${erplora4().t(CATALOG4, "ui.importStop")}</ion-button>
+            </ok-inline-feedback>` : A}
 
         <ok-data-table
           .serverSide=${true}
@@ -5829,9 +6009,118 @@ var ErpInventoryProducts = class extends i3 {
         ${this.renderDeleteModal()}
         ${this.renderCountModal()}
         ${this.renderReceiveModal()}
+        ${this.renderPreviewModal()}
         ${this.renderImportModal()}
         ${this.renderImportReportModal()}
       </div>
+    `;
+  }
+  /**
+   * Vista previa del CSV: qué columna es qué, cómo quedan las primeras filas y cuántas están
+   * listas — antes de crear NADA (inventory#13).
+   *
+   * Copiado de donde ya funciona: el desplegable por columna con «no importar» es de WooCommerce y
+   * Lightspeed (que además no dejan seguir sin las obligatorias, la regla del botón de abajo); el
+   * ensayo que cuenta filas listas y problemas es el «Test import» de Odoo; el resumen antes de
+   * confirmar, de Shopify. Nada de esto se ha inventado aquí.
+   */
+  renderPreviewModal() {
+    if (!this.previewOpen) return b2`<ion-modal .isOpen=${false}></ion-modal>`;
+    const t5 = (k2, p4) => erplora4().t(CATALOG4, k2, p4);
+    const headers = Object.keys(this.previewRows[0] ?? {});
+    const summary = this.previewSummary;
+    const fieldLabel = {
+      name: t5("ui.name"),
+      sku: t5("ui.sku"),
+      price: t5("ui.price"),
+      cost: t5("ui.fieldCost"),
+      stock: t5("ui.stock"),
+      low_stock_threshold: t5("ui.fieldThreshold"),
+      ean13: "EAN-13",
+      description: t5("ui.fieldDescription"),
+      unit_code: t5("ui.fieldUnit"),
+      tax: t5("ui.fieldTaxCategory")
+    };
+    return b2`
+      <ion-modal .isOpen=${this.previewOpen} @ionModalDidDismiss=${() => this.cancelPreview()}>
+        <ion-header class="ion-no-border">
+          <ion-toolbar>
+            <ion-title>${t5("ui.previewTitle")}</ion-title>
+            <ion-buttons slot="end">
+              <ion-button aria-label=${t5("ui.btnCancel")} @click=${() => this.cancelPreview()}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <!-- Auto-estilado (el modal se reparenta a <body> y el CSS del shadow no llega): Ionic
+             puro + estilos inline. -->
+        <ion-content class="ion-padding">
+          <p style="margin:0 0 .75rem">${t5("ui.previewHint")}</p>
+          <ion-list lines="full">
+            ${headers.map(
+      (h4) => b2`<ion-item>
+                <ion-select
+                  label=${h4}
+                  label-placement="stacked"
+                  .value=${this.previewMapping[h4] ?? ""}
+                  @ionChange=${(e5) => {
+        const field = e5.target.value;
+        const next = { ...this.previewMapping };
+        if (field) {
+          for (const k2 of Object.keys(next)) if (next[k2] === field) next[k2] = "";
+        }
+        next[h4] = field;
+        this.previewMapping = next;
+      }}
+                >
+                  <ion-select-option value="">${t5("ui.previewIgnore")}</ion-select-option>
+                  ${IMPORT_FIELDS.map(
+        (f3) => b2`<ion-select-option .value=${f3}>${fieldLabel[f3]}${IMPORT_REQUIRED.includes(f3) ? " *" : ""}</ion-select-option>`
+      )}
+                </ion-select>
+              </ion-item>`
+    )}
+          </ion-list>
+
+          <h3 style="margin:1rem 0 .35rem; font-size:.95rem">${t5("ui.previewRowsTitle", { n: Math.min(PREVIEW_ROWS, this.previewRows.length), total: this.previewRows.length })}</h3>
+          <!-- La tabla scrollea SOLA en horizontal: un CSV de 15 columnas no puede empujar el
+               modal fuera de la pantalla de una tablet. -->
+          <div style="overflow-x:auto; -webkit-overflow-scrolling:touch">
+            <table style="border-collapse:collapse; font-size:.85rem; min-width:100%">
+              <thead>
+                <tr>${headers.map((h4) => b2`<th style="text-align:left; padding:.3rem .5rem; white-space:nowrap; border-bottom:1px solid var(--ion-color-step-200,#d7d2c8)">${this.previewMapping[h4] ? fieldLabel[this.previewMapping[h4]] : b2`<s>${h4}</s>`}</th>`)}</tr>
+              </thead>
+              <tbody>
+                ${this.previewRows.slice(0, PREVIEW_ROWS).map(
+      (r6) => b2`<tr>${headers.map((h4) => b2`<td style="padding:.3rem .5rem; white-space:nowrap; border-bottom:1px solid var(--ion-color-step-100,#eee)">${r6[h4] ?? ""}</td>`)}</tr>`
+    )}
+              </tbody>
+            </table>
+          </div>
+
+          ${this.previewReady ? b2`<ok-inline-feedback
+                class="ion-margin-top"
+                tone=${summary.failed.length ? "warning" : "success"}
+                icon=${summary.failed.length ? "alert-circle-outline" : "checkmark-outline"}
+              >
+                ${t5("ui.previewSummary", { ready: summary.ready, failed: summary.failed.length })}
+                ${summary.failed.length ? b2`<ul style="margin:.3rem 0 0; padding-left:1.1rem">
+                      ${summary.failed.slice(0, 10).map((f3) => b2`<li>${t5("ui.importLine")} ${f3.line}: ${f3.reason}</li>`)}
+                    </ul>` : A}
+              </ok-inline-feedback>` : b2`<ok-inline-feedback class="ion-margin-top" tone="danger" icon="alert-circle-outline">
+                ${t5("ui.previewMissingRequired")}
+              </ok-inline-feedback>`}
+
+          <ion-button
+            class="ion-margin-top"
+            expand="block"
+            ?disabled=${!this.previewReady || summary.ready === 0}
+            @click=${() => void this.confirmPreview()}
+          >
+            ${t5("ui.previewConfirm", { n: summary.ready })}
+          </ion-button>
+          <ion-button expand="block" fill="outline" @click=${() => this.cancelPreview()}>${t5("ui.btnCancel")}</ion-button>
+        </ion-content>
+      </ion-modal>
     `;
   }
   // Informe del import CSV (inventory#13): total/creadas/omitidas/fallidas con línea y
@@ -5852,6 +6141,7 @@ var ErpInventoryProducts = class extends i3 {
         <ion-content class="ion-padding">
           ${rep ? b2`
                 <!-- Auto-estilado (reparent a <body>): Ionic puro, sin clases del shadow. -->
+                ${rep.cancelled ? b2`<ok-inline-feedback tone="warning" icon="alert-circle-outline">${t5("ui.importCancelledNote")}</ok-inline-feedback>` : A}
                 <ion-list lines="full">
                   <ion-item>
                     <ion-label>${t5("ui.importTotal")}</ion-label>
@@ -6089,6 +6379,18 @@ __decorateClass([
 __decorateClass([
   r5()
 ], ErpInventoryProducts.prototype, "importReport", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "previewOpen", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "previewRows", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "previewMapping", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "importProgress", 2);
 __decorateClass([
   r5()
 ], ErpInventoryProducts.prototype, "detail", 2);
