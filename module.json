@@ -592,7 +592,7 @@
       ]
     },
     "inventory._ensure_location": {
-      "permission": "inventory.change_product",
+      "permission": "inventory.view_stock",
       "sql": [
         "commands/_ensure_location.sql"
       ]
