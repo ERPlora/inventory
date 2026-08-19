@@ -6,19 +6,23 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 const comandos: { name: string; payload: Record<string, unknown> }[] = [];
+const consultas: string[] = [];
 
 beforeEach(() => {
   document.body.innerHTML = '';
   comandos.length = 0;
+  consultas.length = 0;
   (globalThis as Record<string, unknown>).erplora = {
-    query: async (name: string) =>
-      name === 'inventory.product_categories'
+    query: async (name: string) => {
+      consultas.push(name);
+      return name === 'inventory.product_categories'
         ? [
             { product_id: 'p1', category_id: 'c1' },
             { product_id: 'p2', category_id: 'c1' },
             { product_id: 'p3', category_id: 'c2' },
           ]
-        : [],
+        : [];
+    },
     queryPage: async () => ({
       rows: [{ id: 'c1', name: 'Bebidas', slug: 'bebidas', tax_category_key: null }],
       total: 1, limit: 50, offset: 0,
@@ -86,12 +90,28 @@ describe('borrado con impacto visible (inventory#8)', () => {
       updateComplete: Promise<unknown>;
     };
     await wc.onRowAction(new CustomEvent('rowAction', {
-      detail: { actionId: 'delete', row: { id: 'c1', name: 'Bebidas' } },
+      detail: { actionId: 'delete', row: { id: 'c1', name: 'Bebidas', product_count: 2 } },
     }) as CustomEvent);
     expect(comandos.find((c) => c.name === 'inventory.categories.delete'),
       'sin confirmación no se borra').toBeFalsy();
     expect(wc.deleteTarget?.id).toBe('c1');
     expect(wc.deleteImpact, 'c1 tiene 2 productos vinculados').toBe(2);
+  });
+
+  it('el impacto sale de la fila, sin traerse el mapa entero producto↔categoría', async () => {
+    // La cifra ya viaja en la fila (`product_count` de `categories.list`, la misma columna que se
+    // ve en la rejilla). Pedir `inventory.product_categories` para contarla traía UNA FILA POR
+    // PAREJA producto-categoría de todo el catálogo —miles en una tienda real— para pintar un
+    // número que ya estaba en pantalla, y con el mostrador esperando.
+    const el = await montar();
+    const wc = el as unknown as {
+      onRowAction: (ev: CustomEvent) => Promise<void>; deleteImpact: number;
+    };
+    await wc.onRowAction(new CustomEvent('rowAction', {
+      detail: { actionId: 'delete', row: { id: 'c1', name: 'Bebidas', product_count: 7 } },
+    }) as CustomEvent);
+    expect(wc.deleteImpact).toBe(7);
+    expect(consultas, 'el mapa del TPV no se descarga para contar').not.toContain('inventory.product_categories');
   });
 
   it('confirmar ejecuta el borrado (política: desvincular, los productos siguen)', async () => {

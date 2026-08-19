@@ -1357,6 +1357,9 @@ var es_default = {
       label: "Movimientos"
     }
   },
+  settings: {
+    title: "Inventario"
+  },
   setup: {
     title: "Tu cat\xE1logo",
     description: "A\xF1ade al menos un producto para que haya algo que vender."
@@ -1535,6 +1538,9 @@ var en_default = {
     movements: {
       label: "Movements"
     }
+  },
+  settings: {
+    title: "Inventory"
   },
   setup: {
     title: "Your catalog",
@@ -3915,14 +3921,7 @@ var ErpInventoryCategories = class extends i3 {
       this.newTaxRateId = c5.tax_category_key ?? "";
       this.dataTable()?.open("create");
     } else if (actionId === "delete" && can("inventory.delete_category")) {
-      let impact = 0;
-      try {
-        const links = await erplora().query("inventory.product_categories");
-        impact = (Array.isArray(links) ? links : []).filter((l3) => l3.category_id === c5.id).length;
-      } catch {
-        impact = 0;
-      }
-      this.deleteImpact = impact;
+      this.deleteImpact = Number(row.product_count ?? 0);
       this.deleteTarget = c5;
     }
   }
