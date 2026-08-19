@@ -18,6 +18,9 @@
       "label": "Movimientos"
     }
   },
+  "settings": {
+    "title": "Inventario"
+  },
   "setup": {
     "title": "Tu catálogo",
     "description": "Añade al menos un producto para que haya algo que vender."
