@@ -1504,7 +1504,8 @@ var es_default = {
     previewConfirm: "Importar {n} producto(s)",
     importProgress: "Importando {done}/{total}\u2026",
     importStop: "Parar",
-    importCancelledNote: "La importaci\xF3n se par\xF3 a medias. Lo que ya se hab\xEDa creado est\xE1 contado abajo; el resto del fichero se qued\xF3 como estaba."
+    importCancelledNote: "La importaci\xF3n se par\xF3 a medias. Lo que ya se hab\xEDa creado est\xE1 contado abajo; el resto del fichero se qued\xF3 como estaba.",
+    taxExempt: "exento"
   },
   widgets: {
     "inventory.low_stock_count": {
@@ -1696,7 +1697,8 @@ var en_default = {
     previewConfirm: "Import {n} product(s)",
     importProgress: "Importing {done}/{total}\u2026",
     importStop: "Stop",
-    importCancelledNote: "The import was stopped halfway. What had already been created is counted below; the rest of the file was left untouched."
+    importCancelledNote: "The import was stopped halfway. What had already been created is counted below; the rest of the file was left untouched.",
+    taxExempt: "Exempt"
   },
   errors: {
     "inventory.insufficient_stock": "Not enough stock to complete the operation.",
@@ -4806,6 +4808,48 @@ async function printBarcodeLabel(label, deps = {}) {
   return { ok: true, via: "browser" };
 }
 
+// modules/inventory/ui/lib/tax-category-option.ts
+function isRoot(r6) {
+  return r6.parent_id == null || String(r6.parent_id) === "";
+}
+function rowsOf(r6) {
+  if (Array.isArray(r6)) return r6;
+  if (r6 && typeof r6 === "object" && Array.isArray(r6.rows)) {
+    return r6.rows;
+  }
+  return [];
+}
+async function loadTaxRates(client) {
+  const out = /* @__PURE__ */ new Map();
+  try {
+    const all = rowsOf(await client.queryAll("taxes.rules.list"));
+    const rootByCat = /* @__PURE__ */ new Map();
+    for (const r6 of all) {
+      if (!r6 || !r6.tax_category_key || !isRoot(r6)) continue;
+      const cat = String(r6.tax_category_key);
+      const cur = rootByCat.get(cat);
+      if (!cur || String(r6.valid_from ?? "") > String(cur.valid_from ?? "")) rootByCat.set(cat, r6);
+    }
+    for (const [cat, root] of rootByCat) {
+      const cls = String(root.operation_class ?? "") || "subject";
+      out.set(cat, { pct: Number(root.rate_pct) || 0, exempt: cls !== "subject" });
+    }
+  } catch {
+  }
+  return out;
+}
+function taxCategoryOptionLabel(category, rates, t5) {
+  const key = (category.key || "").trim();
+  const name = (category.name || "").trim() || key;
+  const rate = rates.get(key);
+  if (!rate) return name;
+  if (rate.exempt) {
+    const label = t5("ui.taxExempt");
+    return label && label !== "ui.taxExempt" ? `${name} \xB7 ${label}` : name;
+  }
+  return `${name} \xB7 ${rate.pct} %`;
+}
+
 // modules/inventory/ui/components/erp-inventory-products/erp-inventory-products.ts
 var CATALOG4 = { es: es_default, en: en_default };
 var STATUS_UNCONFIGURED = "unconfigured";
@@ -4924,6 +4968,7 @@ var ErpInventoryProducts = class extends i3 {
     this.initialCategoryIds = /* @__PURE__ */ new Set();
     this.productCategories = [];
     this.taxCategories = [];
+    this.taxRates = /* @__PURE__ */ new Map();
     this.saving = false;
     this.formError = "";
     this.importOpen = false;
@@ -5467,7 +5512,7 @@ var ErpInventoryProducts = class extends i3 {
                 <ion-segment-button value="skip"><ion-label>${t5("ui.importSkip")}</ion-label></ion-segment-button>
               </ion-segment>
               ${c5.mode === "pick" ? b2`<ion-select fill="outline" label-placement="floating" label=${t5("ui.colCategory")} .value=${c5.key} @ionChange=${(e5) => setChoice(text, { key: e5.detail.value })}>
-                    ${this.taxCategories.map((cat) => b2`<ion-select-option .value=${cat.key}>${cat.name} (${cat.key})</ion-select-option>`)}
+                    ${this.taxCategories.map((cat) => b2`<ion-select-option .value=${cat.key}>${taxCategoryOptionLabel(cat, this.taxRates, t5)}</ion-select-option>`)}
                   </ion-select>` : A}
               ${c5.mode === "create" ? b2`<div style="display:flex;gap:.5rem;flex-wrap:wrap;">
                     <ion-input fill="outline" label-placement="floating" label=${t5("ui.colKey")} placeholder="restaurant.food" .value=${c5.newKey} @ionInput=${(e5) => setChoice(text, { newKey: e5.target.value })}></ion-input>
@@ -5554,13 +5599,22 @@ var ErpInventoryProducts = class extends i3 {
     } catch {
       this.taxCategories = [];
     }
+    this.taxRates = await loadTaxRates(erplora4());
   }
-  // Opciones del ion-select: una categoría por fila, etiqueta "Nombre (key)". SIN opción vacía
-  // (inventory#38): "— (por defecto)" era la puerta trasera por la que entraba un producto que no
-  // sabía cómo tributa. El hueco se cubre con el `placeholder` del select, que no es elegible.
+  // Opciones del ion-select: una categoría por fila, etiqueta «Nombre · 21 %» (inventory#58) — SIN
+  // la clave técnica, que no es información para quien da de alta un artículo, y CON el tipo
+  // aplicable, que es el dato por el que se elige. SIN opción vacía (inventory#38): "— (por
+  // defecto)" era la puerta trasera por la que entraba un producto que no sabía cómo tributa. El
+  // hueco lo cubre el `placeholder` del select, que no es elegible.
+  //
+  // NO se preselecciona ninguna (lo que la issue dejaba «a considerar»): elegir por el usuario la
+  // categoría «más común» es reponer ese mismo defecto por otra puerta — el producto saldría
+  // tributando por omisión y nadie lo habría decidido. Que el campo esté vacío y sea obligatorio es
+  // la decisión de inventory#38 y sigue vigente.
   taxOptions() {
+    const t5 = (k2) => erplora4().t(CATALOG4, k2);
     return this.taxCategories.map(
-      (c5) => b2`<ion-select-option .value=${c5.key}>${c5.name} (${c5.key})</ion-select-option>`
+      (c5) => b2`<ion-select-option .value=${c5.key}>${taxCategoryOptionLabel(c5, this.taxRates, t5)}</ion-select-option>`
     );
   }
   // Registro de unidades (ADR-0147) para el selector de la ficha. Best-effort como el de
@@ -6352,6 +6406,9 @@ __decorateClass([
 __decorateClass([
   r5()
 ], ErpInventoryProducts.prototype, "taxCategories", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "taxRates", 2);
 __decorateClass([
   r5()
 ], ErpInventoryProducts.prototype, "saving", 2);

@@ -4,6 +4,9 @@ import { code128b } from '../../lib/code128';
 import { printBarcodeLabel } from '../../lib/barcode-print';
 import { formatQuantity, fromMicro, onGrid, parseQuantity } from '../../lib/quantity';
 import { resolveTaxCategories, pickTaxValue, normalizeAlias, learnAlias, createCategoryWithAlias } from '../../lib/tax-resolve';
+// La etiqueta del selector de categoría fiscal (inventory#58): nombre + tipo aplicable, SIN la
+// clave técnica. El % se trae de `taxes` por su query pública; aquí no se recalcula nada.
+import { loadTaxRates, taxCategoryOptionLabel, type TaxRate } from '../../lib/tax-category-option';
 // `define` por su subpath ligero: importar el barrel '@erplora/outfitkit' arrastraría (efectos
 // secundarios) el registro de TODOS los ok-* al bundle del módulo. `ok-data-table` se importa por
 // su efecto secundario (se auto-registra). Tipos desde el barrel (se borran en build).
@@ -276,6 +279,9 @@ export class ErpInventoryProducts extends LitElement {
   initialCategoryIds: Set<string> = new Set();
   @state() private productCategories: { id: string; name: string }[] = [];
   @state() private taxCategories: TaxCategory[] = [];
+  /** `tax_category_key → {pct, exempt}` traído de `taxes` (inventory#58). Vacío = sin catálogo
+   *  fiscal: las opciones salen con su nombre a secas, pero el alta sigue viva. */
+  @state() private taxRates: Map<string, TaxRate> = new Map();
   @state() private saving = false;
   @state() private formError = '';
 
@@ -897,7 +903,7 @@ export class ErpInventoryProducts extends LitElement {
               </ion-segment>
               ${c.mode === 'pick'
                 ? html`<ion-select fill="outline" label-placement="floating" label=${t('ui.colCategory')} .value=${c.key} @ionChange=${(e: any) => setChoice(text, { key: e.detail.value })}>
-                    ${this.taxCategories.map((cat) => html`<ion-select-option .value=${cat.key}>${cat.name} (${cat.key})</ion-select-option>`)}
+                    ${this.taxCategories.map((cat) => html`<ion-select-option .value=${cat.key}>${taxCategoryOptionLabel(cat, this.taxRates, t)}</ion-select-option>`)}
                   </ion-select>`
                 : nothing}
               ${c.mode === 'create'
@@ -1003,14 +1009,25 @@ export class ErpInventoryProducts extends LitElement {
     } catch {
       this.taxCategories = [];
     }
+    // El TIPO aplicable (inventory#58). Va después y por separado a propósito: que `taxes` no sepa
+    // decir el % no puede dejar sin categorías el desplegable — son dos lecturas independientes.
+    this.taxRates = await loadTaxRates(erplora());
   }
 
-  // Opciones del ion-select: una categoría por fila, etiqueta "Nombre (key)". SIN opción vacía
-  // (inventory#38): "— (por defecto)" era la puerta trasera por la que entraba un producto que no
-  // sabía cómo tributa. El hueco se cubre con el `placeholder` del select, que no es elegible.
+  // Opciones del ion-select: una categoría por fila, etiqueta «Nombre · 21 %» (inventory#58) — SIN
+  // la clave técnica, que no es información para quien da de alta un artículo, y CON el tipo
+  // aplicable, que es el dato por el que se elige. SIN opción vacía (inventory#38): "— (por
+  // defecto)" era la puerta trasera por la que entraba un producto que no sabía cómo tributa. El
+  // hueco lo cubre el `placeholder` del select, que no es elegible.
+  //
+  // NO se preselecciona ninguna (lo que la issue dejaba «a considerar»): elegir por el usuario la
+  // categoría «más común» es reponer ese mismo defecto por otra puerta — el producto saldría
+  // tributando por omisión y nadie lo habría decidido. Que el campo esté vacío y sea obligatorio es
+  // la decisión de inventory#38 y sigue vigente.
   private taxOptions() {
+    const t = (k: string): string => erplora().t(CATALOG, k);
     return this.taxCategories.map(
-      (c) => html`<ion-select-option .value=${c.key}>${c.name} (${c.key})</ion-select-option>`,
+      (c) => html`<ion-select-option .value=${c.key}>${taxCategoryOptionLabel(c, this.taxRates, t)}</ion-select-option>`,
     );
   }
 

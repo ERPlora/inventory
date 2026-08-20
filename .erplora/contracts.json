@@ -13,7 +13,8 @@
       "inventory.stock.movements",
       "inventory.units.list",
       "taxes.aliases.resolve",
-      "taxes.categories.list"
+      "taxes.categories.list",
+      "taxes.rules.list"
     ],
     "optional_queries": [],
     "commands": [
