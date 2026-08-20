@@ -164,7 +164,8 @@
     "previewConfirm": "Import {n} product(s)",
     "importProgress": "Importing {done}/{total}…",
     "importStop": "Stop",
-    "importCancelledNote": "The import was stopped halfway. What had already been created is counted below; the rest of the file was left untouched."
+    "importCancelledNote": "The import was stopped halfway. What had already been created is counted below; the rest of the file was left untouched.",
+    "taxExempt": "Exempt"
   },
   "errors": {
     "inventory.insufficient_stock": "Not enough stock to complete the operation.",

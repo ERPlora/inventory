@@ -165,7 +165,8 @@
     "previewConfirm": "Importar {n} producto(s)",
     "importProgress": "Importando {done}/{total}…",
     "importStop": "Parar",
-    "importCancelledNote": "La importación se paró a medias. Lo que ya se había creado está contado abajo; el resto del fichero se quedó como estaba."
+    "importCancelledNote": "La importación se paró a medias. Lo que ya se había creado está contado abajo; el resto del fichero se quedó como estaba.",
+    "taxExempt": "exento"
   },
   "widgets": {
     "inventory.low_stock_count": {
