@@ -1306,3 +1306,65 @@ describe('controlar stock es una casilla POR ARTÍCULO (inventory#48)', () => {
     expect(es.ui.trackStockInherit).toBeTruthy();
   });
 });
+
+describe('el modal de recuento dice POR QUÉ el botón está en gris (inventory#59)', () => {
+  // Con `fill="outline"` muerto en modo iOS, este modal enseñaba «Stock actual 7» y debajo medio
+  // modal en blanco: dos campos sin caja y un «Aplicar recuento» desactivado sin explicación. Las
+  // cajas las devuelve `mode="md"` (ver `ui/lib/ionic-fill-needs-md.test.ts`); lo que falta por
+  // decir es qué campo bloquea el botón, que es lo que dejaba al operario mirando la pantalla.
+  async function modalDeRecuento() {
+    const el = await montar();
+    const wc = el as unknown as {
+      countTarget: Record<string, unknown> | null; countValue: string; countReason: string;
+      countBlockedReason: () => string | null; updateComplete: Promise<unknown>;
+      shadowRoot: ShadowRoot;
+    };
+    wc.countTarget = { id: 'p1', name: 'Café solo', sku: 'CAF', stock: 10_000_000, unit_code: 'ud' };
+    await wc.updateComplete;
+    return wc;
+  }
+
+  it('sin cantidad contada, nombra la CANTIDAD', async () => {
+    const wc = await modalDeRecuento();
+    expect(wc.countBlockedReason()).toBe('ui.countNeedsQty');
+  });
+
+  it('con cantidad pero sin motivo, nombra el MOTIVO (no repite la cantidad)', async () => {
+    const wc = await modalDeRecuento();
+    wc.countValue = '7';
+    await wc.updateComplete;
+    expect(wc.countBlockedReason()).toBe('ui.countNeedsReason');
+  });
+
+  it('un motivo en blancos no cuenta como motivo', async () => {
+    const wc = await modalDeRecuento();
+    wc.countValue = '7';
+    wc.countReason = '   ';
+    await wc.updateComplete;
+    expect(wc.countBlockedReason()).toBe('ui.countNeedsReason');
+  });
+
+  it('completo: NO hay nota colgando explicando un botón que ya está activo', async () => {
+    const wc = await modalDeRecuento();
+    wc.countValue = '7';
+    wc.countReason = 'recuento semanal';
+    await wc.updateComplete;
+    expect(wc.countBlockedReason()).toBeNull();
+  });
+
+  it('la nota se PINTA en el modal, no solo se calcula', async () => {
+    const wc = await modalDeRecuento();
+    expect(wc.shadowRoot.textContent, 'el motivo del bloqueo no llega a la pantalla')
+      .toContain('ui.countNeedsQty');
+  });
+
+  it('las dos cadenas están en los DOS catálogos (inglés fuente + es)', () => {
+    const en = jsonDelModulo('locales/en.json');
+    const es = jsonDelModulo('locales/es.json');
+    for (const k of ['countNeedsQty', 'countNeedsReason']) {
+      expect(en.ui[k], `falta ${k} en en.json`).toBeTruthy();
+      expect(es.ui[k], `falta ${k} en es.json`).toBeTruthy();
+      expect(es.ui[k], `${k} sin traducir`).not.toBe(en.ui[k]);
+    }
+  });
+});

@@ -165,7 +165,9 @@
     "importProgress": "Importing {done}/{total}…",
     "importStop": "Stop",
     "importCancelledNote": "The import was stopped halfway. What had already been created is counted below; the rest of the file was left untouched.",
-    "taxExempt": "Exempt"
+    "taxExempt": "Exempt",
+    "countNeedsQty": "Enter the counted stock to continue.",
+    "countNeedsReason": "A reason is required to apply the count."
   },
   "errors": {
     "inventory.insufficient_stock": "Not enough stock to complete the operation.",

@@ -1505,7 +1505,9 @@ var es_default = {
     importProgress: "Importando {done}/{total}\u2026",
     importStop: "Parar",
     importCancelledNote: "La importaci\xF3n se par\xF3 a medias. Lo que ya se hab\xEDa creado est\xE1 contado abajo; el resto del fichero se qued\xF3 como estaba.",
-    taxExempt: "exento"
+    taxExempt: "exento",
+    countNeedsQty: "Escribe el stock contado para continuar.",
+    countNeedsReason: "Hace falta un motivo para aplicar el recuento."
   },
   widgets: {
     "inventory.low_stock_count": {
@@ -1698,7 +1700,9 @@ var en_default = {
     importProgress: "Importing {done}/{total}\u2026",
     importStop: "Stop",
     importCancelledNote: "The import was stopped halfway. What had already been created is counted below; the rest of the file was left untouched.",
-    taxExempt: "Exempt"
+    taxExempt: "Exempt",
+    countNeedsQty: "Enter the counted stock to continue.",
+    countNeedsReason: "A reason is required to apply the count."
   },
   errors: {
     "inventory.insufficient_stock": "Not enough stock to complete the operation.",
@@ -4090,21 +4094,21 @@ var ErpInventoryCategories = class extends i3 {
           @filterChange=${(e5) => this.ctrl.setFilter(e5.detail.col, e5.detail.value)}
         >
           <form slot="create" class="form" @submit=${(e5) => this.create(e5)}>
-            <ion-input
+            <ion-input mode="md"
               fill="outline"
               label=${erplora().t(CATALOG, "ui.name")}
               label-placement="floating"
               .value=${this.newName}
               @ionInput=${(e5) => this.newName = e5.target.value}
             ></ion-input>
-            <ion-input
+            <ion-input mode="md"
               fill="outline"
               label=${erplora().t(CATALOG, "ui.slugOptional")}
               label-placement="floating"
               .value=${this.newSlug}
               @ionInput=${(e5) => this.newSlug = e5.target.value}
             ></ion-input>
-            <ion-select
+            <ion-select mode="md"
               fill="outline"
               label-placement="floating"
               label=${erplora().t(CATALOG, "ui.taxRate")}
@@ -5511,12 +5515,12 @@ var ErpInventoryProducts = class extends i3 {
                 <ion-segment-button value="create"><ion-label>${t5("ui.importCreate")}</ion-label></ion-segment-button>
                 <ion-segment-button value="skip"><ion-label>${t5("ui.importSkip")}</ion-label></ion-segment-button>
               </ion-segment>
-              ${c5.mode === "pick" ? b2`<ion-select fill="outline" label-placement="floating" label=${t5("ui.colCategory")} .value=${c5.key} @ionChange=${(e5) => setChoice(text, { key: e5.detail.value })}>
+              ${c5.mode === "pick" ? b2`<ion-select mode="md" fill="outline" label-placement="floating" label=${t5("ui.colCategory")} .value=${c5.key} @ionChange=${(e5) => setChoice(text, { key: e5.detail.value })}>
                     ${this.taxCategories.map((cat) => b2`<ion-select-option .value=${cat.key}>${taxCategoryOptionLabel(cat, this.taxRates, t5)}</ion-select-option>`)}
                   </ion-select>` : A}
               ${c5.mode === "create" ? b2`<div style="display:flex;gap:.5rem;flex-wrap:wrap;">
-                    <ion-input fill="outline" label-placement="floating" label=${t5("ui.colKey")} placeholder="restaurant.food" .value=${c5.newKey} @ionInput=${(e5) => setChoice(text, { newKey: e5.target.value })}></ion-input>
-                    <ion-input fill="outline" label-placement="floating" label=${t5("ui.colName")} .value=${c5.newName} @ionInput=${(e5) => setChoice(text, { newName: e5.target.value })}></ion-input>
+                    <ion-input mode="md" fill="outline" label-placement="floating" label=${t5("ui.colKey")} placeholder="restaurant.food" .value=${c5.newKey} @ionInput=${(e5) => setChoice(text, { newKey: e5.target.value })}></ion-input>
+                    <ion-input mode="md" fill="outline" label-placement="floating" label=${t5("ui.colName")} .value=${c5.newName} @ionInput=${(e5) => setChoice(text, { newName: e5.target.value })}></ion-input>
                   </div>` : A}
             </div>`;
     })}
@@ -5866,14 +5870,14 @@ var ErpInventoryProducts = class extends i3 {
                     ${erplora4().t(CATALOG4, "ui.editingCancel")}
                   </ion-button>
                 </div>` : A}
-            <ion-input
+            <ion-input mode="md"
               fill="outline"
               label=${erplora4().t(CATALOG4, "ui.name")}
               label-placement="floating"
               .value=${this.newName}
               @ionInput=${(e5) => this.newName = e5.target.value}
             ></ion-input>
-            <ion-input
+            <ion-input mode="md"
               fill="outline"
               label="SKU"
               label-placement="floating"
@@ -5882,7 +5886,7 @@ var ErpInventoryProducts = class extends i3 {
               helper-text=${this.editingId ? erplora4().t(CATALOG4, "ui.skuIdentity") : ""}
               @ionInput=${(e5) => this.newSku = e5.target.value}
             ></ion-input>
-            <ion-input
+            <ion-input mode="md"
               fill="outline"
               label=${erplora4().t(CATALOG4, "ui.price")}
               label-placement="floating"
@@ -5891,7 +5895,7 @@ var ErpInventoryProducts = class extends i3 {
               .value=${this.newPrice}
               @ionInput=${(e5) => this.newPrice = e5.target.value}
             ></ion-input>
-            <ion-input
+            <ion-input mode="md"
               fill="outline"
               label=${`${erplora4().t(CATALOG4, "ui.fieldCost")} (${erplora4().currency})`}
               label-placement="floating"
@@ -5899,7 +5903,7 @@ var ErpInventoryProducts = class extends i3 {
               .value=${this.newCost}
               @ionInput=${(e5) => this.newCost = e5.target.value}
             ></ion-input>
-            ${!this.editingId ? b2`<ion-input
+            ${!this.editingId ? b2`<ion-input mode="md"
                   fill="outline"
                   label=${erplora4().t(CATALOG4, "ui.fieldInitialStock")}
                   label-placement="floating"
@@ -5907,7 +5911,7 @@ var ErpInventoryProducts = class extends i3 {
                   .value=${this.newStock}
                   @ionInput=${(e5) => this.newStock = e5.target.value}
                 ></ion-input>` : A}
-            <ion-input
+            <ion-input mode="md"
               fill="outline"
               label=${erplora4().t(CATALOG4, "ui.fieldThreshold")}
               label-placement="floating"
@@ -5915,7 +5919,7 @@ var ErpInventoryProducts = class extends i3 {
               .value=${this.newThreshold}
               @ionInput=${(e5) => this.newThreshold = e5.target.value}
             ></ion-input>
-            <ion-input
+            <ion-input mode="md"
               fill="outline"
               label="EAN-13"
               label-placement="floating"
@@ -5923,14 +5927,14 @@ var ErpInventoryProducts = class extends i3 {
               .value=${this.newEan}
               @ionInput=${(e5) => this.newEan = e5.target.value}
             ></ion-input>
-            <ion-input
+            <ion-input mode="md"
               fill="outline"
               label=${erplora4().t(CATALOG4, "ui.fieldDescription")}
               label-placement="floating"
               .value=${this.newDescription}
               @ionInput=${(e5) => this.newDescription = e5.target.value}
             ></ion-input>
-            ${!this.editingId ? b2`<ion-select
+            ${!this.editingId ? b2`<ion-select mode="md"
                   fill="outline"
                   label-placement="floating"
                   label=${erplora4().t(CATALOG4, "ui.fieldType")}
@@ -5952,7 +5956,7 @@ var ErpInventoryProducts = class extends i3 {
                   <ion-note class="track-note">
                     ${this.newTrackStock == null ? erplora4().t(CATALOG4, "ui.trackStockInherit") : this.newTrackStock === 0 ? erplora4().t(CATALOG4, "ui.trackStockOff") : A}
                   </ion-note>` : A}
-            <ion-select
+            <ion-select mode="md"
               fill="outline"
               label-placement="floating"
               interface="popover"
@@ -5965,7 +5969,7 @@ var ErpInventoryProducts = class extends i3 {
             <!-- Categoría fiscal: campo OBLIGATORIO (inventory#38), no un asterisco decorativo.
                  Sin catálogo de categorías no hay nada que elegir, así que se dice en vez de
                  dejar guardar un producto que después nadie puede cobrar. -->
-            <ion-select
+            <ion-select mode="md"
               fill="outline"
               label-placement="floating"
               required
@@ -5979,7 +5983,7 @@ var ErpInventoryProducts = class extends i3 {
             ${this.taxCategories.length === 0 ? b2`<ok-inline-feedback tone="warning" icon="alert-circle-outline">
                   ${erplora4().t(CATALOG4, "ui.taxNoneAvailable")}
                 </ok-inline-feedback>` : A}
-            ${this.productCategories.length ? b2`<ion-select
+            ${this.productCategories.length ? b2`<ion-select mode="md"
                   fill="outline"
                   label-placement="floating"
                   label=${erplora4().t(CATALOG4, "ui.fieldCategories")}
@@ -6264,6 +6268,17 @@ var ErpInventoryProducts = class extends i3 {
   }
   // Modal de RECUENTO (inventory#7): ajuste absoluto — se enseña la diferencia contra el
   // stock actual ANTES de aplicar, y el motivo es obligatorio (lo exige también el schema).
+  /**
+   * Qué le falta al recuento para poder aplicarse, como clave i18n — o `null` si no le falta nada
+   * (inventory#59). Se nombra UN solo motivo, el primero que hay que resolver: una lista de todo lo
+   * que falta es más texto y menos acción. `null` cuando el botón está activo, para no dejar una
+   * nota colgando que ya no explica nada.
+   */
+  countBlockedReason() {
+    if (this.countDifference === null) return "ui.countNeedsQty";
+    if (this.countReason.trim() === "") return "ui.countNeedsReason";
+    return null;
+  }
   renderCountModal() {
     const t5 = (k2) => erplora4().t(CATALOG4, k2);
     const diff = this.countDifference;
@@ -6291,12 +6306,12 @@ var ErpInventoryProducts = class extends i3 {
                   <ion-note slot="end" color=${diff < 0 ? "danger" : "success"}>${diff > 0 ? `+${diff}` : diff}</ion-note>
                 </ion-item>` : A}
           </ion-list>
-          <ion-input class="ion-margin-top" fill="outline" label-placement="floating" label=${t5("ui.countNew")}
+          <ion-input mode="md" class="ion-margin-top" fill="outline" label-placement="floating" label=${t5("ui.countNew")}
             type="number" .step=${this.quantityStep(this.countTarget?.unit_code)} min="0" inputmode="decimal"
             .value=${this.countValue}
             @ionInput=${(e5) => this.countValue = String(e5.detail.value ?? "")}
           ></ion-input>
-          <ion-input class="ion-margin-top" fill="outline" label-placement="floating" label=${t5("ui.countReason")}
+          <ion-input mode="md" class="ion-margin-top" fill="outline" label-placement="floating" label=${t5("ui.countReason")}
             .value=${this.countReason} required
             @ionInput=${(e5) => this.countReason = String(e5.detail.value ?? "")}
           ></ion-input>
@@ -6304,6 +6319,12 @@ var ErpInventoryProducts = class extends i3 {
             @click=${() => this.submitCount()}>
             ${t5("ui.countApply")}
           </ion-button>
+          <!-- Por qué está en gris (inventory#59). Un botón desactivado sin explicación deja al
+               operario mirando el modal sin saber qué le falta; con las cajas ya visibles, esto
+               cierra el hueco nombrando el campo que falta en vez de callar. -->
+          ${this.countBlockedReason() ? b2`<ion-note class="ion-margin-top" color="medium" style="display:block;text-align:center;">
+                ${t5(this.countBlockedReason())}
+              </ion-note>` : A}
         </ion-content>
       </ion-modal>
     `;
@@ -6330,12 +6351,12 @@ var ErpInventoryProducts = class extends i3 {
               <ion-note slot="end">${formatQuantity2(this.receiveTarget?.stock ?? 0)}</ion-note>
             </ion-item>
           </ion-list>
-          <ion-input class="ion-margin-top" fill="outline" label-placement="floating" label=${t5("ui.receiveQty")}
+          <ion-input mode="md" class="ion-margin-top" fill="outline" label-placement="floating" label=${t5("ui.receiveQty")}
             type="number" .step=${this.quantityStep(this.receiveTarget?.unit_code)} min="0.000001" inputmode="decimal"
             .value=${this.receiveQty}
             @ionInput=${(e5) => this.receiveQty = String(e5.detail.value ?? "")}
           ></ion-input>
-          <ion-input class="ion-margin-top" fill="outline" label-placement="floating" label=${`${t5("ui.receiveCost")} (${erplora4().currency})`}
+          <ion-input mode="md" class="ion-margin-top" fill="outline" label-placement="floating" label=${`${t5("ui.receiveCost")} (${erplora4().currency})`}
             type="number" step="0.01" min="0" inputmode="decimal"
             .value=${this.receiveCost}
             @ionInput=${(e5) => this.receiveCost = String(e5.detail.value ?? "")}
