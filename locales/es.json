@@ -166,7 +166,9 @@
     "importProgress": "Importando {done}/{total}…",
     "importStop": "Parar",
     "importCancelledNote": "La importación se paró a medias. Lo que ya se había creado está contado abajo; el resto del fichero se quedó como estaba.",
-    "taxExempt": "exento"
+    "taxExempt": "exento",
+    "countNeedsQty": "Escribe el stock contado para continuar.",
+    "countNeedsReason": "Hace falta un motivo para aplicar el recuento."
   },
   "widgets": {
     "inventory.low_stock_count": {

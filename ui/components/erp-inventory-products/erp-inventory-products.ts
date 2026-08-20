@@ -902,14 +902,14 @@ export class ErpInventoryProducts extends LitElement {
                 <ion-segment-button value="skip"><ion-label>${t('ui.importSkip')}</ion-label></ion-segment-button>
               </ion-segment>
               ${c.mode === 'pick'
-                ? html`<ion-select fill="outline" label-placement="floating" label=${t('ui.colCategory')} .value=${c.key} @ionChange=${(e: any) => setChoice(text, { key: e.detail.value })}>
+                ? html`<ion-select mode="md" fill="outline" label-placement="floating" label=${t('ui.colCategory')} .value=${c.key} @ionChange=${(e: any) => setChoice(text, { key: e.detail.value })}>
                     ${this.taxCategories.map((cat) => html`<ion-select-option .value=${cat.key}>${taxCategoryOptionLabel(cat, this.taxRates, t)}</ion-select-option>`)}
                   </ion-select>`
                 : nothing}
               ${c.mode === 'create'
                 ? html`<div style="display:flex;gap:.5rem;flex-wrap:wrap;">
-                    <ion-input fill="outline" label-placement="floating" label=${t('ui.colKey')} placeholder="restaurant.food" .value=${c.newKey} @ionInput=${(e: any) => setChoice(text, { newKey: e.target.value })}></ion-input>
-                    <ion-input fill="outline" label-placement="floating" label=${t('ui.colName')} .value=${c.newName} @ionInput=${(e: any) => setChoice(text, { newName: e.target.value })}></ion-input>
+                    <ion-input mode="md" fill="outline" label-placement="floating" label=${t('ui.colKey')} placeholder="restaurant.food" .value=${c.newKey} @ionInput=${(e: any) => setChoice(text, { newKey: e.target.value })}></ion-input>
+                    <ion-input mode="md" fill="outline" label-placement="floating" label=${t('ui.colName')} .value=${c.newName} @ionInput=${(e: any) => setChoice(text, { newName: e.target.value })}></ion-input>
                   </div>`
                 : nothing}
             </div>`;
@@ -1314,14 +1314,14 @@ export class ErpInventoryProducts extends LitElement {
                   </ion-button>
                 </div>`
               : nothing}
-            <ion-input
+            <ion-input mode="md"
               fill="outline"
               label=${erplora().t(CATALOG, 'ui.name')}
               label-placement="floating"
               .value=${this.newName}
               @ionInput=${(e: Event) => (this.newName = (e.target as HTMLInputElement).value)}
             ></ion-input>
-            <ion-input
+            <ion-input mode="md"
               fill="outline"
               label="SKU"
               label-placement="floating"
@@ -1330,7 +1330,7 @@ export class ErpInventoryProducts extends LitElement {
               helper-text=${this.editingId ? erplora().t(CATALOG, 'ui.skuIdentity') : ''}
               @ionInput=${(e: Event) => (this.newSku = (e.target as HTMLInputElement).value)}
             ></ion-input>
-            <ion-input
+            <ion-input mode="md"
               fill="outline"
               label=${erplora().t(CATALOG, 'ui.price')}
               label-placement="floating"
@@ -1339,7 +1339,7 @@ export class ErpInventoryProducts extends LitElement {
               .value=${this.newPrice}
               @ionInput=${(e: Event) => (this.newPrice = (e.target as HTMLInputElement).value)}
             ></ion-input>
-            <ion-input
+            <ion-input mode="md"
               fill="outline"
               label=${`${erplora().t(CATALOG, 'ui.fieldCost')} (${erplora().currency})`}
               label-placement="floating"
@@ -1348,7 +1348,7 @@ export class ErpInventoryProducts extends LitElement {
               @ionInput=${(e: Event) => (this.newCost = (e.target as HTMLInputElement).value)}
             ></ion-input>
             ${!this.editingId
-              ? html`<ion-input
+              ? html`<ion-input mode="md"
                   fill="outline"
                   label=${erplora().t(CATALOG, 'ui.fieldInitialStock')}
                   label-placement="floating"
@@ -1357,7 +1357,7 @@ export class ErpInventoryProducts extends LitElement {
                   @ionInput=${(e: Event) => (this.newStock = (e.target as HTMLInputElement).value)}
                 ></ion-input>`
               : nothing}
-            <ion-input
+            <ion-input mode="md"
               fill="outline"
               label=${erplora().t(CATALOG, 'ui.fieldThreshold')}
               label-placement="floating"
@@ -1365,7 +1365,7 @@ export class ErpInventoryProducts extends LitElement {
               .value=${this.newThreshold}
               @ionInput=${(e: Event) => (this.newThreshold = (e.target as HTMLInputElement).value)}
             ></ion-input>
-            <ion-input
+            <ion-input mode="md"
               fill="outline"
               label="EAN-13"
               label-placement="floating"
@@ -1373,7 +1373,7 @@ export class ErpInventoryProducts extends LitElement {
               .value=${this.newEan}
               @ionInput=${(e: Event) => (this.newEan = (e.target as HTMLInputElement).value)}
             ></ion-input>
-            <ion-input
+            <ion-input mode="md"
               fill="outline"
               label=${erplora().t(CATALOG, 'ui.fieldDescription')}
               label-placement="floating"
@@ -1381,7 +1381,7 @@ export class ErpInventoryProducts extends LitElement {
               @ionInput=${(e: Event) => (this.newDescription = (e.target as HTMLInputElement).value)}
             ></ion-input>
             ${!this.editingId
-              ? html`<ion-select
+              ? html`<ion-select mode="md"
                   fill="outline"
                   label-placement="floating"
                   label=${erplora().t(CATALOG, 'ui.fieldType')}
@@ -1410,7 +1410,7 @@ export class ErpInventoryProducts extends LitElement {
                         : nothing}
                   </ion-note>`
               : nothing}
-            <ion-select
+            <ion-select mode="md"
               fill="outline"
               label-placement="floating"
               interface="popover"
@@ -1423,7 +1423,7 @@ export class ErpInventoryProducts extends LitElement {
             <!-- Categoría fiscal: campo OBLIGATORIO (inventory#38), no un asterisco decorativo.
                  Sin catálogo de categorías no hay nada que elegir, así que se dice en vez de
                  dejar guardar un producto que después nadie puede cobrar. -->
-            <ion-select
+            <ion-select mode="md"
               fill="outline"
               label-placement="floating"
               required
@@ -1440,7 +1440,7 @@ export class ErpInventoryProducts extends LitElement {
                 </ok-inline-feedback>`
               : nothing}
             ${this.productCategories.length
-              ? html`<ion-select
+              ? html`<ion-select mode="md"
                   fill="outline"
                   label-placement="floating"
                   label=${erplora().t(CATALOG, 'ui.fieldCategories')}
@@ -1740,6 +1740,18 @@ export class ErpInventoryProducts extends LitElement {
 
   // Modal de RECUENTO (inventory#7): ajuste absoluto — se enseña la diferencia contra el
   // stock actual ANTES de aplicar, y el motivo es obligatorio (lo exige también el schema).
+  /**
+   * Qué le falta al recuento para poder aplicarse, como clave i18n — o `null` si no le falta nada
+   * (inventory#59). Se nombra UN solo motivo, el primero que hay que resolver: una lista de todo lo
+   * que falta es más texto y menos acción. `null` cuando el botón está activo, para no dejar una
+   * nota colgando que ya no explica nada.
+   */
+  private countBlockedReason(): string | null {
+    if (this.countDifference === null) return 'ui.countNeedsQty';
+    if (this.countReason.trim() === '') return 'ui.countNeedsReason';
+    return null;
+  }
+
   private renderCountModal() {
     const t = (k: string): string => erplora().t(CATALOG, k);
     const diff = this.countDifference;
@@ -1769,12 +1781,12 @@ export class ErpInventoryProducts extends LitElement {
                 </ion-item>`
               : nothing}
           </ion-list>
-          <ion-input class="ion-margin-top" fill="outline" label-placement="floating" label=${t('ui.countNew')}
+          <ion-input mode="md" class="ion-margin-top" fill="outline" label-placement="floating" label=${t('ui.countNew')}
             type="number" .step=${this.quantityStep(this.countTarget?.unit_code)} min="0" inputmode="decimal"
             .value=${this.countValue}
             @ionInput=${(e: CustomEvent) => (this.countValue = String((e.detail as { value?: string }).value ?? ''))}
           ></ion-input>
-          <ion-input class="ion-margin-top" fill="outline" label-placement="floating" label=${t('ui.countReason')}
+          <ion-input mode="md" class="ion-margin-top" fill="outline" label-placement="floating" label=${t('ui.countReason')}
             .value=${this.countReason} required
             @ionInput=${(e: CustomEvent) => (this.countReason = String((e.detail as { value?: string }).value ?? ''))}
           ></ion-input>
@@ -1782,6 +1794,14 @@ export class ErpInventoryProducts extends LitElement {
             @click=${() => this.submitCount()}>
             ${t('ui.countApply')}
           </ion-button>
+          <!-- Por qué está en gris (inventory#59). Un botón desactivado sin explicación deja al
+               operario mirando el modal sin saber qué le falta; con las cajas ya visibles, esto
+               cierra el hueco nombrando el campo que falta en vez de callar. -->
+          ${this.countBlockedReason()
+            ? html`<ion-note class="ion-margin-top" color="medium" style="display:block;text-align:center;">
+                ${t(this.countBlockedReason() as string)}
+              </ion-note>`
+            : nothing}
         </ion-content>
       </ion-modal>
     `;
@@ -1809,12 +1829,12 @@ export class ErpInventoryProducts extends LitElement {
               <ion-note slot="end">${formatQuantity(this.receiveTarget?.stock ?? 0)}</ion-note>
             </ion-item>
           </ion-list>
-          <ion-input class="ion-margin-top" fill="outline" label-placement="floating" label=${t('ui.receiveQty')}
+          <ion-input mode="md" class="ion-margin-top" fill="outline" label-placement="floating" label=${t('ui.receiveQty')}
             type="number" .step=${this.quantityStep(this.receiveTarget?.unit_code)} min="0.000001" inputmode="decimal"
             .value=${this.receiveQty}
             @ionInput=${(e: CustomEvent) => (this.receiveQty = String((e.detail as { value?: string }).value ?? ''))}
           ></ion-input>
-          <ion-input class="ion-margin-top" fill="outline" label-placement="floating" label=${`${t('ui.receiveCost')} (${erplora().currency})`}
+          <ion-input mode="md" class="ion-margin-top" fill="outline" label-placement="floating" label=${`${t('ui.receiveCost')} (${erplora().currency})`}
             type="number" step="0.01" min="0" inputmode="decimal"
             .value=${this.receiveCost}
             @ionInput=${(e: CustomEvent) => (this.receiveCost = String((e.detail as { value?: string }).value ?? ''))}

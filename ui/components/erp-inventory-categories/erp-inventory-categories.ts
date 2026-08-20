@@ -336,21 +336,21 @@ export class ErpInventoryCategories extends LitElement {
             this.ctrl.setFilter(e.detail.col, e.detail.value)}
         >
           <form slot="create" class="form" @submit=${(e: Event) => this.create(e)}>
-            <ion-input
+            <ion-input mode="md"
               fill="outline"
               label=${erplora().t(CATALOG, 'ui.name')}
               label-placement="floating"
               .value=${this.newName}
               @ionInput=${(e: Event) => (this.newName = (e.target as HTMLInputElement).value)}
             ></ion-input>
-            <ion-input
+            <ion-input mode="md"
               fill="outline"
               label=${erplora().t(CATALOG, 'ui.slugOptional')}
               label-placement="floating"
               .value=${this.newSlug}
               @ionInput=${(e: Event) => (this.newSlug = (e.target as HTMLInputElement).value)}
             ></ion-input>
-            <ion-select
+            <ion-select mode="md"
               fill="outline"
               label-placement="floating"
               label=${erplora().t(CATALOG, 'ui.taxRate')}
