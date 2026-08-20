@@ -202,6 +202,29 @@
     "inventory.products.low_stock": {
       "permission": "inventory.view_product",
       "sql": "queries/low_stock.sql",
+      "list": {
+        "search": [
+          "name",
+          "sku"
+        ],
+        "sort": [
+          "name",
+          "sku",
+          "stock",
+          "low_stock_threshold"
+        ],
+        "default_sort": "stock",
+        "default_dir": "asc",
+        "filters": {
+          "sku": {
+            "op": "eq"
+          },
+          "stock": {
+            "op": "range"
+          }
+        },
+        "page_size": 50
+      },
       "ai": {
         "description": "Lists products whose stock is below the configured minimum threshold."
       }
