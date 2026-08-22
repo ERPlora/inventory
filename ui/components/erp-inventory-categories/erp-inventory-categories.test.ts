@@ -127,3 +127,53 @@ describe('borrado con impacto visible (inventory#8)', () => {
     expect(wc.deleteTarget).toBeNull();
   });
 });
+
+// ── inventory#64 ────────────────────────────────────────────────────────────────────────────────
+// El selector de categoría FISCAL de esta pantalla enseñaba el inglés del seed. `taxes` ≥ 2.3.8 ya
+// sirve la etiqueta traducida por el contrato (`display_name`, taxes#38/#40); aquí solo hay que
+// leerla — y ordenar por ella, que es lo que el usuario ve.
+describe('el selector de categoría fiscal enseña la etiqueta traducida (inventory#64)', () => {
+  const CANONICA = {
+    id: 't1', key: 'product.generic',
+    name: 'Product — generic',
+    display_name: 'Producto — general',
+  };
+
+  function conCatalogo(cats: Record<string, unknown>[]) {
+    const llamadas: { name: string; params?: Record<string, unknown> }[] = [];
+    const sdk = (globalThis as Record<string, any>).erplora;
+    sdk.queryAll = async (name: string, params?: Record<string, unknown>) => {
+      llamadas.push({ name, params });
+      return name === 'taxes.categories.list' ? cats : [];
+    };
+    return llamadas;
+  }
+
+  function opciones(el: HTMLElement): string[] {
+    return [...(el.shadowRoot?.querySelectorAll('ion-select-option') ?? [])].map(
+      (o) => (o.textContent ?? '').trim(),
+    );
+  }
+
+  it('pinta «Producto — general», no el inglés del seed', async () => {
+    conCatalogo([CANONICA]);
+    const el = await montar();
+    const texto = opciones(el).join(' | ');
+    expect(texto).toContain('Producto — general');
+    expect(texto).not.toContain('Product — generic');
+  });
+
+  it('sin `display_name` (taxes viejo) cae a `name`: ninguna opción se queda muda', async () => {
+    conCatalogo([{ id: 't1', key: 'product.generic', name: 'Product — generic' }]);
+    const el = await montar();
+    expect(opciones(el).join(' | ')).toContain('Product — generic');
+  });
+
+  it('pide el catálogo ordenado por lo que se enseña', async () => {
+    const llamadas = conCatalogo([CANONICA]);
+    await montar();
+    const cat = llamadas.find((l) => l.name === 'taxes.categories.list');
+    expect(cat).toBeTruthy();
+    expect(cat!.params?.sort).toBe('display_name');
+  });
+});

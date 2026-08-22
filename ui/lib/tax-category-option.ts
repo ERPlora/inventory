@@ -17,26 +17,33 @@
 //      query PÚBLICA `taxes.rules.list` — la misma lectura que hace el TPV para su preview. Un
 //      módulo consume el contrato público de otro; no le copia la regla ni le toca las tablas.
 //
-//   3. LOS NOMBRES EN INGLÉS — NO son de este repo y aquí no se arreglan. Los siembra `taxes`
-//      (ADR-0055: el dato nace en el idioma fuente) y `taxes` ya los traduce EN PRESENTACIÓN sobre
-//      la clave canónica, en su `ui/lib/tax-category-name.ts` (taxes#30).
+//   3. LOS NOMBRES EN INGLÉS — los siembra `taxes` (ADR-0055: el dato nace en el idioma fuente) y su
+//      traducción es suya, no de este repo. Cuando se escribió esto, la única traducción vivía
+//      DENTRO del Web Component de `taxes` (`ui/lib/tax-category-name.ts`, taxes#30) y desde aquí no
+//      se podía alcanzar: un módulo es un repo y un bundle propios, ningún módulo importa el código
+//      de otro (ADR-0043) y el catálogo i18n tampoco viaja (`t()` traduce contra el objeto que el
+//      propio WC inlinea de sus `locales/*.json`). Copiar su tabla `KEY_TO_LABEL` habría dejado DOS
+//      listas de claves canónicas en dos repos: en cuanto `taxes` añadiera una categoría, este
+//      desplegable la enseñaría en inglés otra vez, sin error y sin que nadie se entere. Así que se
+//      pidió donde tiene dueño y el % se puso delante para que la opción fuera decidible mientras.
 //
-//      Ese helper NO se puede reutilizar desde aquí, y no por pereza: un módulo es un repo y un
-//      bundle propios, y NINGÚN módulo importa el código de otro (la composición es por contratos —
-//      queries, eventos, slots — ADR-0043). El catálogo i18n tampoco viaja: `t()` traduce contra el
-//      objeto que el propio WC inlinea de sus `locales/*.json`, y el hub no sirve los de otro módulo.
-//      Copiar aquí su tabla `KEY_TO_LABEL` sería tener DOS listas de las claves canónicas en dos
-//      repos: en cuanto `taxes` añada una categoría, este desplegable la enseñaría en inglés otra
-//      vez, sin error y sin que nadie se entere — exactamente el fallo silencioso de inventory#57.
-//      Así que la traducción del nombre se queda donde está su dueño y se pide allí.
+//      YA ESTÁ SERVIDO (inventory#64). `taxes` sacó la etiqueta de su WC y la puso EN EL CONTRATO
+//      (taxes#38, arreglada en taxes#40): `taxes.categories.list` proyecta `display_name`, resuelto
+//      al idioma de quien pregunta —override personal → idioma del hub → `es`— contra UNA lista,
+//      `taxes_category_label`. Aquí no se decide nada ni se guarda ninguna tabla: se LEE esa
+//      columna. Sigue siendo composición por contratos; lo que cambió es que el contrato ya la trae.
 //
-// Con el % delante, la opción ya es decidible aunque el nombre siga en inglés, que es lo que hace
-// falta para no equivocar una factura.
+// Sobre esa etiqueta se mantiene lo de arriba: sin clave técnica y con el % delante, que es el dato
+// por el que se elige y lo que evita equivocar una factura.
 
 /** Categoría tal y como la devuelve `taxes.categories.list`. */
 export interface TaxCategoryLike {
   key?: string;
+  /** El texto CRUDO del seed, en el idioma fuente (inglés). Es la reserva, nunca la preferencia. */
   name?: string;
+  /** Etiqueta PRESENTABLE ya resuelta al idioma del hub por `taxes` (taxes#38). Opcional: un hub con
+   *  `taxes` anterior a la 2.3.8 no la trae y hay que seguir pintando algo. */
+  display_name?: string;
 }
 
 /** El tipo aplicable a una categoría, ya resuelto desde las reglas de `taxes`. */
@@ -113,6 +120,24 @@ export async function loadTaxRates(client: TaxRatesClient): Promise<Map<string, 
 }
 
 /**
+ * El nombre VISIBLE de una categoría fiscal: `display_name` y, si no viene, `name` (inventory#64).
+ *
+ * El orden no es intercambiable. `display_name` es la etiqueta que `taxes` ya resolvió al idioma del
+ * hub; `name` es el literal del seed, en inglés. Preferir `name` devolvería el defecto justo cuando
+ * la traducción existe. La reserva sí hace falta: contra un hub con `taxes` ≤ 2.3.8 la columna no
+ * viaja, y entonces se enseña el inglés —que es lo que se enseñaba antes de esto, así que no
+ * empeora— en lugar de una opción muda.
+ *
+ * Una categoría que creó el dueño del hub no tiene traducción NI la quiere: `taxes` le devuelve su
+ * propio texto en `display_name` (el `COALESCE(..., c.name)` de su SQL), así que sale tal cual.
+ *
+ * Devuelve `''` si no hay ninguno de los dos; quien llama decide la reserva (la `key`).
+ */
+export function taxCategoryDisplayName(category: TaxCategoryLike): string {
+  return (category.display_name || '').trim() || (category.name || '').trim();
+}
+
+/**
  * Texto de una opción del `<ion-select>` de categoría fiscal: **el nombre y su tipo aplicable**,
  * sin la clave técnica.
  *
@@ -128,7 +153,7 @@ export function taxCategoryOptionLabel(
   t: (key: string) => string,
 ): string {
   const key = (category.key || '').trim();
-  const name = (category.name || '').trim() || key;
+  const name = taxCategoryDisplayName(category) || key;
   const rate = rates.get(key);
   if (!rate) return name;
   if (rate.exempt) {

@@ -1368,3 +1368,89 @@ describe('el modal de recuento dice POR QUÉ el botón está en gris (inventory#
     }
   });
 });
+
+// ── inventory#64 ────────────────────────────────────────────────────────────────────────────────
+// El selector de categoría fiscal enseñaba el inglés del seed («Product — reduced (food staples,
+// pharmacy)») en un hub en español. No porque faltara traducción: `taxes` ≥ 2.3.8 la sirve POR EL
+// CONTRATO (`taxes.categories.list` → `display_name`, ya resuelto al idioma del hub, taxes#38/#40) y
+// este módulo no la leía. Se comprueba sobre lo que se PINTA, no sobre el fuente.
+describe('el selector de categoría fiscal enseña la etiqueta traducida (inventory#64)', () => {
+  /** Lo que `taxes` ≥ 2.3.8 devuelve en un hub español: el seed en inglés + su etiqueta. */
+  const CANONICA = {
+    id: 't1', key: 'product.reduced',
+    name: 'Product — reduced (food staples, pharmacy)',
+    display_name: 'Producto — reducido (alimentación, farmacia)',
+  };
+  /** La que creó el dueño: `taxes` la devuelve con su propio texto, sin traducir. Y así se queda. */
+  const DEL_DUENO = { id: 't2', key: 'salon.tinte', name: 'Tintes de la casa', display_name: 'Tintes de la casa' };
+
+  /** Sustituye el catálogo fiscal del doble y anota con qué parámetros se pidió. */
+  function conCatalogo(cats: Record<string, unknown>[]) {
+    const llamadas: { name: string; params?: Record<string, unknown> }[] = [];
+    const sdk = (globalThis as Record<string, any>).erplora;
+    sdk.queryAll = async (name: string, params?: Record<string, unknown>) => {
+      llamadas.push({ name, params });
+      return name === 'taxes.categories.list' ? cats : [];
+    };
+    return llamadas;
+  }
+
+  /** Texto de todas las opciones del formulario (el `<ion-select>` vive en el slot `create`). */
+  function opciones(el: HTMLElement): string[] {
+    return [...(el.shadowRoot?.querySelectorAll('ion-select-option') ?? [])].map(
+      (o) => (o.textContent ?? '').trim(),
+    );
+  }
+
+  it('canónica: pinta «Producto — reducido…», no «Product — reduced…»', async () => {
+    conCatalogo([CANONICA]);
+    const el = await montar();
+    const texto = opciones(el).join(' | ');
+    expect(texto).toContain('Producto — reducido (alimentación, farmacia)');
+    expect(texto, 'el inglés del seed no puede llegar a la pantalla').not.toContain('Product — reduced');
+  });
+
+  it('la del dueño sale tal cual la escribió (esa no se traduce)', async () => {
+    conCatalogo([DEL_DUENO]);
+    const el = await montar();
+    expect(opciones(el).join(' | ')).toContain('Tintes de la casa');
+  });
+
+  it('`taxes` viejo, sin la columna: sigue saliendo `name` — nadie ve una opción muda', async () => {
+    conCatalogo([{ id: 't1', key: 'product.reduced', name: 'Product — reduced (food staples, pharmacy)' }]);
+    const el = await montar();
+    expect(opciones(el).join(' | ')).toContain('Product — reduced (food staples, pharmacy)');
+  });
+
+  it('pide el catálogo ordenado por lo que se ENSEÑA, no por el inglés del seed', async () => {
+    const llamadas = conCatalogo([CANONICA]);
+    await montar();
+    const cat = llamadas.find((l) => l.name === 'taxes.categories.list');
+    expect(cat, 'el selector carga el catálogo por queryAll').toBeTruthy();
+    expect(cat!.params?.sort).toBe('display_name');
+  });
+
+  it('el modal del importador CSV usa la MISMA etiqueta que el alta', async () => {
+    conCatalogo([CANONICA]);
+    const el = await montar();
+    const wc = el as unknown as {
+      importUnresolved: string[];
+      importChoice: Record<string, unknown>;
+      importOpen: boolean;
+      updateComplete: Promise<unknown>;
+    };
+    wc.importUnresolved = ['comida'];
+    wc.importChoice = { comida: { mode: 'pick', key: '', newKey: '', newName: 'comida' } };
+    wc.importOpen = true;
+    await wc.updateComplete;
+    // Hay varios `ion-modal` en la plantilla: el del importador es el que lleva ESE título.
+    const modal = [...(el.shadowRoot?.querySelectorAll('ion-modal') ?? [])].find(
+      (m) => m.querySelector('ion-title')?.textContent?.trim() === 'ui.importTaxTitle',
+    );
+    expect(modal, 'el modal del importador está en la plantilla').toBeTruthy();
+    const texto = [...(modal?.querySelectorAll('ion-select-option') ?? [])]
+      .map((o) => (o.textContent ?? '').trim()).join(' | ');
+    expect(texto).toContain('Producto — reducido (alimentación, farmacia)');
+    expect(texto).not.toContain('Product — reduced');
+  });
+});

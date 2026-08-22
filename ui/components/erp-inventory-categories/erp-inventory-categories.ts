@@ -1,6 +1,7 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { state } from 'lit/decorators.js';
 import { resolveTaxCategories, pickTaxValue, normalizeAlias } from '../../lib/tax-resolve';
+import { taxCategoryDisplayName } from '../../lib/tax-category-option';
 // Catálogo i18n del módulo (ADR-0055): esbuild inlinea estos JSON en el dist del WC.
 import esLocale from '../../../locales/es.json';
 import enLocale from '../../../locales/en.json';
@@ -38,11 +39,14 @@ interface Category {
   tax_category_key: string | null;
 }
 
-// Fila de `taxes.categories.list` (la CATEGORÍA fiscal es lo enlazable, ADR-0085).
+// Fila de `taxes.categories.list` (la CATEGORÍA fiscal es lo enlazable, ADR-0085). `display_name` es
+// la etiqueta ya resuelta al idioma del hub por `taxes` (taxes#38): se pinta esa, se guarda la
+// `key` (inventory#64).
 interface TaxCategory {
   id: string;
   key: string;
   name: string;
+  display_name?: string;
   is_system?: number;
 }
 
@@ -133,18 +137,23 @@ export class ErpInventoryCategories extends LitElement {
   // y el alta sigue funcionando (tax_category_key = null = tipo por defecto del hub).
   private async loadTaxRates(): Promise<void> {
     try {
-      this.taxRates = await erplora().queryAll<TaxCategory>('taxes.categories.list', { sort: 'name', dir: 'asc' });
+      // Por `display_name`: se ordena por lo que el usuario LEE, no por el inglés del seed
+      // (inventory#64). `taxes` acepta esa columna en la whitelist de `sort` de su query.
+      this.taxRates = await erplora().queryAll<TaxCategory>('taxes.categories.list', { sort: 'display_name', dir: 'asc' });
     } catch {
       this.taxRates = [];
     }
   }
 
   // Opciones del ion-select: "— (sin categoría)" (valor '') + una categoría por fila (value = key).
+  // El texto es `display_name` —la etiqueta que `taxes` ya devuelve en el idioma del hub— con `name`
+  // de reserva para un hub con `taxes` anterior a la 2.3.8 (inventory#64). Nunca al revés: preferir
+  // `name` sería enseñar el inglés del seed teniendo la traducción delante.
   private taxOptions() {
     return html`
       <ion-select-option value="">${erplora().t(CATALOG, 'ui.taxDefault')}</ion-select-option>
       ${this.taxRates.map(
-        (c) => html`<ion-select-option .value=${c.key}>${c.name} (${c.key})</ion-select-option>`,
+        (c) => html`<ion-select-option .value=${c.key}>${taxCategoryDisplayName(c) || c.key} (${c.key})</ion-select-option>`,
       )}
     `;
   }
