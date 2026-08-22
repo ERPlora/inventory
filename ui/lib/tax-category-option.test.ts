@@ -138,3 +138,67 @@ describe('el % se TRAE de taxes, no se recalcula (inventory#58)', () => {
     expect(rates.size).toBe(0);
   });
 });
+
+// ── inventory#64 ────────────────────────────────────────────────────────────────────────────────
+// Lo que la cabecera de arriba daba por imposible («la traducción del nombre se queda donde está su
+// dueño y se pide allí») YA ESTÁ PEDIDO Y SERVIDO: taxes#38 sacó la etiqueta del Web Component de
+// `taxes` y la puso EN EL CONTRATO — `taxes.categories.list` proyecta `display_name`, ya resuelto al
+// idioma de quien pregunta contra UNA lista (`taxes_category_label`). Sigue sin haber una segunda
+// tabla de claves en este repo: se lee otra columna, que es exactamente la composición por
+// contratos de ADR-0043.
+describe('la etiqueta lee `display_name`, la que ya viene traducida (inventory#64)', () => {
+  it('canónica: pinta la etiqueta del contrato, NO el inglés del seed', () => {
+    const label = taxCategoryOptionLabel(
+      { key: 'product.generic', name: 'Product — generic', display_name: 'Producto — general' },
+      RATES,
+      es,
+    );
+    expect(label).toBe('Producto — general · 21 %');
+    // Ojo con el control: «Producto» CONTIENE «Product». Se comprueba el literal del seed entero.
+    expect(label, 'el inglés del seed no puede colarse teniendo traducción')
+      .not.toContain('Product — generic');
+  });
+
+  it('la que creó el dueño sale TAL CUAL la escribió: esa no se traduce', () => {
+    // `taxes` no tiene fila en `taxes_category_label` para una categoría del cliente, así que su
+    // propio SQL devuelve `display_name = name`. Aquí no hay nada que decidir: se pinta lo suyo.
+    expect(taxCategoryOptionLabel(
+      { key: 'salon.tinte', name: 'Tintes de la casa', display_name: 'Tintes de la casa' },
+      RATES,
+      es,
+    )).toBe('Tintes de la casa');
+  });
+
+  it('`taxes` anterior a 2.3.8 (sin la columna): cae a `name` — degradar al inglés es lo de hoy', () => {
+    expect(taxCategoryOptionLabel(
+      { key: 'product.generic', name: 'Product — generic' }, RATES, es,
+    )).toBe('Product — generic · 21 %');
+  });
+
+  it('nunca al revés: teniendo `display_name`, `name` NO gana', () => {
+    for (const cat of [
+      { key: 'product.reduced', name: 'Product — reduced', display_name: 'Producto — reducido' },
+      { key: 'service.health', name: 'Service — healthcare', display_name: 'Servicio — sanitario' },
+    ]) {
+      expect(taxCategoryOptionLabel(cat, RATES, es)).toContain(cat.display_name);
+      expect(taxCategoryOptionLabel(cat, RATES, es)).not.toContain(cat.name);
+    }
+  });
+
+  it('un `display_name` en blanco no deja la opción muda: cae a `name`, y sin él a la clave', () => {
+    expect(taxCategoryOptionLabel(
+      { key: 'product.generic', name: 'Generic', display_name: '   ' }, new Map(), es,
+    )).toBe('Generic');
+    expect(taxCategoryOptionLabel(
+      { key: 'product.generic', name: '', display_name: '' }, new Map(), es,
+    )).toBe('product.generic');
+  });
+
+  it('el % y el «exento» de inventory#58 siguen intactos sobre la etiqueta traducida', () => {
+    expect(taxCategoryOptionLabel(
+      { key: 'service.health', name: 'Service — healthcare', display_name: 'Servicio — sanitario' },
+      RATES,
+      es,
+    )).toBe('Servicio — sanitario · exento');
+  });
+});

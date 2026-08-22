@@ -1336,6 +1336,51 @@ async function createCategoryWithAlias(client, key, name, aliasText) {
   return key;
 }
 
+// modules/inventory/ui/lib/tax-category-option.ts
+function isRoot(r6) {
+  return r6.parent_id == null || String(r6.parent_id) === "";
+}
+function rowsOf(r6) {
+  if (Array.isArray(r6)) return r6;
+  if (r6 && typeof r6 === "object" && Array.isArray(r6.rows)) {
+    return r6.rows;
+  }
+  return [];
+}
+async function loadTaxRates(client) {
+  const out = /* @__PURE__ */ new Map();
+  try {
+    const all = rowsOf(await client.queryAll("taxes.rules.list"));
+    const rootByCat = /* @__PURE__ */ new Map();
+    for (const r6 of all) {
+      if (!r6 || !r6.tax_category_key || !isRoot(r6)) continue;
+      const cat = String(r6.tax_category_key);
+      const cur = rootByCat.get(cat);
+      if (!cur || String(r6.valid_from ?? "") > String(cur.valid_from ?? "")) rootByCat.set(cat, r6);
+    }
+    for (const [cat, root] of rootByCat) {
+      const cls = String(root.operation_class ?? "") || "subject";
+      out.set(cat, { pct: Number(root.rate_pct) || 0, exempt: cls !== "subject" });
+    }
+  } catch {
+  }
+  return out;
+}
+function taxCategoryDisplayName(category) {
+  return (category.display_name || "").trim() || (category.name || "").trim();
+}
+function taxCategoryOptionLabel(category, rates, t5) {
+  const key = (category.key || "").trim();
+  const name = taxCategoryDisplayName(category) || key;
+  const rate = rates.get(key);
+  if (!rate) return name;
+  if (rate.exempt) {
+    const label = t5("ui.taxExempt");
+    return label && label !== "ui.taxExempt" ? `${name} \xB7 ${label}` : name;
+  }
+  return `${name} \xB7 ${rate.pct} %`;
+}
+
 // modules/inventory/locales/es.json
 var es_default = {
   name: "Inventario",
@@ -2219,12 +2264,53 @@ var o6 = e4(class extends i4 {
 
 // ../outfitkit/dist/ok-data-table.js
 var CSV_BOM = "\uFEFF";
+var WINDOWS_1252_C1 = [
+  8364,
+  129,
+  8218,
+  402,
+  8222,
+  8230,
+  8224,
+  8225,
+  710,
+  8240,
+  352,
+  8249,
+  338,
+  141,
+  381,
+  143,
+  144,
+  8216,
+  8217,
+  8220,
+  8221,
+  8226,
+  8211,
+  8212,
+  732,
+  8482,
+  353,
+  8250,
+  339,
+  157,
+  382,
+  376
+];
+function decodeWindows1252(bytes) {
+  let text = "";
+  for (const byte of bytes) {
+    text += String.fromCharCode(byte >= 128 && byte <= 159 ? WINDOWS_1252_C1[byte - 128] : byte);
+  }
+  return text;
+}
 function decodeCsvBuffer(buf) {
   let text;
   try {
     text = new TextDecoder("utf-8", { fatal: true }).decode(buf);
   } catch {
-    text = new TextDecoder("windows-1252").decode(buf);
+    text = decodeWindows1252(new Uint8Array(buf));
   }
   return text.charCodeAt(0) === 65279 ? text.slice(1) : text;
 }
@@ -3922,17 +4008,20 @@ var ErpInventoryCategories = class extends i3 {
   // y el alta sigue funcionando (tax_category_key = null = tipo por defecto del hub).
   async loadTaxRates() {
     try {
-      this.taxRates = await erplora().queryAll("taxes.categories.list", { sort: "name", dir: "asc" });
+      this.taxRates = await erplora().queryAll("taxes.categories.list", { sort: "display_name", dir: "asc" });
     } catch {
       this.taxRates = [];
     }
   }
   // Opciones del ion-select: "— (sin categoría)" (valor '') + una categoría por fila (value = key).
+  // El texto es `display_name` —la etiqueta que `taxes` ya devuelve en el idioma del hub— con `name`
+  // de reserva para un hub con `taxes` anterior a la 2.3.8 (inventory#64). Nunca al revés: preferir
+  // `name` sería enseñar el inglés del seed teniendo la traducción delante.
   taxOptions() {
     return b2`
       <ion-select-option value="">${erplora().t(CATALOG, "ui.taxDefault")}</ion-select-option>
       ${this.taxRates.map(
-      (c5) => b2`<ion-select-option .value=${c5.key}>${c5.name} (${c5.key})</ion-select-option>`
+      (c5) => b2`<ion-select-option .value=${c5.key}>${taxCategoryDisplayName(c5) || c5.key} (${c5.key})</ion-select-option>`
     )}
     `;
   }
@@ -4063,12 +4152,15 @@ var ErpInventoryCategories = class extends i3 {
         ${this.formError ? b2`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.formError}</ok-inline-feedback>` : A}
         ${this.ctrl?.error ? b2`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : A}
 
+        <!-- The «Edit» button is not the only door: rowClickable makes the whole row open the
+             same edit panel (outfitkit#67 — the actions column can be off-screen at 1440 px). -->
         <ok-data-table
           .serverSide=${true}
           .fill=${true}
           .labels=${dataTableLabels(erplora().locale)}
           .columns=${this.columns}
           .actions=${this.actions}
+          .rowClickable=${true}
           .addable=${can("inventory.add_category")}
           .views=${true}
           .cardTitle=${(row) => String(row.name ?? "")}
@@ -4078,6 +4170,7 @@ var ErpInventoryCategories = class extends i3 {
           .csvName=${"inventory-categories.csv"}
           @csvImport=${(e5) => this.onCsvImport(e5)}
           @rowAction=${(e5) => this.onRowAction(e5)}
+          @rowClick=${(e5) => this.onRowAction({ detail: { actionId: "edit", row: e5.detail.row } })}
           .rows=${this.ctrl?.rows ?? []}
           .total=${this.ctrl?.total ?? 0}
           .page=${this.ctrl?.state.page ?? 0}
@@ -4810,48 +4903,6 @@ async function printBarcodeLabel(label, deps = {}) {
   }
   window.print();
   return { ok: true, via: "browser" };
-}
-
-// modules/inventory/ui/lib/tax-category-option.ts
-function isRoot(r6) {
-  return r6.parent_id == null || String(r6.parent_id) === "";
-}
-function rowsOf(r6) {
-  if (Array.isArray(r6)) return r6;
-  if (r6 && typeof r6 === "object" && Array.isArray(r6.rows)) {
-    return r6.rows;
-  }
-  return [];
-}
-async function loadTaxRates(client) {
-  const out = /* @__PURE__ */ new Map();
-  try {
-    const all = rowsOf(await client.queryAll("taxes.rules.list"));
-    const rootByCat = /* @__PURE__ */ new Map();
-    for (const r6 of all) {
-      if (!r6 || !r6.tax_category_key || !isRoot(r6)) continue;
-      const cat = String(r6.tax_category_key);
-      const cur = rootByCat.get(cat);
-      if (!cur || String(r6.valid_from ?? "") > String(cur.valid_from ?? "")) rootByCat.set(cat, r6);
-    }
-    for (const [cat, root] of rootByCat) {
-      const cls = String(root.operation_class ?? "") || "subject";
-      out.set(cat, { pct: Number(root.rate_pct) || 0, exempt: cls !== "subject" });
-    }
-  } catch {
-  }
-  return out;
-}
-function taxCategoryOptionLabel(category, rates, t5) {
-  const key = (category.key || "").trim();
-  const name = (category.name || "").trim() || key;
-  const rate = rates.get(key);
-  if (!rate) return name;
-  if (rate.exempt) {
-    const label = t5("ui.taxExempt");
-    return label && label !== "ui.taxExempt" ? `${name} \xB7 ${label}` : name;
-  }
-  return `${name} \xB7 ${rate.pct} %`;
 }
 
 // modules/inventory/ui/components/erp-inventory-products/erp-inventory-products.ts
@@ -5598,7 +5649,7 @@ var ErpInventoryProducts = class extends i3 {
   // guardar un producto que nadie podrá cobrar. El % lo resuelve `taxes` por país+categoría.
   async loadTaxCategories() {
     try {
-      const res = await erplora4().queryAll("taxes.categories.list", { sort: "name", dir: "asc" });
+      const res = await erplora4().queryAll("taxes.categories.list", { sort: "display_name", dir: "asc" });
       this.taxCategories = Array.isArray(res) ? res : [];
     } catch {
       this.taxCategories = [];
@@ -5826,12 +5877,15 @@ var ErpInventoryProducts = class extends i3 {
               <ion-button size="small" fill="clear" @click=${() => this.cancelImport()}>${erplora4().t(CATALOG4, "ui.importStop")}</ion-button>
             </ok-inline-feedback>` : A}
 
+        <!-- The «detail» button is not the only door: rowClickable makes the whole row open the
+             same detail modal (outfitkit#67 — the actions column can be off-screen at 1440 px). -->
         <ok-data-table
           .serverSide=${true}
           .fill=${true}
           .labels=${dataTableLabels(erplora4().locale)}
           .columns=${this.columns}
           .actions=${this.actions}
+          .rowClickable=${true}
           .addable=${can2("inventory.add_product")}
           .views=${true}
           .cardTitle=${(row) => String(row.name ?? row.sku ?? "")}
@@ -5841,6 +5895,7 @@ var ErpInventoryProducts = class extends i3 {
           .csvName=${"inventory-products.csv"}
           @csvImport=${(e5) => this.onCsvImport(e5)}
           @rowAction=${(e5) => this.onRowAction(e5)}
+          @rowClick=${(e5) => this.onRowAction({ detail: { actionId: "detail", row: e5.detail.row } })}
           .rows=${this.ctrl?.rows ?? []}
           .total=${this.ctrl?.total ?? 0}
           .page=${this.ctrl?.state.page ?? 0}
