@@ -90,10 +90,13 @@ function statusOf(row: Record<string, unknown>): 'active' | 'inactive' | typeof 
 
 // Fila de `taxes.categories.list` (la CATEGORÍA fiscal es lo enlazable, ADR-0085). El selector del
 // formulario y el modal del importador eligen una `key` canónica; el % lo resuelve `taxes` por país.
+// `display_name` es la etiqueta ya traducida al idioma del hub (taxes#38): se PINTA esa y se GUARDA
+// la `key`, que es lo que no cambia (inventory#64).
 interface TaxCategory {
   id: string;
   key: string;
   name: string;
+  display_name?: string;
   is_system?: number;
 }
 
@@ -1001,7 +1004,11 @@ export class ErpInventoryProducts extends LitElement {
   // guardar un producto que nadie podrá cobrar. El % lo resuelve `taxes` por país+categoría.
   private async loadTaxCategories(): Promise<void> {
     try {
-      const res = await erplora().queryAll<TaxCategory>('taxes.categories.list', { sort: 'name', dir: 'asc' });
+      // Ordenado por `display_name`, que es lo que se LEE en el desplegable: ordenar por `name`
+      // dejaba la lista alfabetizada en inglés y pintada en español (inventory#64). `taxes` admite
+      // esa columna en su whitelist de `sort`; si algún día no la admitiera, la query falla y el
+      // catch de abajo deja el catálogo vacío — que es la misma degradación de siempre.
+      const res = await erplora().queryAll<TaxCategory>('taxes.categories.list', { sort: 'display_name', dir: 'asc' });
       // `Array.isArray`, no `?? []`: si esto NO es una lista, `.map()` peta EN EL RENDER y se lleva
       // por delante la página de productos entera — por un desplegable de IVA. El alta de productos
       // no puede depender de que `taxes` conteste bien.
@@ -1265,12 +1272,15 @@ export class ErpInventoryProducts extends LitElement {
             </ok-inline-feedback>`
           : nothing}
 
+        <!-- The «detail» button is not the only door: rowClickable makes the whole row open the
+             same detail modal (outfitkit#67 — the actions column can be off-screen at 1440 px). -->
         <ok-data-table
           .serverSide=${true}
           .fill=${true}
           .labels=${dataTableLabels(erplora().locale)}
           .columns=${this.columns}
           .actions=${this.actions}
+          .rowClickable=${true}
           .addable=${can('inventory.add_product')}
           .views=${true}
           .cardTitle=${(row: Record<string, unknown>) => String(row.name ?? row.sku ?? '')}
@@ -1280,6 +1290,7 @@ export class ErpInventoryProducts extends LitElement {
           .csvName=${'inventory-products.csv'}
           @csvImport=${(e: CustomEvent<{ rows: Record<string, string>[] }>) => this.onCsvImport(e)}
           @rowAction=${(e: CustomEvent<{ actionId: string; row: Record<string, unknown> }>) => this.onRowAction(e)}
+          @rowClick=${(e: CustomEvent<{ row: Record<string, unknown> }>) => this.onRowAction({ detail: { actionId: 'detail', row: e.detail.row } } as CustomEvent<{ actionId: string; row: Record<string, unknown> }>)}
           .rows=${this.ctrl?.rows ?? []}
           .total=${this.ctrl?.total ?? 0}
           .page=${this.ctrl?.state.page ?? 0}
