@@ -591,7 +591,7 @@
         "function": "decrease_on_sale"
       },
       "ai": {
-        "description": "Automatically decreases stock of sold products when a sale is completed — only for the articles that track stock (per-product `track_stock`, inventory#48; NULL follows the hub setting). Emits `inventory.low_stock_crossed` per article whose aggregated decrease crosses its threshold (#47)."
+        "description": "Automatically decreases stock of sold products when a sale is completed — only for the articles that track stock (per-product `track_stock`, inventory#48; NULL follows the hub setting). A COMPOSED line (a menu, a pack: one carrying `components[]`) has no stock of its own: it decreases each component instead and never itself (inventory#69, ADR-0381). Emits `inventory.low_stock_crossed` per article whose aggregated decrease crosses its threshold (#47) — an article sold loose and inside a menu aggregates once."
       },
       "reads": [
         "inventory.settings.get",

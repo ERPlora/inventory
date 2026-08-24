@@ -56,9 +56,12 @@ that pointer on every save.
 **`sales` is optional but expected.** Without it nothing emits `sale.completed`, so stock never moves
 by itself; you would have to count or receive manually. With it installed:
 
-- a completed sale decreases the stock of its physical lines;
+- a completed sale decreases the stock of its physical lines, and of the **components** of any
+  composed line (a menu, a pack), never of the composed article itself;
 - a voided sale puts those units back, once and only once — a repeated `sale.voided` delivery cannot
-  double-restock, because the module keeps a marker per voided sale.
+  double-restock, because the module keeps a marker per voided sale. What comes back is read from
+  this module's own movement ledger, so it is exactly what left: a decrease that was rejected for
+  insufficient stock gives nothing back, because nothing was ever taken out.
 
 Service lines and lines without a product are skipped in both directions.
 
@@ -66,7 +69,8 @@ Service lines and lines without a product are skipped in both directions.
 
 **"I sold something and the stock did not move."** Check, in this order: is **Track stock** on? Is
 the product `physical` and not a `service`? Does the sale line actually carry a product (a free-price
-line does not)? Is `sales` installed?
+line does not)? Is `sales` installed? If what you sold was a **menu or a pack**, look at its
+components: they are the ones that move, and one of them may have *Track stock* switched off.
 
 **"The stock went negative."** **Allow selling without stock** is on. That is the setting working as
 designed. Turn it off if you want sales blocked instead.

@@ -1,41 +1,57 @@
--- Restitución de stock al ANULAR una venta (listener de `sale.voided`, ADR-0073) — HOJA 1/3.
--- inventory#28/QA-PG: cada fichero del `sql[]` del command se ejecuta como UN prepared
--- statement (`cmd.sql.iter()` → una op por hoja, todas en la MISMA transacción). Postgres
--- RECHAZA meter varias sentencias en un solo prepared statement ("cannot insert multiple
--- commands into a prepared statement"); SQLite lo toleraba, por eso el bug solo se veía en
--- Hub Cloud y difería toda la entrega de `sale.voided` (ni reposición ni extorno de caja).
--- La restitución va troceada en 3 hojas single-statement, en este ORDEN (importa):
---   1) este movimiento del ledger, 2) el UPDATE de stock, 3) el marcador de idempotencia.
+-- Stock restitution when a sale is VOIDED (listener of `sale.voided`, ADR-0073) — SHEET 1/3.
+-- inventory#28/QA-PG: each file of the command's `sql[]` runs as ONE prepared statement
+-- (`cmd.sql.iter()` -> one op per sheet, all in the SAME transaction). Postgres REFUSES several
+-- commands in a single prepared statement ("cannot insert multiple commands into a prepared
+-- statement"), SQLite tolerated it, and that is why the bug only showed in Hub Cloud and deferred
+-- the whole delivery of `sale.voided` (neither restock nor cash extornment). The restitution is
+-- split into 3 single-statement sheets, in this ORDER (it matters):
+--   1) this ledger movement, 2) the stock UPDATE, 3) the idempotency marker.
 --
--- Movimiento `void` por producto restituido (inventory#7): id DETERMINISTA
--- `<sale_id>:void:<product_id>` (idempotente por PK ante reentregas, además del marcador).
--- Se inserta ANTES del UPDATE para capturar el saldo PREVIO (`p.stock + SUM`), con las
--- MISMAS condiciones que el UPDATE (incluido el marcador `inventory_void_restock`).
+-- 🔴 THE SOURCE IS THE LEDGER, NOT THE SALE LINES (inventory#69, ADR-0381). Until now both sheets
+-- re-derived the restitution from `sales_sale_item`, and that was wrong in two ways:
+--   * A COMBO has no stock of its own -- a menú del día is one line whose components live in the
+--     line's SNAPSHOT, not in rows. Reading the lines gave back the combo (not an article, so
+--     nothing) and left every component short. The stock is moved by the components, so the stock
+--     is given back by the components.
+--   * It gave back what the sale SAID, not what actually left. A decrease rejected for
+--     insufficient stock (`allow_sell_without_stock = 0`, 0 rows, no movement) was restocked
+--     anyway on the void, INVENTING stock that never existed. The ledger cannot lie about that:
+--     `_decrease_stock` writes movement and UPDATE in one atomic statement, so a row here means
+--     the stock really left.
+-- It also drops inventory's last SQL reach into a `sales` table, which is the modularity the
+-- module contract asks for: what a void reverses is this module's own book.
 --
--- inventory#48: SOLO se restituyen las líneas cuyo producto controla stock (flag por artículo,
--- NULL = hereda el ajuste del hub): un artículo sin control nunca descontó, así que no hay nada
--- que devolver — misma guarda que `_decrease_stock`, y la misma en la hoja 2/3.
--- Runtime inyecta :hub_id, :current_user_id, :now; :sale_id viene del evento.
+-- Reversal of the `sale` movements of this sale: one `void` movement per product, with a
+-- DETERMINISTIC id `<sale_id>:void:<product_id>` (idempotent by PK against re-deliveries, on top
+-- of the marker). Inserted BEFORE the UPDATE to capture the PREVIOUS balance (`p.stock + SUM`),
+-- with the SAME conditions as the UPDATE (marker included). `qty` of a `sale` movement is
+-- negative, so what comes back is `SUM(-qty)`, in 10⁶ fixed point (ADR-0147).
+--
+-- No per-article `track_stock` guard here on purpose (ADR-0368): the flag decided at SALE time and
+-- the ledger recorded the outcome. An article that did not track has no `sale` movement and gets
+-- nothing back -- while re-reading today's flag would refuse to return stock that did leave, just
+-- because the shop changed the setting in between.
+-- Runtime injects :hub_id, :current_user_id, :now; :sale_id comes from the event.
 INSERT INTO inventory_stock_movement
     (id, hub_id, location_id, product_id, movement_type, qty, stock_after,
      reference, is_deleted, created_by, created_at)
-SELECT :sale_id || ':void:' || li.product_id, :hub_id,
+SELECT :sale_id || ':void:' || m.product_id, :hub_id,
        :hub_id || ':default',
-       li.product_id, 'void',
-       SUM(li.quantity), p.stock + SUM(li.quantity),
+       m.product_id, 'void',
+       SUM(-m.qty), p.stock + SUM(-m.qty),
        :sale_id, 0, :current_user_id, :now
-FROM sales_sale_item li
+FROM inventory_stock_movement m
 JOIN inventory_product p
-  ON p.id = li.product_id AND p.hub_id = li.hub_id
-WHERE li.sale_id = :sale_id AND li.hub_id = :hub_id
-  AND li.is_service = 0 AND li.product_id IS NOT NULL
-  AND p.is_deleted = 0 AND p.product_type != 'service'
-  AND COALESCE(p.track_stock,
-               (SELECT s.track_stock FROM inventory_settings s
-                WHERE s.hub_id = :hub_id AND s.is_deleted = 0), 1) = 1
+  ON p.id = m.product_id AND p.hub_id = m.hub_id
+WHERE m.hub_id = :hub_id
+  AND m.reference = :sale_id
+  AND m.movement_type = 'sale'
+  AND m.is_deleted = 0
+  AND p.is_deleted = 0
   AND NOT EXISTS (
-      SELECT 1 FROM inventory_void_restock m
-      WHERE m.hub_id = :hub_id AND m.sale_id = :sale_id
+      SELECT 1 FROM inventory_void_restock v
+      WHERE v.hub_id = :hub_id AND v.sale_id = :sale_id
   )
-GROUP BY li.product_id, p.id, p.stock
+GROUP BY m.product_id, p.id, p.stock
+HAVING SUM(-m.qty) > 0
 ON CONFLICT (id) DO NOTHING;
