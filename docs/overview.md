@@ -64,8 +64,8 @@ missed `recovered` only means the next sale below the threshold announces `below
 
 | Event | Runs | Effect |
 |---|---|---|
-| `sale.completed` (from `sales`) | `inventory.stock.decrease_on_sale` | Decreases the stock of every sold physical line |
-| `sale.voided` (from `sales`) | `inventory._restock_on_void` | Puts the units of a voided sale back into stock |
+| `sale.completed` (from `sales`) | `inventory.stock.decrease_on_sale` | Decreases the stock of every sold physical line — and, for a **composed** line (a menu, a pack), of each of its components instead of the line itself |
+| `sale.voided` (from `sales`) | `inventory._restock_on_void` | Gives back exactly what the sale took out, read from this module's own movement ledger |
 
 **Consumed by `sales`** — `sales` reads `inventory.products.for_sale` to price sale lines
 server-side. That query is deliberately not paginated: a paginated read would silently hand back only

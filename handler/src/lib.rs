@@ -387,6 +387,53 @@ fn context_now(input: &Value) -> Value {
     input.get("context").and_then(|c| c.get("now")).cloned().unwrap_or(Value::Null)
 }
 
+/// The stock-moving units of a sale line (inventory#69, ADR-0381).
+///
+/// A line usually moves its OWN stock. A **composed** line — a menú del día, a pack, any article
+/// sold at a closed price that is made of others — has **no stock of its own**: what it moves is
+/// each chosen component. So a line that carries a non-empty `components[]` hands its stock over
+/// to them and moves nothing itself. That is unanimous in the market (Odoo phantom-BoM kit,
+/// Shopify Bundles, WooCommerce Product Bundles, Square, Holded, NetSuite kit) and it is the
+/// frontier that separates `combos` from `modifiers`, whose rule 1 says a modifier has no stock.
+///
+/// 🔴 The combo must never appear in a movement, not even a harmless-looking one: its id is not an
+/// article, so `_decrease_stock` would match no row and answer `ok`. A mute movement is the worst
+/// outcome available — the business reads "stock unchanged" and keeps selling what it has not got.
+///
+/// `inventory` does NOT learn what a combo is. `combos` is not in `depends_on` and never will be:
+/// its reference to the article is opaque by design (`source`/`source_ref`, no FK). What arrives
+/// here is a generic shape whose entries carry the very same fields a line already carries
+/// (`product_id`, `quantity`, `is_service`), so the same door decides all of them — the per-article
+/// `track_stock` of ADR-0368 included.
+///
+/// ⚠️ **`components[].quantity` is ABSOLUTE and in 10⁶ fixed point** (ADR-0147), exactly like the
+/// `quantity` of the line it hangs from: it is the quantity of that component sold in THIS line,
+/// with the line's own multiplier already applied by `sales` (the module that owns the sale's
+/// arithmetic). Reading it as "per unit of combo" would silently decrease one portion where three
+/// were served, and the same payload would then mean two different things at two nesting levels —
+/// which is the shape of the 10⁶ incident that left four official templates at 0,0001 units.
+fn stock_units(item: &Value) -> Vec<&Value> {
+    match item.get("components").and_then(|v| v.as_array()) {
+        Some(components) if !components.is_empty() => components.iter().collect(),
+        // Absent OR empty: a plain line, which moves its own stock. An empty array must not be
+        // read as "moves nothing", or the day `sales` emits the key on every line the whole POS
+        // would quietly stop decreasing.
+        _ => vec![item],
+    }
+}
+
+/// `true` when this entry is a service — the flag travels as bool, number or string depending on
+/// who serialized the sale. A service never moves stock, and inside a combo that is the NORMAL
+/// case (a hairdresser's pack), not an error.
+fn is_service_entry(entry: &Value) -> bool {
+    match entry.get("is_service") {
+        Some(Value::Bool(b)) => *b,
+        Some(Value::Number(n)) => n.as_i64().unwrap_or(0) != 0,
+        Some(Value::String(st)) => matches!(st.as_str(), "1" | "true" | "True"),
+        _ => false,
+    }
+}
+
 /// Lógica pura del listener de `sale.completed`: por cada línea con product_id
 /// que NO sea servicio, emite una op `inventory.stock.decrease` (product_id, qty).
 /// El payload del evento (lo emite sales) trae `sale_id` + `items: [{product_id,
@@ -419,8 +466,13 @@ pub fn decrease_on_sale_pure(input: Value) -> Output {
             None => hub_tracks,
         }
     };
-    let any_line_tracks = items.iter().any(|it| {
-        it.get("product_id").map(|id| !id.is_null() && line_tracks(id)).unwrap_or(false)
+    // inventory#69: what moves stock is not the line but its stock-moving units — the line itself,
+    // or its components when it is composed. Everything below iterates THESE, so a combo goes
+    // through exactly the same door as a loose article and never gets one of its own.
+    let units: Vec<&Value> = items.iter().flat_map(stock_units).collect();
+    let any_line_tracks = units.iter().any(|it| {
+        !is_service_entry(it)
+            && it.get("product_id").map(|id| !id.is_null() && line_tracks(id)).unwrap_or(false)
     });
     if !hub_tracks && !any_line_tracks {
         let mut ops: Vec<Operation> = Vec::new();
@@ -439,18 +491,12 @@ pub fn decrease_on_sale_pure(input: Value) -> Output {
     // already validated by `sales` at checkout (frozen context); the authoritative mode guard
     // lives in the SQL WHERE.
     let mut ops: Vec<Operation> = Vec::new();
-    // Total decreased per product (a ticket may carry the same article on several lines): the
-    // crossing (#47) is decided ONCE on the aggregate, not per line.
+    // Total decreased per product (a ticket may carry the same article on several lines, loose AND
+    // inside a menu): the crossing (#47) is decided ONCE on the aggregate, not per line.
     let mut decreased: Vec<(Value, i64)> = Vec::new();
-    for it in items {
-        let is_service = match it.get("is_service") {
-            Some(Value::Bool(b)) => *b,
-            Some(Value::Number(n)) => n.as_i64().unwrap_or(0) != 0,
-            Some(Value::String(st)) => matches!(st.as_str(), "1" | "true" | "True"),
-            _ => false,
-        };
+    for it in units {
         let product_id = it.get("product_id").cloned().unwrap_or(Value::Null);
-        if is_service || product_id.is_null() || !line_tracks(&product_id) {
+        if is_service_entry(it) || product_id.is_null() || !line_tracks(&product_id) {
             continue;
         }
         let qty = as_qty(it.get("quantity").unwrap_or(&Value::Null)); // 10⁶ scale (ADR-0147)
@@ -1407,5 +1453,232 @@ mod tests {
         assert_eq!(out.operations.len(), 1);
         assert_eq!(out.operations[0].params["qty"], json!(1_750_000));
         assert_eq!(out.operations[0].params["reference"], json!("ALB-77"));
+    }
+
+    // ── inventory#69 / ADR-0381: a line with COMPONENTS moves its components, never itself ────
+    //
+    // A combo (menú del día, pack) has NO stock of its own: selling one decreases EACH chosen
+    // component, one by one. It is unanimous in the market — Odoo (BoM phantom kit), Shopify
+    // Bundles, WooCommerce Product Bundles, Square, Holded, NetSuite kit — and it is the frontier
+    // that separates `combos` from `modifiers`, whose rule 1 says a modifier has no stock.
+    //
+    // `inventory` never learns what a combo IS: `combos` is not in `depends_on` and never will be
+    // (its reference to the article is opaque by design). What travels is a GENERIC shape on the
+    // sale line — `components[]`, with the very same fields a line already has — and the rule is
+    // local: a line that carries components hands its stock over to them.
+
+    /// The composed line names a `product_id` that is NOT an article of the catalogue (the combo).
+    /// Its components are. The decrease must land on the components and NEVER on the combo — a
+    /// decrease against the combo id looks harmless (the SQL `WHERE` matches no row) and is the
+    /// worst outcome there is: a mute movement that the business reads as "stock did not change".
+    #[test]
+    fn a_line_with_components_moves_the_components_and_never_itself() {
+        let payload = json!({ "sale_id": "s-c1", "items": [{
+            "product_id": "menu-del-dia",       // the combo: not an inventory article
+            "product_name": "Menú del día",
+            "quantity": 1_000_000,
+            "is_service": false,
+            "components": [
+                { "product_id": "p1", "quantity": 1_000_000, "is_service": false },
+                { "product_id": "p2", "quantity": 1_000_000, "is_service": false },
+                { "product_id": "p3", "quantity": 1_000_000, "is_service": false }
+            ]
+        }]});
+        let rows = levels(json!([
+            { "id": "p1", "stock": 10_000_000, "low_stock_threshold": 0, "track_stock": 1 },
+            { "id": "p2", "stock": 10_000_000, "low_stock_threshold": 0, "track_stock": 1 },
+            { "id": "p3", "stock": 10_000_000, "low_stock_threshold": 0, "track_stock": 1 }
+        ]));
+        let out = decrease_on_sale_pure(sale_levels_input(payload, 1, rows));
+        let decreases: Vec<&Operation> =
+            out.operations.iter().filter(|o| o.command == "inventory._decrease_stock").collect();
+        assert_eq!(decreases.len(), 3, "one ledger movement per component — {:?}", out.operations);
+        let ids: Vec<&Value> = decreases.iter().map(|o| &o.params["product_id"]).collect();
+        assert_eq!(ids, vec![&json!("p1"), &json!("p2"), &json!("p3")]);
+        assert!(
+            decreases.iter().all(|o| o.params["product_id"] != json!("menu-del-dia")),
+            "the combo itself has no stock and must never move any"
+        );
+        for op in &decreases {
+            assert_eq!(op.params["qty"], json!(1_000_000));
+            assert_eq!(op.params["sale_id"], json!("s-c1"), "the ledger references the sale");
+        }
+    }
+
+    /// ADR-0368: tracking is a per-article flag. A component that does not track moves nothing,
+    /// and that is NOT an error — the rest of the menu is decreased as usual.
+    #[test]
+    fn a_component_that_does_not_track_is_skipped_without_breaking_the_sale() {
+        let payload = json!({ "sale_id": "s-c2", "items": [{
+            "product_id": "menu-del-dia",
+            "quantity": 1_000_000,
+            "components": [
+                { "product_id": "p1", "quantity": 1_000_000, "is_service": false },
+                { "product_id": "p-untracked", "quantity": 1_000_000, "is_service": false },
+                { "product_id": "p3", "quantity": 1_000_000, "is_service": false }
+            ]
+        }]});
+        let rows = levels(json!([
+            { "id": "p1", "stock": 10_000_000, "low_stock_threshold": 0, "track_stock": 1 },
+            { "id": "p-untracked", "stock": 0, "low_stock_threshold": 0, "track_stock": 0 },
+            { "id": "p3", "stock": 10_000_000, "low_stock_threshold": 0, "track_stock": 1 }
+        ]));
+        let out = decrease_on_sale_pure(sale_levels_input(payload, 1, rows));
+        let ids: Vec<&Value> = out
+            .operations
+            .iter()
+            .filter(|o| o.command == "inventory._decrease_stock")
+            .map(|o| &o.params["product_id"])
+            .collect();
+        assert_eq!(ids, vec![&json!("p1"), &json!("p3")], "{:?}", out.operations);
+    }
+
+    /// A menu made only of services (the normal case of a hairdresser's pack) touches no stock,
+    /// and does not sow the "this sale moved nothing" marker either while the hub tracks.
+    #[test]
+    fn a_menu_of_only_services_touches_no_stock() {
+        let payload = json!({ "sale_id": "s-c3", "items": [{
+            "product_id": "pack-peluqueria",
+            "quantity": 1_000_000,
+            "components": [
+                { "product_id": "svc-1", "quantity": 1_000_000, "is_service": true },
+                { "product_id": "svc-2", "quantity": 1_000_000, "is_service": true }
+            ]
+        }]});
+        let rows = levels(json!([
+            { "id": "svc-1", "stock": 0, "low_stock_threshold": 0, "track_stock": 0, "product_type": "service" },
+            { "id": "svc-2", "stock": 0, "low_stock_threshold": 0, "track_stock": 0, "product_type": "service" }
+        ]));
+        let out = decrease_on_sale_pure(sale_levels_input(payload, 1, rows));
+        assert!(
+            out.operations.iter().all(|o| o.command != "inventory._decrease_stock"),
+            "{:?}",
+            out.operations
+        );
+        assert!(out.events.is_empty());
+    }
+
+    /// The crossing (#47) is decided ONCE per article on the aggregate: the same coffee sold loose
+    /// AND inside the menu is one article going from 6 to 3, not two half-crossings.
+    #[test]
+    fn components_aggregate_with_the_loose_lines_for_the_crossing() {
+        let payload = json!({ "sale_id": "s-c4", "items": [
+            { "product_id": "p1", "quantity": 2_000_000, "is_service": false },
+            { "product_id": "menu-del-dia", "quantity": 1_000_000, "components": [
+                { "product_id": "p1", "quantity": 1_000_000, "is_service": false }
+            ]}
+        ]});
+        let rows = levels(json!([
+            { "id": "p1", "sku": "CAF", "name": "Coffee", "stock": 6_000_000,
+              "low_stock_threshold": 5_000_000, "track_stock": 1 }
+        ]));
+        let out = decrease_on_sale_pure(sale_levels_input(payload, 1, rows));
+        let x = crossings(&out.events);
+        assert_eq!(x.len(), 1, "one crossing for the aggregate — {:?}", out.events);
+        assert_eq!(x[0].payload["previous_quantity"], json!(6_000_000));
+        assert_eq!(x[0].payload["current_quantity"], json!(3_000_000));
+        assert_eq!(x[0].payload["crossing"], json!("below"));
+    }
+
+    /// ADR-0147: a component quantity is a 10⁶ fixed-point INTEGER and travels AS IS. Half a
+    /// portion is `500000`, never `0.5` — the raw `100` seeded where `100000000` belonged left the
+    /// four official templates with 0,0001 units of stock (inventory#42).
+    #[test]
+    fn component_quantities_travel_in_fixed_point_untouched() {
+        let payload = json!({ "sale_id": "s-c5", "items": [{
+            "product_id": "menu-del-dia",
+            "quantity": 1_000_000,
+            "components": [
+                { "product_id": "p1", "quantity": 500_000, "is_service": false },   // media ración
+                { "product_id": "p2", "quantity": 2_500_000, "is_service": false }
+            ]
+        }]});
+        let rows = levels(json!([
+            { "id": "p1", "stock": 10_000_000, "low_stock_threshold": 0, "track_stock": 1 },
+            { "id": "p2", "stock": 10_000_000, "low_stock_threshold": 0, "track_stock": 1 }
+        ]));
+        let out = decrease_on_sale_pure(sale_levels_input(payload, 1, rows));
+        let qtys: Vec<&Value> = out
+            .operations
+            .iter()
+            .filter(|o| o.command == "inventory._decrease_stock")
+            .map(|o| &o.params["qty"])
+            .collect();
+        assert_eq!(qtys, vec![&json!(500_000), &json!(2_500_000)], "{:?}", out.operations);
+    }
+
+    /// A float inside a component is not rescued either (same boundary rule as a loose line):
+    /// `as_qty(1.0)` is 0, so the component is SKIPPED instead of guessed.
+    #[test]
+    fn a_float_component_quantity_is_not_rescued() {
+        let payload = json!({ "sale_id": "s-c6", "items": [{
+            "product_id": "menu-del-dia",
+            "quantity": 1_000_000,
+            "components": [
+                { "product_id": "p1", "quantity": 1.0, "is_service": false },
+                { "product_id": "p2", "quantity": 1_000_000, "is_service": false }
+            ]
+        }]});
+        let rows = levels(json!([
+            { "id": "p1", "stock": 10_000_000, "low_stock_threshold": 0, "track_stock": 1 },
+            { "id": "p2", "stock": 10_000_000, "low_stock_threshold": 0, "track_stock": 1 }
+        ]));
+        let out = decrease_on_sale_pure(sale_levels_input(payload, 1, rows));
+        let ids: Vec<&Value> = out
+            .operations
+            .iter()
+            .filter(|o| o.command == "inventory._decrease_stock")
+            .map(|o| &o.params["product_id"])
+            .collect();
+        assert_eq!(ids, vec![&json!("p2")], "{:?}", out.operations);
+    }
+
+    /// The hub switch is off but a component opts IN (tri-state, ADR-0210/#48): the menu still
+    /// decreases that component, and the "this sale moved nothing" marker must NOT be sown — a
+    /// later void has something real to give back.
+    #[test]
+    fn a_component_opting_in_beats_the_hub_switch_being_off() {
+        let payload = json!({ "sale_id": "s-c7", "items": [{
+            "product_id": "menu-del-dia",
+            "quantity": 1_000_000,
+            "components": [
+                { "product_id": "p1", "quantity": 1_000_000, "is_service": false }
+            ]
+        }]});
+        let rows = levels(json!([
+            { "id": "p1", "stock": 10_000_000, "low_stock_threshold": 0, "track_stock": 1 }
+        ]));
+        let out = decrease_on_sale_pure(sale_levels_input(payload, 0, rows));
+        assert!(
+            out.operations.iter().any(|o| o.command == "inventory._decrease_stock"),
+            "{:?}",
+            out.operations
+        );
+        assert!(
+            out.operations.iter().all(|o| o.command != "inventory._skip_void_restock"),
+            "the sale DID move stock: a void must restock it — {:?}",
+            out.operations
+        );
+    }
+
+    /// A line whose `components` is present but EMPTY is a plain line, not a combo: it keeps
+    /// moving its own stock. Anything else would silently stop decreasing the day `sales` starts
+    /// emitting the key for every line.
+    #[test]
+    fn an_empty_components_array_leaves_the_line_moving_its_own_stock() {
+        let payload = json!({ "sale_id": "s-c8", "items": [
+            { "product_id": "p1", "quantity": 1_000_000, "is_service": false, "components": [] }
+        ]});
+        let rows = levels(json!([
+            { "id": "p1", "stock": 10_000_000, "low_stock_threshold": 0, "track_stock": 1 }
+        ]));
+        let out = decrease_on_sale_pure(sale_levels_input(payload, 1, rows));
+        let ids: Vec<&Value> = out
+            .operations
+            .iter()
+            .filter(|o| o.command == "inventory._decrease_stock")
+            .map(|o| &o.params["product_id"])
+            .collect();
+        assert_eq!(ids, vec![&json!("p1")], "{:?}", out.operations);
     }
 }

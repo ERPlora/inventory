@@ -296,15 +296,22 @@ def run() -> None:
     print("\n# 4. Void restock restores ONLY the lines whose product tracks")
     clear()
     set_hub_tracking(1)
-    add_product("p-on", track_stock=1, stock=8_000_000)
-    add_product(
-        "p-off", track_stock=0, stock=10_000_000
-    )  # never decreased at sale time
+    add_product("p-on", track_stock=1, stock=10_000_000)
+    add_product("p-off", track_stock=0, stock=10_000_000)
     add_sale_line("l1", "s-3", "p-on", 2_000_000)
     add_sale_line("l2", "s-3", "p-off", 2_000_000)
+    # The sale is ACTUALLY played, not just written down: since inventory#69 the void reverses
+    # THIS module's ledger, not the sale lines, so what comes back is what really left. `p-off`
+    # does not track, so its decrease is a no-op and leaves no movement — and gets nothing back.
+    run_command("inventory._ensure_location")
+    for pid in ("p-on", "p-off"):
+        run_command(
+            "inventory._decrease_stock", product_id=pid, qty=2_000_000, sale_id="s-3"
+        )
+    check("tracked line decreased at sale time", 8_000_000, stock_of("p-on"))
     run_command("inventory._restock_on_void", sale_id="s-3")
     check("tracked line restocked", 10_000_000, stock_of("p-on"))
-    check("tracked line got its `void` movement", 1, movements_of("p-on"))
+    check("tracked line got its `void` movement", 2, movements_of("p-on"))  # sale + void
     check("untracked line NOT restocked (it never left)", 10_000_000, stock_of("p-off"))
     check("untracked line got NO movement", 0, movements_of("p-off"))
     check(

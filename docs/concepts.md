@@ -56,6 +56,24 @@ a void, and never appear in the low-stock list. Services never track.
 - **`service`** — never has stock. A service line in a sale is skipped by the stock decrease, is
   excluded from low-stock reports and contributes nothing to the inventory value. That is not a bug;
   a haircut has no units in the back room.
+- A **composed** line (a menu, a pack) is neither: it hands its stock movement to its components.
+  See *A menu or a pack moves the stock of its parts* above.
+
+## A menu or a pack moves the stock of its parts, never its own
+
+An article sold at a closed price that is made of others — a menú del día, a pack of treatments, a
+"sandwich + drink" deal — has **no stock of its own**. Selling one takes a unit out of **each chosen
+component**, one by one, and voiding the sale puts those same units back. There is no such thing as
+"3 menus left in the back room": what runs out is the chicken or the beer.
+
+That is how Odoo (a phantom-BoM *kit*), Shopify Bundles, WooCommerce Product Bundles, Square, Holded
+and NetSuite all do it, and it is what separates a composed article from a *modifier*: a modifier is
+a label with a price delta and never touches stock, while a component is a real catalogue article.
+
+Each component is decided on its own merits: one that does not track stock moves nothing (and that
+is not an error), a component that is a service moves nothing either — the normal case in a
+hairdresser's pack — and an article sold both loose and inside a menu on the same ticket is added up
+once before deciding whether it crossed its low-stock threshold.
 
 ## Every amount of money is an integer number of cents
 
