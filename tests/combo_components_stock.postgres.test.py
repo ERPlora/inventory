@@ -153,6 +153,18 @@ def movements_of(pid: str, movement_type: str | None = None) -> int:
     return int(scalar(f"SELECT COUNT(*) FROM inventory_stock_movement WHERE {where}"))
 
 
+def movement_row(pid: str, movement_type: str) -> tuple[int, int]:
+    """`qty` and `stock_after` of a product's movement of that type — the ledger is what an
+    inspection reads, so its NUMBERS are contract, not decoration. A void that restores the right
+    balance while booking the wrong amount is a book that does not add up."""
+    row = scalar(
+        f"SELECT qty || ',' || stock_after FROM inventory_stock_movement "
+        f"WHERE product_id = '{pid}' AND movement_type = '{movement_type}'"
+    )
+    qty, after = row.split(",")
+    return int(qty), int(after)
+
+
 def clear() -> None:
     psql(
         [
@@ -242,6 +254,7 @@ def run() -> None:
     for pid in ("primero", "segundo", "postre"):
         check(f"{pid} restored", 10 * UNIT, stock_of(pid))
         check(f"{pid} got its `void` movement", 1, movements_of(pid, "void"))
+        check(f"{pid} books the amount it gave back", (UNIT, 10 * UNIT), movement_row(pid, "void"))
     check(
         "void marker written once",
         "1",
@@ -273,6 +286,11 @@ def run() -> None:
     check("half a portion left", 9_500_000, stock_of("jamon"))
     run_command("inventory._restock_on_void", sale_id="s-half")
     check("half a portion came back — not 0,0001 units", 10 * UNIT, stock_of("jamon"))
+    check(
+        "and the ledger books half a portion, not one",
+        (500_000, 10 * UNIT),
+        movement_row("jamon", "void"),
+    )
 
     print("\n# 6. A REJECTED decrease is not restocked by the void (the ledger is the authority)")
     clear()
