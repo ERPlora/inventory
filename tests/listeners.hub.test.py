@@ -132,6 +132,11 @@ def test_a_decimal_sale_moves_the_ledger_and_void_reverses_it(
         hub.check(
             "its qty is the negative of what was sold", sale_mov["qty"], -(ONE * 5 // 2)
         )
+        hub.check(
+            "its stock_after is the balance after the sale",
+            sale_mov["stock_after"],
+            ONE * 15 // 2,
+        )
 
     void(hub, sale_id, unique("void-reason"))
     balance = wait_until(lambda: stock_of(hub, pid), lambda v: v == 10 * ONE)

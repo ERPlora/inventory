@@ -60,10 +60,10 @@ def test_receive_writes_a_reception_movement_and_updates_cost(hub: Hub) -> None:
     hub.check("its qty is the delta received", reception["qty"], 4)
     hub.check("its stock_after is the new balance", reception["stock_after"], 14)
     hub.check("its unit_cost is what was received", reception["unit_cost"], 180)
-    hub.check_true(
-        "it names a resolved default location",
-        bool(reception.get("location_id")),
-        str(reception),
+    hub.check(
+        "its location is the hub's resolved default location (`<hub_id>:default`)",
+        reception.get("location_id"),
+        f"{hub.hub_id}:default",
     )
 
 
@@ -92,6 +92,7 @@ def test_adjust_is_absolute_with_mandatory_reason(hub: Hub) -> None:
     hub.check(
         "the movement records the DIFFERENCE, not the new value", movs[0]["qty"], -3
     )
+    hub.check("its stock_after is the counted value", movs[0]["stock_after"], 7)
     hub.check(
         "its reason is kept verbatim", movs[0]["reason"], "weekly count: shrinkage"
     )
@@ -154,6 +155,9 @@ def test_movements_query_filters_by_type_and_projects_the_product(hub: Hub) -> N
     sku = unique("FIL")
     pid = create_product(hub, name="Filtrable", sku=sku, cost=0, stock=10)
 
+    # `unit_cost` is sent explicitly (0) where the old e2e omitted it: a receive with `unit_cost`
+    # OMITTED (NULL) followed by one with a value on the same pooled connection trips the runtime's
+    # prepared-statement bind bug (hub#1348). The cost is not what this test is about.
     hub.run(
         "inventory.stock.receive",
         {"items": [{"product_id": pid, "qty": 5, "unit_cost": 0}]},
@@ -206,8 +210,10 @@ def test_stock_permissions_are_separate_from_product_editing(hub: Hub) -> None:
     rows = hub.query_as(
         counter_perms, "inventory.stock.movements", {"f_product_id": pid}
     )
-    hub.check_true(
-        "the counter can read the ledger it just wrote", len(rows) >= 1, str(rows)
+    hub.check(
+        "the counter reads exactly its own movement (the refused attempt left none)",
+        len(rows),
+        1,
     )
 
 

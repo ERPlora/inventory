@@ -77,6 +77,8 @@ def test_half_a_kilo_genuinely_decreases_half_a_kilo(hub: Hub) -> None:
         hub, name=unique("Gambas"), sku=unique("GAM"), unit_code="kg"
     )
 
+    # `unit_cost: 0` sent explicitly where the old e2e omitted it — see hub#1348 (NULL then a
+    # value for the same bind on one pooled connection breaks the runtime's prepared statement).
     hub.run(
         "inventory.stock.receive",
         {"items": [{"product_id": gambas, "qty": ONE // 2 * 5, "unit_cost": 0}]},

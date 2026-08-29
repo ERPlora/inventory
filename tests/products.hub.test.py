@@ -4,10 +4,11 @@
 proves its own behaviour; the hub keeps only the conformance of its fixture).
 
   1. Creating a product writes ONE row, readable by its own list; the dashboard stats value it AT
-     COST (200 × 3 = 600 cents) the moment it exists, and a stock at or below its threshold puts it
-     in `low_stock`.
+     COST (200 × 3 = 600 cents, asserted as the exact DELTA of the hub-wide totals) the moment it
+     exists, and a stock at or below its threshold puts it in `low_stock`.
   2. `products.bulk_create` (a Tier 2/WASM handler) inserts every line in one call and
-     autogenerates a SKU (`PROD-NNN`) for the ones that did not bring their own.
+     autogenerates a SKU (`PROD-NNN`, continuing the sequence from `existing_count`, the explicit
+     line keeping its slot) for the ones that did not bring their own.
   3. Categories are plain CRUD, and `categories.list` counts only the products actually linked to
      each one (a JOIN, not a stored counter).
   4. The product↔category link (`product_categories`, a pure M2M with no `hub_id` of its own) is
@@ -39,17 +40,19 @@ own: without a runtime it fails, it does not skip.
 import sys
 
 import hub_harness
-from hub_harness import Hub, create_product, product, unique
+from hub_harness import Hub, cents, create_product, product, unique
 
 
 def test_creating_a_product_lists_values_and_flags_low_stock(hub: Hub) -> None:
     print(
         "\n1 · a new product is listed, valued at cost, and flagged when stock is low"
     )
+    before = hub.query("inventory.products.stats")[0]
+    sku = unique("CAF")
     pid = create_product(
         hub,
         name="Café",
-        sku=unique("CAF"),
+        sku=sku,
         price=450,
         cost=200,
         stock=3 * hub_harness.ONE,
@@ -58,26 +61,27 @@ def test_creating_a_product_lists_values_and_flags_low_stock(hub: Hub) -> None:
     row = product(hub, pid)
     hub.check("name", row.get("name"), "Café")
 
-    low = [r for r in hub.query("inventory.products.low_stock") if r["id"] == pid]
+    # Looked up by its own `f_sku`: `low_stock` pages 50 rows by stock asc, and a long-lived hub
+    # may hold more low-stock products than that in front of this one.
+    low = hub.query("inventory.products.low_stock", {"f_sku": sku})
     hub.check_true(
         "stock 3 <= threshold 5 puts it in low_stock", len(low) == 1, str(low)
     )
 
-    stats = hub.query("inventory.products.stats")[0]
-    hub.check_true(
-        "total_products counts at least this one",
-        int(stats["total_products"]) >= 1,
-        str(stats),
+    # The stats are hub-wide sums (other batteries share the tenant), so what THIS test pins is
+    # the exact DELTA the new product causes — as strong a check on the arithmetic as the old
+    # e2e's absolute 600 on an empty database: valued AT COST (200 × 3 = 600 cents), never at
+    # price (450 × 3 = 1350).
+    after = hub.query("inventory.products.stats")[0]
+    hub.check(
+        "total_products grows by exactly this one",
+        int(after["total_products"]) - int(before["total_products"]),
+        1,
     )
-    # `total_inventory_value` is a hub-wide sum (other batteries share the tenant), so the only
-    # thing THIS test can pin is that valuing at cost (not at price) is the arithmetic in force:
-    # a value equal to price × stock would be strictly larger than cost × stock for this product,
-    # and the aggregate can never be smaller than what this one product alone is worth.
-    this_product_cost_value = 200 * 3  # cost(200) × stock(3), in cents
-    hub.check_true(
-        "the aggregate valuation is at least this product's cost×stock (never priced at PVP)",
-        int(stats["total_inventory_value"]) >= this_product_cost_value,
-        str(stats),
+    hub.check(
+        "total_inventory_value grows by cost × stock = 200 × 3 = 600 cents (not price × stock)",
+        cents(after["total_inventory_value"]) - cents(before["total_inventory_value"]),
+        600,
     )
 
 
@@ -86,10 +90,15 @@ def test_bulk_create_autogenerates_skus_for_missing_ones(hub: Hub) -> None:
         "\n2 · products.bulk_create (WASM) inserts every line and fills in missing SKUs"
     )
     explicit_sku = unique("TE-1")
+    # `existing_count` is what the UI sends — how many products the catalogue already holds — so
+    # the generated SKUs CONTINUE the PROD-NNN sequence (handler: `existing + i + 1`, the explicit
+    # line keeping its slot). On a shared hub it cannot be a constant: `0` regenerates PROD-001
+    # and the second run collides with the UNIQUE (hub_id, sku) index as an opaque `db` error.
+    existing = int(hub.query("inventory.products.stats")[0]["total_products"])
     out = hub.run(
         "inventory.products.bulk_create",
         {
-            "existing_count": 0,
+            "existing_count": existing,
             "products": [
                 {
                     "name": unique("Café"),
@@ -118,16 +127,11 @@ def test_bulk_create_autogenerates_skus_for_missing_ones(hub: Hub) -> None:
     rows = [product(hub, pid) for pid in new_ids]
     skus = [r["sku"] for r in rows]
     hub.check_true("the explicit SKU is kept as sent", explicit_sku in skus, str(skus))
-    generated = [s for s in skus if s != explicit_sku]
-    hub.check_true(
-        "the other two get a generated PROD-NNN SKU each",
-        len(generated) == 2 and all(s.startswith("PROD-") for s in generated),
-        str(skus),
-    )
-    hub.check_true(
-        "generated SKUs are distinct from one another",
-        len(set(generated)) == 2,
-        str(skus),
+    generated = sorted(s for s in skus if s != explicit_sku)
+    hub.check(
+        "the other two continue PROD-NNN from existing_count, the explicit line keeping slot 2",
+        generated,
+        sorted([f"PROD-{existing + 1:03d}", f"PROD-{existing + 3:03d}"]),
     )
 
 
