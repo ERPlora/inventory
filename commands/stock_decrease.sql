@@ -9,7 +9,7 @@
 -- POS, API, events, assistant; the WASM handler's read-based check is the informative
 -- fast-path that surfaces the loud domain error, ADR-0205):
 --   * effective track_stock = 0  -> NO-OP: no automatic movements (mode 2). Since inventory#48
---                                   the flag is PER PRODUCT (tri-state, ADR-0210): the row's own
+--                                   the flag is PER PRODUCT (tri-state, ADR-0368): the row's own
 --                                   `track_stock` wins; NULL follows the hub setting; no settings
 --                                   row = 1.
 --   * allow_sell_without_stock=1 -> always decreases; the resulting balance is represented

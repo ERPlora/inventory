@@ -5,10 +5,10 @@
 -- `low_stock_threshold` explícito (bind NULL) hereda el global del hub, que sigue siendo un ajuste
 -- humano en unidades lógicas; al copiarlo al producto se convierte a escala 10⁶ (fallback 10).
 -- `track_stock` (inventory#48): 1/0 si el alta lo dice, NULL si no — y NULL significa «sigue el
--- ajuste del hub» (tri-estado ADR-0210), no se resuelve al crear: si el hub cambia, el artículo
+-- ajuste del hub» (tri-estado ADR-0368), no se resuelve al crear: si el hub cambia, el artículo
 -- le sigue. inventory#28/QA-PG: CAST para que Postgres tipe el bind NULL.
 -- 🔴 `CAST(:track_stock AS BIGINT)`, never `AS INTEGER`. This parameter is the tri-state of
--- ADR-0210, so the SAME statement binds it as SQL NULL on one call and as an integer on the next.
+-- ADR-0368, so the SAME statement binds it as SQL NULL on one call and as an integer on the next.
 -- The runtime binds a JSON integer as i64 (int8) and a NULL as `DynNull` (OID 0, «infer from
 -- context»): with `AS INTEGER` Postgres types the slot int4 when it PREPARES the statement, and a
 -- kernel that CACHES that prepared statement then rejects the next 8-byte bind on the same slot

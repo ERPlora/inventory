@@ -199,7 +199,7 @@ def test_the_per_article_track_stock_flag_survives_a_null_bind_before_it(hub: Hu
         "\n5 · the per-article `track_stock` can be set through the public door, however many "
         "products were created WITHOUT it first"
     )
-    # ADR-0210/inventory#48: `track_stock` is TRI-STATE, so the same command binds the SAME
+    # ADR-0368/inventory#48: `track_stock` is TRI-STATE, so the same command binds the SAME
     # parameter as SQL NULL on one call and as an integer on the next. That is the shape of
     # ERPlora/hub#1348: a `DynNull` (OID 0) bind lets Postgres pick the parameter's type when the
     # statement is PREPARED, a kernel that caches that statement keeps the type per connection, and
