@@ -18,7 +18,19 @@
     }
   },
   "settings": {
-    "title": "Inventory"
+    "title": "Inventory",
+    "fields": {
+      "allow_sell_without_stock": {
+        "label": "Allow selling without stock"
+      },
+      "low_stock_threshold": {
+        "label": "Low stock threshold",
+        "description": "In whole units. Inherited by products that do not set their own threshold; a product's own threshold wins over this one."
+      },
+      "track_stock": {
+        "label": "Track stock"
+      }
+    }
   },
   "setup": {
     "title": "Your catalog",

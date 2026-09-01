@@ -19,7 +19,19 @@
     }
   },
   "settings": {
-    "title": "Inventario"
+    "title": "Inventario",
+    "fields": {
+      "allow_sell_without_stock": {
+        "label": "Permitir vender sin stock"
+      },
+      "low_stock_threshold": {
+        "label": "Umbral de stock bajo",
+        "description": "En unidades enteras. Lo heredan los productos que no fijan su propio umbral; el de cada producto manda sobre este."
+      },
+      "track_stock": {
+        "label": "Controlar stock"
+      }
+    }
   },
   "setup": {
     "title": "Tu catálogo",
