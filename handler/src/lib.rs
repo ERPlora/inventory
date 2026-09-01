@@ -1607,6 +1607,100 @@ mod tests {
         assert_eq!(qtys, vec![&json!(500_000), &json!(2_500_000)], "{:?}", out.operations);
     }
 
+    /// 🔴 TWO menus, never one. `components[].quantity` is ABSOLUTE (ADR-0381 rule 8): `sales`
+    /// owns the sale's arithmetic and already applied the line's multiplier, so this handler must
+    /// take the number AS IT COMES. With a SINGLE menu «absolute» and «per unit of combo» are the
+    /// same integer, so every test above passes just as green under the wrong reading — measured:
+    /// scaling the component by the line quantity kept all 46 of them green. Two menus is what
+    /// separates them: reading it again here serves three portions and decreases six.
+    #[test]
+    fn two_menus_decrease_the_absolute_component_quantity_not_one_portion_per_menu() {
+        // As `sales` emits it (`expand_combo`, single-line branch): the combo line carries NO
+        // `product_id` at all — the closed-price article is not an inventory article.
+        let payload = json!({ "sale_id": "s-c9", "items": [{
+            "product_id": Value::Null,
+            "product_name": "Menú del día",
+            "quantity": 2_000_000,              // TWO menus on one line
+            "is_service": false,
+            "combo_group_ref": "s-c9-0",
+            "components": [
+                // Already multiplied by `sales`: two of each component left the kitchen.
+                { "product_id": "primero", "quantity": 2_000_000, "is_service": false },
+                { "product_id": "segundo", "quantity": 2_000_000, "is_service": false },
+                { "product_id": "postre", "quantity": 2_000_000, "is_service": false }
+            ]
+        }]});
+        let rows = levels(json!([
+            { "id": "primero", "stock": 10_000_000, "low_stock_threshold": 0, "track_stock": 1 },
+            { "id": "segundo", "stock": 10_000_000, "low_stock_threshold": 0, "track_stock": 1 },
+            { "id": "postre", "stock": 10_000_000, "low_stock_threshold": 0, "track_stock": 1 }
+        ]));
+        let out = decrease_on_sale_pure(sale_levels_input(payload, 1, rows));
+        let decreases: Vec<&Operation> =
+            out.operations.iter().filter(|o| o.command == "inventory._decrease_stock").collect();
+        assert_eq!(decreases.len(), 3, "three components, three movements — {:?}", out.operations);
+        for op in &decreases {
+            assert_eq!(
+                op.params["qty"],
+                json!(2_000_000),
+                "the component quantity is ABSOLUTE: two menus decrease two portions, not four — {:?}",
+                op.params
+            );
+        }
+        let ids: Vec<&Value> = decreases.iter().map(|o| &o.params["product_id"]).collect();
+        assert_eq!(ids, vec![&json!("primero"), &json!("segundo"), &json!("postre")]);
+        assert!(
+            decreases.iter().all(|o| !o.params["product_id"].is_null()),
+            "the combo line has no article id: a movement against it would be MUTE"
+        );
+    }
+
+    /// A `goods` pack whose components pay DIFFERENT VAT rates is split by `sales` into sibling
+    /// lines, one per rate (art. 79.Dos LIVA). As built (`expand_combo`, split branch), a sibling
+    /// carries its OWN `product_id` and **no `components[]` at all** — the sibling already IS the
+    /// component; repeating the list on each one would decrease the whole pack once per sibling.
+    /// What the siblings do share is `combo_group_ref` and the full `combo` snapshot, and this is
+    /// the test that says inventory must keep IGNORING both: grouping by `combo_group_ref` to
+    /// "avoid double counting" is the tempting refactor that would halve every split pack.
+    #[test]
+    fn a_pack_split_across_vat_rates_decreases_each_sibling_exactly_once() {
+        let payload = json!({ "sale_id": "s-c10", "items": [
+            {   // sibling A — the 10 % share of the pack
+                "product_id": "cafe",
+                "product_name": "Café",
+                "quantity": 1_000_000,
+                "is_service": false,
+                "combo_group_ref": "s-c10-0",
+                "components": Value::Null
+            },
+            {   // sibling B — the 21 % share of the SAME pack
+                "product_id": "zumo",
+                "product_name": "Zumo",
+                "quantity": 1_000_000,
+                "is_service": false,
+                "combo_group_ref": "s-c10-0",
+                "components": Value::Null
+            }
+        ]});
+        let rows = levels(json!([
+            { "id": "cafe", "stock": 10_000_000, "low_stock_threshold": 0, "track_stock": 1 },
+            { "id": "zumo", "stock": 10_000_000, "low_stock_threshold": 0, "track_stock": 1 }
+        ]));
+        let out = decrease_on_sale_pure(sale_levels_input(payload, 1, rows));
+        let decreases: Vec<&Operation> =
+            out.operations.iter().filter(|o| o.command == "inventory._decrease_stock").collect();
+        let ids: Vec<&Value> = decreases.iter().map(|o| &o.params["product_id"]).collect();
+        assert_eq!(
+            ids,
+            vec![&json!("cafe"), &json!("zumo")],
+            "each sibling of the split pack moves its own article, once — {:?}",
+            out.operations
+        );
+        for op in &decreases {
+            assert_eq!(op.params["qty"], json!(1_000_000), "its own share, not the pack twice");
+        }
+    }
+
     /// A float inside a component is not rescued either (same boundary rule as a loose line):
     /// `as_qty(1.0)` is 0, so the component is SKIPPED instead of guessed.
     #[test]

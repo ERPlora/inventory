@@ -194,6 +194,109 @@ def test_product_category_link_is_scalar_and_idempotent(hub: Hub) -> None:
     hub.check_true("unlinking removes the row", len(linked) == 0, str(linked))
 
 
+def test_the_per_article_track_stock_flag_survives_a_null_bind_before_it(hub: Hub) -> None:
+    print(
+        "\n5 · the per-article `track_stock` can be set through the public door, however many "
+        "products were created WITHOUT it first"
+    )
+    # ADR-0210/inventory#48: `track_stock` is TRI-STATE, so the same command binds the SAME
+    # parameter as SQL NULL on one call and as an integer on the next. That is the shape of
+    # ERPlora/hub#1348: a `DynNull` (OID 0) bind lets Postgres pick the parameter's type when the
+    # statement is PREPARED, a kernel that caches that statement keeps the type per connection, and
+    # a later integer on the same slot comes back as `incorrect binary data format in bind
+    # parameter 17`. The kernel half is fixed in `develop` (hub#1386); this test is what says the
+    # module keeps its own promise on a hub whose image is older than that.
+    #
+    # 🔴 Why it must ALTERNATE and repeat, not just set the flag once: the cache is per CONNECTION,
+    # so a single create decides nothing — it either lands on a poisoned connection or it does not.
+    # Alternating fills the pool with statements prepared from a NULL bind and then asks every one
+    # of them for an integer. Measured on `ghcr.io/erplora/hub:stable` (26/08) and `:dev` (27/08),
+    # both older than the kernel fix, with 20 alternations: 14 and 13 of the integer calls failed.
+    #
+    # What it costs the business when it breaks: the article never gets its opt-in, so it keeps
+    # inheriting the hub switch — and if that switch is off, its sales decrease nothing, in
+    # silence. That is the shape inventory#68 reported from the field.
+    created = []
+    refused = []
+    for index in range(16):
+        tag = unique("tri")
+        payload = {"name": tag, "sku": tag, "stock": 10 * hub_harness.ONE}
+        if index % 2:
+            payload["track_stock"] = 1
+        try:
+            created.append((index, create_product(hub, **payload)))
+        except AssertionError as err:
+            # Recorded, not raised: a battery that dies on the first refusal hides how many of the
+            # calls were refused, which is the whole measurement here.
+            refused.append(f"#{index} ({'opt-in' if index % 2 else 'inherit'}): {err}")
+    hub.check_true(
+        "the command never refuses a valid product, with or without the flag",
+        not refused,
+        f"{len(refused)}/16 refused — {refused[:2]}",
+    )
+
+    opted_in = [
+        hub_harness.product(hub, product_id)
+        for index, product_id in created
+        if index % 2
+    ]
+    hub.check("every article that opted in was created", len(opted_in), 8)
+    hub.check_true(
+        "…and every one of them kept the flag it was created with",
+        bool(opted_in) and all(int(row["track_stock"]) == 1 for row in opted_in),
+        str([row.get("track_stock") for row in opted_in]),
+    )
+    inherited = [
+        hub_harness.product(hub, product_id)
+        for index, product_id in created
+        if not index % 2
+    ]
+    hub.check_true(
+        "…and the ones that said nothing still inherit the hub (NULL, not 0)",
+        bool(inherited) and all(row["track_stock"] is None for row in inherited),
+        str([row.get("track_stock") for row in inherited]),
+    )
+
+    # `products.update` binds the very same tri-state parameter (`COALESCE(CAST(:track_stock …))`),
+    # so it carries the same trap and needs the same alternation to expose it: half the calls send
+    # the flag, half say nothing and must LEAVE IT ALONE.
+    refused_update = []
+    for position, (index, product_id) in enumerate(created):
+        row = hub_harness.product(hub, product_id)
+        payload = {
+            "product_id": product_id,
+            "name": row["name"],
+            "price": row["price"],
+            "cost": row["cost"],
+            "low_stock_threshold": row["low_stock_threshold"],
+            "ean13": row["ean13"],
+            "description": row["description"] or "",
+            "tax_category_key": row["tax_category_key"],
+            "is_active": row["is_active"],
+        }
+        if position % 2:
+            payload["track_stock"] = 0
+        try:
+            hub.run("inventory.products.update", payload)
+        except AssertionError as err:
+            refused_update.append(f"#{position}: {err}")
+    hub.check_true(
+        "`products.update` never refuses the flag either",
+        not refused_update,
+        f"{len(refused_update)}/{len(created)} refused — {refused_update[:2]}",
+    )
+    flipped = [
+        hub_harness.product(hub, product_id)
+        for position, (index, product_id) in enumerate(created)
+        if position % 2
+    ]
+    hub.check_true(
+        "…and an update that sends 0 stores 0",
+        bool(flipped) and all(int(row["track_stock"]) == 0 for row in flipped),
+        str([row.get("track_stock") for row in flipped]),
+    )
+
+
 def main() -> int:
     hub = Hub("products.hub")
     print(
@@ -204,6 +307,7 @@ def main() -> int:
     test_bulk_create_autogenerates_skus_for_missing_ones(hub)
     test_category_crud(hub)
     test_product_category_link_is_scalar_and_idempotent(hub)
+    test_the_per_article_track_stock_flag_survives_a_null_bind_before_it(hub)
     return hub.finish(
         "the catalogue keeps every promise the hub's e2e used to assert, against the real kernel"
     )

@@ -321,6 +321,69 @@ def test_track_on_sale_decreases_and_void_restocks(hub: Hub, cash: str) -> None:
     hub.check("the void restores the exact amount sold", balance, 8 * ONE)
 
 
+def test_hub_tracking_off_but_the_article_opts_in_still_decrements(
+    hub: Hub, cash: str
+) -> None:
+    print(
+        "\n7 · regression (inventory#68): the hub switch is OFF and the ARTICLE opts in — "
+        "a real sale still decrements"
+    )
+    # The combination the field reported and no end-to-end test had: products created with an
+    # explicit `track_stock = 1` while the hub's own setting says 0. Since inventory#48/ADR-0210
+    # the hub setting is only the DEFAULT that articles inherit, never the switch that decides the
+    # sale, so this MUST decrease.
+    #
+    # 🔴 Why it needs the real kernel and not another handler unit test: the per-article flag only
+    # reaches the handler through `inventory.products.stock_levels`, a read the RUNTIME pre-loads
+    # (ADR-0069). Without those rows the handler cannot see the opt-in, falls back to the hub
+    # switch and returns before emitting a single operation — no error, no dead letter, nothing in
+    # the ledger. That is the silent shape inventory#68 described, and only a live runtime can
+    # prove the read arrives.
+    hub.run(
+        "inventory.settings.update",
+        {"track_stock": 0, "allow_sell_without_stock": 0, "low_stock_threshold": 10},
+    )
+    try:
+        pid = create_product(
+            hub,
+            name=unique("Café"),
+            sku=unique("CAF"),
+            stock=10 * ONE,
+            track_stock=1,
+        )
+        sale_id = complete_sale(
+            hub,
+            cash,
+            unique("opt-in-vs-hub-off"),
+            [
+                {
+                    "product_id": pid,
+                    "product_name": "Café",
+                    "price": 121,
+                    "quantity": 2 * ONE,
+                    "tax_rate": 21.0,
+                }
+            ],
+        )
+        balance = wait_until(lambda: stock_of(hub, pid), lambda v: v == 8 * ONE)
+        hub.check(
+            "an article that opts IN decrements even with the hub switch off", balance, 8 * ONE
+        )
+        rows = movements(hub, pid, f_movement_type="sale")
+        hub.check_true(
+            "…and it leaves its `sale` row in the ledger", len(rows) == 1, str(rows)
+        )
+
+        void(hub, sale_id, unique("void-reason"))
+        balance = wait_until(lambda: stock_of(hub, pid), lambda v: v == 10 * ONE)
+        hub.check("…and the void gives back exactly what left", balance, 10 * ONE)
+    finally:
+        hub.run(
+            "inventory.settings.update",
+            {"track_stock": 1, "allow_sell_without_stock": 0, "low_stock_threshold": 10},
+        )
+
+
 def main() -> int:
     hub = Hub("listeners.hub", needs=("taxes", "inventory", "customers", "sales"))
     print(
@@ -334,6 +397,7 @@ def main() -> int:
     test_an_off_grid_sale_is_refused_and_never_touches_stock(hub, cash)
     test_track_off_sale_makes_no_movement_and_void_does_not_restock(hub, cash)
     test_track_on_sale_decreases_and_void_restocks(hub, cash)
+    test_hub_tracking_off_but_the_article_opts_in_still_decrements(hub, cash)
     return hub.finish(
         "inventory's listeners react to a real sale.completed/sale.voided, against the real kernel"
     )
