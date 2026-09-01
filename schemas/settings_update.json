@@ -5,8 +5,30 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "allow_sell_without_stock": { "type": "integer", "enum": [0, 1], "default": 0, "title": "Permitir vender sin stock" },
-    "low_stock_threshold": { "type": "integer", "minimum": 0, "default": 10, "title": "Umbral de stock bajo", "description": "En unidades enteras. Lo heredan los productos que no fijan su propio umbral; el de cada producto manda sobre este." },
-    "track_stock": { "type": "integer", "enum": [0, 1], "default": 1, "title": "Controlar stock" }
+    "allow_sell_without_stock": {
+      "type": "integer",
+      "title": "Allow selling without stock",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 0
+    },
+    "low_stock_threshold": {
+      "type": "integer",
+      "title": "Low stock threshold",
+      "minimum": 0,
+      "default": 10,
+      "description": "In whole units. Inherited by products that do not set their own threshold; a product's own threshold wins over this one."
+    },
+    "track_stock": {
+      "type": "integer",
+      "title": "Track stock",
+      "enum": [
+        0,
+        1
+      ],
+      "default": 1
+    }
   }
 }
