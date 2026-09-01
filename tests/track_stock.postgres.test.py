@@ -9,7 +9,7 @@ hub, so a restaurant with three retail products had to either track everything o
 Contract fixed here (SQL is the authoritative guard, inside the transaction — the WASM handler
 only mirrors it to make the outcome visible):
 
-  * `inventory_product.track_stock` is TRI-STATE (ADR-0210): `1` tracks, `0` does not, `NULL`
+  * `inventory_product.track_stock` is TRI-STATE (ADR-0368): `1` tracks, `0` does not, `NULL`
     follows the hub setting. Existing rows stay NULL, so no live hub changes behaviour.
   * effective = COALESCE(product.track_stock, settings.track_stock, 1); services never track.
   * `_decrease_stock` (sale + direct decrease) is a NO-OP for an article whose effective flag is

@@ -329,7 +329,7 @@ def test_hub_tracking_off_but_the_article_opts_in_still_decrements(
         "a real sale still decrements"
     )
     # The combination the field reported and no end-to-end test had: products created with an
-    # explicit `track_stock = 1` while the hub's own setting says 0. Since inventory#48/ADR-0210
+    # explicit `track_stock = 1` while the hub's own setting says 0. Since inventory#48/ADR-0368
     # the hub setting is only the DEFAULT that articles inherit, never the switch that decides the
     # sale, so this MUST decrease.
     #

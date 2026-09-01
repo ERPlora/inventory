@@ -86,7 +86,7 @@
         1,
         null
       ],
-      "description": "Stock control for THIS article (inventory#48, per-item like Square/Odoo/Shopify). 1 = tracks (sales decrease it, low-stock applies) · 0 = catalog only (no movements, no availability) · null/absent = follows the hub setting (tri-state, ADR-0210). On update it is OPTIONAL: absent/null = keep the current value (a caller that does not know the flag never resets it)."
+      "description": "Stock control for THIS article (inventory#48, per-item like Square/Odoo/Shopify). 1 = tracks (sales decrease it, low-stock applies) · 0 = catalog only (no movements, no availability) · null/absent = follows the hub setting (tri-state, ADR-0368). On update it is OPTIONAL: absent/null = keep the current value (a caller that does not know the flag never resets it)."
     }
   }
 }
