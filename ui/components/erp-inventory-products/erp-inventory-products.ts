@@ -451,26 +451,44 @@ export class ErpInventoryProducts extends LitElement {
     delete this.ctrl.state.filters.needs_tax_setup;
     if (v === STATUS_UNCONFIGURED) this.ctrl.state.filters.needs_tax_setup = '1';
     else if (v !== '') this.ctrl.state.filters.is_active = v;
-    this.statusFilter = v;
+    // Lo que la TABLA enseña es el valor del desplegable, no el que viaja al servidor: los tres
+    // estados son una sola columna en pantalla y dos en la query (inventory#83).
+    this.setTableFilter('is_active', v);
     this.ctrl.state.page = 0;
     void this.ctrl.load();
   }
 
   /**
-   * Which status the list is narrowed to right now, `''` = the whole catalogue (inventory#72).
+   * Lo que los controles de filtro de `ok-data-table` tienen que ENSEÑAR, por clave de columna
+   * (inventory#83, deriva de outfitkit#106/#107).
    *
-   * It is kept HERE and not read back from the table because `ok-data-table` keeps no filter state
-   * in `serverSide` mode: its column controls paint from `clientFilters`, which a server-side table
-   * never writes. Without this the screen would narrow itself — from the URL or from the dropdown —
-   * and show nothing that says so, which reads as «this catalogue has 12 articles».
+   * En modo servidor la tabla no guarda estado de filtro propio —sus controles pintaban desde
+   * `clientFilters`, que un `serverSide` nunca escribe—, así que una lista acotada desde la URL
+   * salía con el desplegable EN BLANCO y parecía un catálogo de doce artículos. Desde 0.1.57 la
+   * librería acepta `filterValues` y este es el estado que se le pasa.
+   *
+   * No es `ctrl.state.filters`: ese es el estado del SERVIDOR (`needs_tax_setup=1`), una clave que
+   * el desplegable de estado ni siquiera ofrece.
    */
-  @state() statusFilter = '';
+  @state() private tableFilters: Record<string, unknown> = {};
 
-  /** The active status, in the SAME words the dropdown offers — never a raw `'1'` on screen. */
-  private statusLabel(value: string): string {
-    const t = (k: string): string => erplora().t(CATALOG, k);
-    if (value === STATUS_UNCONFIGURED) return t('ui.statusUnconfigured');
-    return value === '1' ? t('ui.yes') : t('ui.no');
+  /**
+   * Fija (o borra) el valor visible de una columna.
+   *
+   * Asigna siempre un objeto NUEVO: `ok-data-table` resiembra su espejo por identidad y una
+   * mutación in-place no le llega —a propósito, para que las elecciones del usuario manden
+   * mientras el consumidor no diga otra cosa—, así que mutando esto el control se quedaría con el
+   * valor viejo. Y se copia el objeto entero, no solo la clave que cambia: la resiembra sustituye
+   * el espejo completo, así que un `{is_active}` a secas borraría de la pantalla el filtro de
+   * `sku` que el usuario acababa de escribir, dejando la lista acotada por algo invisible.
+   */
+  private setTableFilter(col: string, value: unknown): void {
+    const next = { ...this.tableFilters };
+    const empty =
+      value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0);
+    if (empty) delete next[col];
+    else next[col] = value;
+    this.tableFilters = next;
   }
 
   @state() private detail: Product | null = null;
@@ -1016,10 +1034,13 @@ export class ErpInventoryProducts extends LitElement {
     // to the list ALREADY narrowed. The filter is seeded into the controller instead of applied
     // after the first load on purpose: applying it later would fetch the 280 rows first and let
     // them flash on screen before shrinking to twelve.
-    this.statusFilter = statusFilterFromSearch(window.location.search);
+    const status = statusFilterFromSearch(window.location.search);
     const filters: Record<string, unknown> = {};
-    if (this.statusFilter === STATUS_UNCONFIGURED) filters.needs_tax_setup = '1';
-    else if (this.statusFilter !== '') filters.is_active = this.statusFilter;
+    if (status === STATUS_UNCONFIGURED) filters.needs_tax_setup = '1';
+    else if (status !== '') filters.is_active = status;
+    // …y el desplegable de la tabla arranca enseñándolo (inventory#83): sin esto la lista sale
+    // acotada con el control en blanco, que es exactamente lo que el aviso manual de #72 parcheaba.
+    if (status !== '') this.tableFilters = { is_active: status };
     this.ctrl = createListController<Product>(
       erplora(),
       'inventory.products.list',
@@ -1325,27 +1346,11 @@ export class ErpInventoryProducts extends LitElement {
             </ok-inline-feedback>`
           : nothing}
 
-        <!-- The list is narrowed and SAYS SO (inventory#72). ok-data-table paints no filter state
-             in serverSide mode, so a list narrowed from the URL — or from the dropdown — would
-             look exactly like a catalogue with twelve articles in it. Same shape every ERP uses for
-             an active filter: what it is filtered by, and the way out. -->
-        ${this.statusFilter
-          ? html`<ok-inline-feedback
-              data-testid="status-filter-notice"
-              tone="info"
-              icon="funnel-outline"
-            >
-              ${t('ui.filteredBy')}: ${this.statusLabel(this.statusFilter)}
-              <ion-button size="small" fill="clear" @click=${() => this.applyStatusFilter('')}>
-                ${t('ui.showAll')}
-              </ion-button>
-            </ok-inline-feedback>`
-          : nothing}
-
         <!-- The «detail» button is not the only door: rowClickable makes the whole row open the
              same detail modal (outfitkit#67 — the actions column can be off-screen at 1440 px). -->
         <ok-data-table
           .serverSide=${true}
+          .filterValues=${this.tableFilters}
           .fill=${true}
           .labels=${dataTableLabels(erplora().locale)}
           .columns=${this.columns}
@@ -1379,6 +1384,9 @@ export class ErpInventoryProducts extends LitElement {
             // La columna de estado tiene TRES valores repartidos en DOS columnas del servidor
             // (inventory#38): su filtro no es un `setFilter` directo.
             if (e.detail.col === 'is_active') return this.applyStatusFilter(e.detail.value);
+            // El valor VISIBLE se anota tal cual llega (inventory#83); al servidor va traducido —
+            // `stock` viaja como rango en la unidad del artículo, no como lo teclea el usuario.
+            this.setTableFilter(e.detail.col, e.detail.value);
             this.ctrl.setFilter(
               e.detail.col,
               e.detail.col === 'stock' ? this.stockFilterValue(e.detail.value) : e.detail.value,

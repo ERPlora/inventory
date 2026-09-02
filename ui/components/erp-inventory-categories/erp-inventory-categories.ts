@@ -1,7 +1,7 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { state } from 'lit/decorators.js';
 import { resolveTaxCategories, pickTaxValue, normalizeAlias } from '../../lib/tax-resolve';
-import { taxCategoryDisplayName } from '../../lib/tax-category-option';
+import { loadTaxRates, taxCategoryOptionLabel, type TaxRate } from '../../lib/tax-category-option';
 // Catálogo i18n del módulo (ADR-0055): esbuild inlinea estos JSON en el dist del WC.
 import esLocale from '../../../locales/es.json';
 import enLocale from '../../../locales/en.json';
@@ -75,7 +75,12 @@ export class ErpInventoryCategories extends LitElement {
   @state() newName = '';
   @state() private newSlug = '';
   @state() private newTaxRateId = ''; // '' = tipo por defecto del hub (se envía null)
-  @state() private taxRates: TaxCategory[] = [];
+  /** El CATÁLOGO de categorías fiscales (`taxes.categories.list`) — lo que llena el desplegable.
+   *  Se llamaba `taxRates`, que es lo que NO es: los tipos son el mapa de abajo (inventory#67). */
+  @state() private taxCategories: TaxCategory[] = [];
+  /** El tipo aplicable por categoría (`taxes.rules.list`), para pintar el % en la opción. Mismo
+   *  nombre y misma carga que en el alta de producto: una sola forma de leer el dato. */
+  @state() private taxRates: Map<string, TaxRate> = new Map();
   @state() private saving = false;
   @state() private formError = '';
   // Edición REAL (inventory#8): id en edición (null = alta); el submit decide create/update.
@@ -124,7 +129,7 @@ export class ErpInventoryCategories extends LitElement {
       dir: 'asc',
     });
     await this.ctrl.load();
-    void this.loadTaxRates();
+    void this.loadTaxCategories();
   }
 
   disconnectedCallback(): void {
@@ -135,25 +140,35 @@ export class ErpInventoryCategories extends LitElement {
   // Carga los tipos de IVA/impuesto para el selector del formulario (ADR-0066/0069). Best-effort:
   // si falla (módulo `taxes` no instalado, sin permiso…), el select queda con solo "— (por defecto)"
   // y el alta sigue funcionando (tax_category_key = null = tipo por defecto del hub).
-  private async loadTaxRates(): Promise<void> {
+  private async loadTaxCategories(): Promise<void> {
     try {
       // Por `display_name`: se ordena por lo que el usuario LEE, no por el inglés del seed
       // (inventory#64). `taxes` acepta esa columna en la whitelist de `sort` de su query.
-      this.taxRates = await erplora().queryAll<TaxCategory>('taxes.categories.list', { sort: 'display_name', dir: 'asc' });
+      this.taxCategories = await erplora().queryAll<TaxCategory>('taxes.categories.list', { sort: 'display_name', dir: 'asc' });
     } catch {
-      this.taxRates = [];
+      this.taxCategories = [];
     }
+    // El % que se enseña en la opción (inventory#67). Va aparte y DESPUÉS: `loadTaxRates` no lanza
+    // nunca —devuelve un mapa vacío si `taxes` está degradado— y el desplegable tiene que salir con
+    // sus nombres aunque no haya tipos que enseñar.
+    this.taxRates = await loadTaxRates(erplora());
   }
 
-  // Opciones del ion-select: "— (sin categoría)" (valor '') + una categoría por fila (value = key).
-  // El texto es `display_name` —la etiqueta que `taxes` ya devuelve en el idioma del hub— con `name`
-  // de reserva para un hub con `taxes` anterior a la 2.3.8 (inventory#64). Nunca al revés: preferir
-  // `name` sería enseñar el inglés del seed teniendo la traducción delante.
+  // Opciones del ion-select: "— (por defecto)" (valor '') + una categoría por fila (value = key).
+  //
+  // El texto lo compone `taxCategoryOptionLabel()`, el MISMO helper que el alta de producto y el
+  // importador CSV (inventory#67): `display_name` —la etiqueta que `taxes` ya devuelve traducida,
+  // con `name` de reserva para un hub con `taxes` ≤ 2.3.8 (inventory#64)— y el tipo que aplica
+  // detrás. Aquí se compone A MANO como `${name} (${key})`, y eso dejaba DOS formatos del mismo
+  // dato en el mismo módulo: esta pantalla enseñaba la clave técnica y escondía el %, que es
+  // justamente por lo que se elige una categoría. Reutilizar el helper —en vez de copiar su
+  // formato— es lo que impide que las dos pantallas vuelvan a separarse al siguiente cambio.
   private taxOptions() {
+    const t = (key: string): string => erplora().t(CATALOG, key);
     return html`
-      <ion-select-option value="">${erplora().t(CATALOG, 'ui.taxDefault')}</ion-select-option>
-      ${this.taxRates.map(
-        (c) => html`<ion-select-option .value=${c.key}>${taxCategoryDisplayName(c) || c.key} (${c.key})</ion-select-option>`,
+      <ion-select-option value="">${t('ui.taxDefault')}</ion-select-option>
+      ${this.taxCategories.map(
+        (c) => html`<ion-select-option .value=${c.key}>${taxCategoryOptionLabel(c, this.taxRates, t)}</ion-select-option>`,
       )}
     `;
   }

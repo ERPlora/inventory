@@ -1543,8 +1543,6 @@ var es_default = {
     status: "Estado",
     statusUnconfigured: "Sin configurar",
     statusUnconfiguredReason: "Falta la categor\xEDa fiscal",
-    filteredBy: "Filtrado por",
-    showAll: "Ver todos",
     fieldTaxCategory: "Categor\xEDa fiscal",
     taxCategoryPlaceholder: "Elige una categor\xEDa fiscal",
     taxNoneAvailable: "Todav\xEDa no hay categor\xEDas fiscales. Cr\xE9alas en Impuestos: un producto no se puede vender sin saber c\xF3mo tributa.",
@@ -1752,8 +1750,6 @@ var en_default = {
     status: "Status",
     statusUnconfigured: "Not configured",
     statusUnconfiguredReason: "Missing tax category",
-    filteredBy: "Filtered by",
-    showAll: "Show all",
     fieldTaxCategory: "Tax category",
     taxCategoryPlaceholder: "Pick a tax category",
     taxNoneAvailable: "There are no tax categories yet. Create them in Taxes: a product cannot be sold until it is known how it is taxed.",
@@ -2446,6 +2442,7 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
     this.page = 0;
     this.searchable = false;
     this.sortDir = "asc";
+    this.filterValues = {};
     this.title = "";
     this.views = false;
     this.exportable = false;
@@ -2463,6 +2460,7 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
     this.clientSortDir = "asc";
     this.clientFilters = {};
     this.filterDraft = {};
+    this.serverFilters = {};
     this.panel = "none";
     this.viewMode = "table";
     this.viewChosenByUser = false;
@@ -3075,11 +3073,54 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
   get hasFilterRow() {
     return this.filterColumns.length > 0;
   }
-  /** Nº de filtros activos (modo cliente) → badge del botón Filtros. */
+  /** Nº de filtros activos → badge del botón Filtros. En servidor cuenta `filterValues` (#106): sin
+   *  esto el embudo no daba NINGUNA señal de que la lista venía acotada. */
   get activeFilterCount() {
+    if (this.serverSide) {
+      return Object.keys(this.serverFilters).filter((k2) => this.serverFilterState(k2) !== void 0).length;
+    }
     return Object.values(this.clientFilters).filter(
       (f3) => f3.values && f3.values.size > 0 || f3.from || f3.to
     ).length;
+  }
+  // ── Estado de filtro VISIBLE (#106) ──────────────────────────────────────────────────────────
+  /** Traduce un valor de `filterValues` (la forma que emite `filterChange`) a la forma interna que
+   *  usan los `render*Filter`. `undefined` = ese filtro no está puesto. */
+  serverFilterState(key) {
+    const raw = this.serverFilters[key];
+    if (raw === void 0 || raw === null || raw === "") return void 0;
+    if (Array.isArray(raw)) {
+      const values = raw.filter((v3) => v3 !== null && v3 !== void 0 && v3 !== "").map((v3) => String(v3));
+      return values.length ? { values: new Set(values) } : void 0;
+    }
+    if (typeof raw === "object") {
+      const range = raw;
+      const from = range.from === null || range.from === void 0 || range.from === "" ? void 0 : String(range.from);
+      const to = range.to === null || range.to === void 0 || range.to === "" ? void 0 : String(range.to);
+      return from !== void 0 || to !== void 0 ? { from, to } : void 0;
+    }
+    return { values: /* @__PURE__ */ new Set([String(raw)]) };
+  }
+  /** Estado de filtro efectivo de una columna: servidor → `filterValues`/espejo; cliente → memoria. */
+  filterStateOf(key) {
+    return this.serverSide ? this.serverFilterState(key) : this.clientFilters[key];
+  }
+  /** Fija (o borra) el valor visible de un filtro en el espejo de servidor. */
+  setServerFilter(key, value) {
+    const next = { ...this.serverFilters };
+    const empty = value === void 0 || value === null || value === "" || Array.isArray(value) && value.length === 0;
+    if (empty) delete next[key];
+    else next[key] = value;
+    this.serverFilters = next;
+  }
+  /** Fija UN extremo de un rango en el espejo. Los dos extremos viajan en eventos SEPARADOS
+   *  (`{from}` y luego `{to}`), así que aquí se MEZCLA: reemplazar borraría el otro extremo. */
+  setServerRangeEdge(key, edge, value) {
+    const prev = this.serverFilters[key];
+    const base = prev && typeof prev === "object" && !Array.isArray(prev) ? { ...prev } : {};
+    base[edge] = value;
+    const alive = (v3) => v3 !== void 0 && v3 !== null && v3 !== "";
+    this.setServerFilter(key, alive(base.from) || alive(base.to) ? base : void 0);
   }
   /** Valor crudo de una columna para ordenar/filtrar (usa format si lo hay, si no row[key]). */
   rawValue(col, row) {
@@ -3169,15 +3210,18 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
   }
   onFilterInput(col, ev) {
     const value = ev.target.value ?? "";
+    this.setServerFilter(col.key, value);
     this.emit("filterChange", { col: col.key, value });
   }
   onRangeInput(col, edge, ev) {
     const raw = ev.target.value ?? "";
     const v3 = raw === "" ? "" : Number(raw);
+    this.setServerRangeEdge(col.key, edge, v3);
     this.emit("filterChange", { col: col.key, value: { [edge]: v3 } });
   }
   onDateRangeInput(col, edge, ev) {
     const v3 = ev.target.value ?? "";
+    this.setServerRangeEdge(col.key, edge, v3);
     this.emit("filterChange", { col: col.key, value: { [edge]: v3 } });
   }
   // ── Filtros EN LÍNEA (toolbar) ────────────────────────────────────────────────────────────
@@ -3197,7 +3241,9 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
   // `filterChange`; en cliente escribe `clientFilters` (multiselect ⇒ filtra por inclusión).
   onFilterSelect(col, value, multi) {
     if (this.serverSide) {
-      this.emit("filterChange", { col: col.key, value: value ?? (multi ? [] : "") });
+      const next = value ?? (multi ? [] : "");
+      this.setServerFilter(col.key, next);
+      this.emit("filterChange", { col: col.key, value: next });
       return;
     }
     if (multi) {
@@ -3211,6 +3257,7 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
   onInlineRange(col, edge, ev) {
     const v3 = ev.target.value ?? "";
     if (this.serverSide) {
+      this.setServerRangeEdge(col.key, edge, v3);
       this.emit("filterChange", { col: col.key, value: { [edge]: v3 } });
       return;
     }
@@ -3241,6 +3288,7 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
    */
   willUpdate(changed) {
     this.applyInitialView();
+    if (changed.has("filterValues")) this.serverFilters = { ...this.filterValues ?? {} };
     if (!this.serverSide && changed.has("rows") && this.mobileShown !== 0) this.mobileShown = 0;
   }
   applyInitialView() {
@@ -3263,9 +3311,11 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
   renderFilterControl(col) {
     if (!col.filterable) return A;
     const type = col.filterType ?? "text";
+    const f3 = this.filterStateOf(col.key);
     if (type === "select" || type === "multiselect") {
       const multi = type === "multiselect";
       const opts = col.options ?? this.distinctValues(col).map((v3) => ({ value: v3, label: v3 }));
+      const current = this.selectValue(f3, multi);
       return b2`
         <ion-select
           label=${col.header}
@@ -3275,6 +3325,7 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
           interface="modal"
           .interfaceOptions=${{ cssClass: "ok-overlay" }}
           placeholder=${this.t.select}
+          .value=${current}
           @ionChange=${(e5) => this.onFilterSelect(col, e5.detail.value, multi)}
         >
           ${multi ? A : b2`<ion-select-option value="">${this.t.select}</ion-select-option>`}
@@ -3290,8 +3341,10 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
           <span class="flabel">${col.header}</span>
           <div class="frange">
             <ion-input type=${t5} fill="outline" mode="md" placeholder=${type === "daterange" ? this.t.from : this.t.gte}
+              .value=${f3?.from ?? ""}
               @ionInput=${(e5) => onEdge(col, "from", e5)}></ion-input>
             <ion-input type=${t5} fill="outline" mode="md" placeholder=${type === "daterange" ? this.t.to : this.t.lte}
+              .value=${f3?.to ?? ""}
               @ionInput=${(e5) => onEdge(col, "to", e5)}></ion-input>
           </div>
         </div>
@@ -3305,9 +3358,17 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
         label=${col.header}
         label-placement="stacked"
         placeholder=${this.t.filterPlaceholder}
+        .value=${this.selectValue(f3, false)}
         @ionInput=${(e5) => this.onFilterInput(col, e5)}
       ></ion-input>
     `;
+  }
+  /** Valor para un control de un solo valor (`ion-select`/`ion-input`) o multi (`ion-select
+   *  multiple`) a partir del estado de filtro interno. '' / [] = sin filtro. */
+  selectValue(f3, multi) {
+    const values = [...f3?.values ?? /* @__PURE__ */ new Set()];
+    if (multi) return values;
+    return values.length ? values[0] : "";
   }
   // Controles de filtro COMPACTOS para la toolbar (modo `inlineFilters`). Solo select y rango de
   // fechas (los del screenshot); el resto de tipos siguen disponibles vía el drawer si no se activa
@@ -3322,11 +3383,11 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
   }
   renderInlineFilter(col) {
     const type = col.filterType ?? "text";
-    const f3 = this.clientFilters[col.key];
+    const f3 = this.filterStateOf(col.key);
     if (type === "select" || type === "multiselect") {
       const multi = type === "multiselect";
       const opts = col.options ?? this.distinctValues(col).map((v3) => ({ value: v3, label: v3 }));
-      const current = multi ? [...f3?.values ?? /* @__PURE__ */ new Set()] : f3?.values && f3.values.size ? [...f3.values][0] : "";
+      const current = this.selectValue(f3, multi);
       return b2`
         <ion-select
           class="tk-filter"
@@ -3524,7 +3585,7 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
                             ${this.toolButton("grid-outline", this.viewMode === "cards", () => this.setViewMode("cards"), this.t.viewCards)}
                           </span>
                         ` : A}
-                    ${this.hasFilterRow && !this.inlineFilters ? this.toolButton("funnel-outline", this.panel === "filters" || this.activeFilterCount > 0, () => this.toggle("filters"), this.t.filters, this.serverSide ? void 0 : this.activeFilterCount) : A}
+                    ${this.hasFilterRow && !this.inlineFilters ? this.toolButton("funnel-outline", this.panel === "filters" || this.activeFilterCount > 0, () => this.toggle("filters"), this.t.filters, this.activeFilterCount) : A}
                     ${this.effImport ? b2`
                           ${this.toolButton("cloud-upload-outline", false, () => this.renderRoot.querySelector(".tk-file")?.click(), this.t.importCsv)}
                           <input class="tk-file" type="file" accept=".csv,text/csv" hidden @change=${(e5) => this.onImportFile(e5)} />
@@ -3836,6 +3897,9 @@ __decorateClass3([
   n4({ attribute: "sort-dir" })
 ], _OkDataTable.prototype, "sortDir");
 __decorateClass3([
+  n4({ attribute: false })
+], _OkDataTable.prototype, "filterValues");
+__decorateClass3([
   n4()
 ], _OkDataTable.prototype, "title");
 __decorateClass3([
@@ -3907,6 +3971,9 @@ __decorateClass3([
 __decorateClass3([
   r5()
 ], _OkDataTable.prototype, "filterDraft");
+__decorateClass3([
+  r5()
+], _OkDataTable.prototype, "serverFilters");
 __decorateClass3([
   r5()
 ], _OkDataTable.prototype, "panel");
@@ -4151,7 +4218,8 @@ var ErpInventoryCategories = class extends i3 {
     this.newName = "";
     this.newSlug = "";
     this.newTaxRateId = "";
-    this.taxRates = [];
+    this.taxCategories = [];
+    this.taxRates = /* @__PURE__ */ new Map();
     this.saving = false;
     this.formError = "";
     this.editingId = null;
@@ -4197,7 +4265,7 @@ var ErpInventoryCategories = class extends i3 {
       dir: "asc"
     });
     await this.ctrl.load();
-    void this.loadTaxRates();
+    void this.loadTaxCategories();
   }
   disconnectedCallback() {
     window.removeEventListener("erplora:locale-changed", this.onLocaleChange);
@@ -4206,22 +4274,29 @@ var ErpInventoryCategories = class extends i3 {
   // Carga los tipos de IVA/impuesto para el selector del formulario (ADR-0066/0069). Best-effort:
   // si falla (módulo `taxes` no instalado, sin permiso…), el select queda con solo "— (por defecto)"
   // y el alta sigue funcionando (tax_category_key = null = tipo por defecto del hub).
-  async loadTaxRates() {
+  async loadTaxCategories() {
     try {
-      this.taxRates = await erplora().queryAll("taxes.categories.list", { sort: "display_name", dir: "asc" });
+      this.taxCategories = await erplora().queryAll("taxes.categories.list", { sort: "display_name", dir: "asc" });
     } catch {
-      this.taxRates = [];
+      this.taxCategories = [];
     }
+    this.taxRates = await loadTaxRates(erplora());
   }
-  // Opciones del ion-select: "— (sin categoría)" (valor '') + una categoría por fila (value = key).
-  // El texto es `display_name` —la etiqueta que `taxes` ya devuelve en el idioma del hub— con `name`
-  // de reserva para un hub con `taxes` anterior a la 2.3.8 (inventory#64). Nunca al revés: preferir
-  // `name` sería enseñar el inglés del seed teniendo la traducción delante.
+  // Opciones del ion-select: "— (por defecto)" (valor '') + una categoría por fila (value = key).
+  //
+  // El texto lo compone `taxCategoryOptionLabel()`, el MISMO helper que el alta de producto y el
+  // importador CSV (inventory#67): `display_name` —la etiqueta que `taxes` ya devuelve traducida,
+  // con `name` de reserva para un hub con `taxes` ≤ 2.3.8 (inventory#64)— y el tipo que aplica
+  // detrás. Aquí se compone A MANO como `${name} (${key})`, y eso dejaba DOS formatos del mismo
+  // dato en el mismo módulo: esta pantalla enseñaba la clave técnica y escondía el %, que es
+  // justamente por lo que se elige una categoría. Reutilizar el helper —en vez de copiar su
+  // formato— es lo que impide que las dos pantallas vuelvan a separarse al siguiente cambio.
   taxOptions() {
+    const t5 = (key) => erplora().t(CATALOG, key);
     return b2`
-      <ion-select-option value="">${erplora().t(CATALOG, "ui.taxDefault")}</ion-select-option>
-      ${this.taxRates.map(
-      (c5) => b2`<ion-select-option .value=${c5.key}>${taxCategoryDisplayName(c5) || c5.key} (${c5.key})</ion-select-option>`
+      <ion-select-option value="">${t5("ui.taxDefault")}</ion-select-option>
+      ${this.taxCategories.map(
+      (c5) => b2`<ion-select-option .value=${c5.key}>${taxCategoryOptionLabel(c5, this.taxRates, t5)}</ion-select-option>`
     )}
     `;
   }
@@ -4457,6 +4532,9 @@ __decorateClass([
 __decorateClass([
   r5()
 ], ErpInventoryCategories.prototype, "newTaxRateId", 2);
+__decorateClass([
+  r5()
+], ErpInventoryCategories.prototype, "taxCategories", 2);
 __decorateClass([
   r5()
 ], ErpInventoryCategories.prototype, "taxRates", 2);
@@ -5250,7 +5328,7 @@ var ErpInventoryProducts = class extends i3 {
     this.previewMapping = {};
     this.importProgress = null;
     this.importCancelled = false;
-    this.statusFilter = "";
+    this.tableFilters = {};
     this.detail = null;
     this.printError = "";
     this.countTarget = null;
@@ -5384,15 +5462,26 @@ var ErpInventoryProducts = class extends i3 {
     delete this.ctrl.state.filters.needs_tax_setup;
     if (v3 === STATUS_UNCONFIGURED) this.ctrl.state.filters.needs_tax_setup = "1";
     else if (v3 !== "") this.ctrl.state.filters.is_active = v3;
-    this.statusFilter = v3;
+    this.setTableFilter("is_active", v3);
     this.ctrl.state.page = 0;
     void this.ctrl.load();
   }
-  /** The active status, in the SAME words the dropdown offers — never a raw `'1'` on screen. */
-  statusLabel(value) {
-    const t5 = (k2) => erplora4().t(CATALOG4, k2);
-    if (value === STATUS_UNCONFIGURED) return t5("ui.statusUnconfigured");
-    return value === "1" ? t5("ui.yes") : t5("ui.no");
+  /**
+   * Fija (o borra) el valor visible de una columna.
+   *
+   * Asigna siempre un objeto NUEVO: `ok-data-table` resiembra su espejo por identidad y una
+   * mutación in-place no le llega —a propósito, para que las elecciones del usuario manden
+   * mientras el consumidor no diga otra cosa—, así que mutando esto el control se quedaría con el
+   * valor viejo. Y se copia el objeto entero, no solo la clave que cambia: la resiembra sustituye
+   * el espejo completo, así que un `{is_active}` a secas borraría de la pantalla el filtro de
+   * `sku` que el usuario acababa de escribir, dejando la lista acotada por algo invisible.
+   */
+  setTableFilter(col, value) {
+    const next = { ...this.tableFilters };
+    const empty = value === void 0 || value === null || value === "" || Array.isArray(value) && value.length === 0;
+    if (empty) delete next[col];
+    else next[col] = value;
+    this.tableFilters = next;
   }
   /** Diferencia del recuento (nuevo − actual), o null si aún no hay valor tecleado. */
   get countDifference() {
@@ -5836,10 +5925,11 @@ var ErpInventoryProducts = class extends i3 {
     window.addEventListener("erplora:locale-changed", this.onLocaleChange);
   }
   async firstUpdated() {
-    this.statusFilter = statusFilterFromSearch(window.location.search);
+    const status = statusFilterFromSearch(window.location.search);
     const filters = {};
-    if (this.statusFilter === STATUS_UNCONFIGURED) filters.needs_tax_setup = "1";
-    else if (this.statusFilter !== "") filters.is_active = this.statusFilter;
+    if (status === STATUS_UNCONFIGURED) filters.needs_tax_setup = "1";
+    else if (status !== "") filters.is_active = status;
+    if (status !== "") this.tableFilters = { is_active: status };
     this.ctrl = createListController(
       erplora4(),
       "inventory.products.list",
@@ -6101,25 +6191,11 @@ var ErpInventoryProducts = class extends i3 {
               <ion-button size="small" fill="clear" @click=${() => this.cancelImport()}>${erplora4().t(CATALOG4, "ui.importStop")}</ion-button>
             </ok-inline-feedback>` : A}
 
-        <!-- The list is narrowed and SAYS SO (inventory#72). ok-data-table paints no filter state
-             in serverSide mode, so a list narrowed from the URL — or from the dropdown — would
-             look exactly like a catalogue with twelve articles in it. Same shape every ERP uses for
-             an active filter: what it is filtered by, and the way out. -->
-        ${this.statusFilter ? b2`<ok-inline-feedback
-              data-testid="status-filter-notice"
-              tone="info"
-              icon="funnel-outline"
-            >
-              ${t5("ui.filteredBy")}: ${this.statusLabel(this.statusFilter)}
-              <ion-button size="small" fill="clear" @click=${() => this.applyStatusFilter("")}>
-                ${t5("ui.showAll")}
-              </ion-button>
-            </ok-inline-feedback>` : A}
-
         <!-- The «detail» button is not the only door: rowClickable makes the whole row open the
              same detail modal (outfitkit#67 — the actions column can be off-screen at 1440 px). -->
         <ok-data-table
           .serverSide=${true}
+          .filterValues=${this.tableFilters}
           .fill=${true}
           .labels=${dataTableLabels(erplora4().locale)}
           .columns=${this.columns}
@@ -6150,6 +6226,7 @@ var ErpInventoryProducts = class extends i3 {
           @searchChange=${(e5) => this.ctrl.setSearch(e5.detail)}
           @filterChange=${(e5) => {
       if (e5.detail.col === "is_active") return this.applyStatusFilter(e5.detail.value);
+      this.setTableFilter(e5.detail.col, e5.detail.value);
       this.ctrl.setFilter(
         e5.detail.col,
         e5.detail.col === "stock" ? this.stockFilterValue(e5.detail.value) : e5.detail.value
@@ -6765,7 +6842,7 @@ __decorateClass([
 ], ErpInventoryProducts.prototype, "importProgress", 2);
 __decorateClass([
   r5()
-], ErpInventoryProducts.prototype, "statusFilter", 2);
+], ErpInventoryProducts.prototype, "tableFilters", 2);
 __decorateClass([
   r5()
 ], ErpInventoryProducts.prototype, "detail", 2);

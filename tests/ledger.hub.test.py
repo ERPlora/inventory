@@ -67,6 +67,60 @@ def test_receive_writes_a_reception_movement_and_updates_cost(hub: Hub) -> None:
     )
 
 
+def test_receiving_without_a_cost_keeps_the_cost_it_had(hub: Hub) -> None:
+    print(
+        "\n0 · receiving WITHOUT a unit_cost: the movement records none and the cost stands"
+    )
+    # Goods arrive and nobody types what they cost — the ordinary case at a counter, and the one
+    # the batteries had stopped covering: every receive here used to send `unit_cost: 0` explicitly
+    # to dodge ERPlora/hub#1348 (the runtime's prepared-statement cache broke when a NULL bind and
+    # a typed one met on the same SQL over one pooled connection). The kernel fixed it in
+    # ERPlora/hub#1386 (`.persistent(false)` in `build_query!`, three regression tests in
+    # `crates/db`), so the workaround came out — and with it back comes the coverage.
+    #
+    # `0` is NOT the same answer as «no cost»: zero would overwrite the article's cost with zero
+    # and put a 0 in the ledger, which is a price, not a blank. Omitting it has to leave the cost
+    # the article already had and record NULL in the movement.
+    pid = create_product(
+        hub, name=unique("NOCOST"), sku=unique("NOC"), cost=500, stock=0
+    )
+
+    hub.run("inventory.stock.receive", {"items": [{"product_id": pid, "qty": 3}]})
+
+    hub.check("the stock went up all the same", stock_of(hub, pid), 3)
+    hub.check(
+        "the article KEEPS the cost it had: omitting the cost is not costing it zero",
+        product(hub, pid)["cost"],
+        500,
+    )
+    reception = next(
+        (m for m in movements(hub, pid) if m["movement_type"] == "reception"), None
+    )
+    hub.check_true("a reception movement exists", reception is not None, str(reception))
+    hub.check(
+        "the ledger records NO unit_cost — a blank, never a 0 €",
+        reception["unit_cost"],
+        None,
+    )
+
+    # ── hub#1348, in the order that used to break it ─────────────────────────────────────────
+    # A NULL bind FIRST and a typed one after, on the same statement and the same pooled
+    # connection. Verified against a kernel WITHOUT hub#1386 (image of 2026-08-27): this second
+    # receive answers HTTP 400 `db` and the stock does not move. It is the positive this test has
+    # to keep catching, and the reason the assertion below is here and not in its own battery.
+    status, body = hub.command(
+        "inventory.stock.receive",
+        {"items": [{"product_id": pid, "qty": 2, "unit_cost": 700}]},
+    )
+    hub.check_true(
+        "receiving WITH a cost right after one WITHOUT it is accepted (hub#1348 → hub#1386)",
+        status == 200,
+        f"HTTP {status}: {body}",
+    )
+    hub.check("…and the stock adds up both receptions", stock_of(hub, pid), 5)
+    hub.check("…and that one DOES set the cost", product(hub, pid)["cost"], 700)
+
+
 def test_adjust_is_absolute_with_mandatory_reason(hub: Hub) -> None:
     print(
         "\n2 · stock.adjust is an ABSOLUTE recount, the reason is mandatory, no-diff writes nothing"
@@ -155,12 +209,9 @@ def test_movements_query_filters_by_type_and_projects_the_product(hub: Hub) -> N
     sku = unique("FIL")
     pid = create_product(hub, name="Filtrable", sku=sku, cost=0, stock=10)
 
-    # `unit_cost` is sent explicitly (0) where the old e2e omitted it: a receive with `unit_cost`
-    # OMITTED (NULL) followed by one with a value on the same pooled connection trips the runtime's
-    # prepared-statement bind bug (hub#1348). The cost is not what this test is about.
     hub.run(
         "inventory.stock.receive",
-        {"items": [{"product_id": pid, "qty": 5, "unit_cost": 0}]},
+        {"items": [{"product_id": pid, "qty": 5}]},
     )
     hub.run(
         "inventory.stock.adjust",
@@ -223,6 +274,12 @@ def main() -> int:
         f"Hub battery · ledger (hub#1264 ← inventory_ledger_e2e.rs) · {hub_harness.BASE} · "
         f"hub {hub.hub_id} · user {hub.user}"
     )
+    # 🔴 FIRST, and that is load-bearing — not tidiness. What it guards (hub#1348) only bites when
+    # the NULL bind is the FIRST use of that statement on a pooled connection: sqlx cached the
+    # prepared statement with the types of whatever bound it first. Run after a receive that
+    # carries a cost, this test passes even on a kernel WITHOUT hub#1386 — measured, that is
+    # exactly what it did — and a guard that only fires in the right order has to be put in it.
+    test_receiving_without_a_cost_keeps_the_cost_it_had(hub)
     test_receive_writes_a_reception_movement_and_updates_cost(hub)
     test_adjust_is_absolute_with_mandatory_reason(hub)
     test_rejected_and_untracked_decreases_leave_no_movement(hub)
