@@ -77,11 +77,9 @@ def test_half_a_kilo_genuinely_decreases_half_a_kilo(hub: Hub) -> None:
         hub, name=unique("Gambas"), sku=unique("GAM"), unit_code="kg"
     )
 
-    # `unit_cost: 0` sent explicitly where the old e2e omitted it — see hub#1348 (NULL then a
-    # value for the same bind on one pooled connection breaks the runtime's prepared statement).
     hub.run(
         "inventory.stock.receive",
-        {"items": [{"product_id": gambas, "qty": ONE // 2 * 5, "unit_cost": 0}]},
+        {"items": [{"product_id": gambas, "qty": ONE // 2 * 5}]},
     )
     hub.check("2,5 kg received", stock_of(hub, gambas), ONE * 5 // 2)
 
@@ -103,7 +101,7 @@ def test_the_ledger_uses_the_same_scale(hub: Hub) -> None:
     )
     hub.run(
         "inventory.stock.receive",
-        {"items": [{"product_id": gambas, "qty": ONE // 2, "unit_cost": 0}]},
+        {"items": [{"product_id": gambas, "qty": ONE // 2}]},
     )
 
     movs = hub.query(
@@ -122,7 +120,7 @@ def test_an_off_grid_quantity_is_refused_and_the_stock_is_untouched(hub: Hub) ->
     )
     hub.run(
         "inventory.stock.receive",
-        {"items": [{"product_id": gambas, "qty": ONE, "unit_cost": 0}]},
+        {"items": [{"product_id": gambas, "qty": ONE}]},
     )
 
     status, _ = hub.command(
