@@ -1484,3 +1484,114 @@ describe('clicking the row opens the product (pm#155)', () => {
     expect(wc.detail, 'the row was clicked and the detail modal did not take the product').toEqual(PRODUCTO);
   });
 });
+
+// ── inventory#72 · the list can be opened ALREADY filtered ────────────────────────────────────
+//
+// The POS shows the manager an aggregated warning — «N articles cannot be sold: they are missing
+// their tax category» — and a «Review the catalogue» link (ERPlora/sales#149). That link used to
+// land on the full catalogue, so the manager arrived in front of 280 rows having to remember to
+// open the status dropdown and pick «not configured». The count was on the previous screen; the
+// screen it led to did not know it.
+//
+// Odoo and Shopify link their warnings to the ALREADY-NARROWED view, never to the whole list, so
+// that is what `?status=` does here. Two halves, and the second one is not decoration: the screen
+// has to SAY it is filtered. `ok-data-table` keeps no filter state in `serverSide` mode (its column
+// controls read `clientFilters`, which server-side tables never write — ERPlora/outfitkit#…), so a
+// silently narrowed list would look exactly like a catalogue with 12 articles in it.
+describe('la lista se puede abrir ya filtrada por estado (inventory#72)', () => {
+  /** `filters` of every `queryPage` the list controller issued, oldest first. */
+  const paginas: Record<string, unknown>[] = [];
+
+  function conUrl(search: string): void {
+    paginas.length = 0;
+    window.history.replaceState(null, '', `/m/inventory/products${search}`);
+    const sdk = (globalThis as Record<string, unknown>).erplora as Record<string, unknown>;
+    sdk.queryPage = async (_name: string, params: { filters?: Record<string, unknown> }) => {
+      paginas.push({ ...(params?.filters ?? {}) });
+      return { rows: [], total: 0, limit: 50, offset: 0 };
+    };
+  }
+
+  it('`?status=unconfigured` pide al servidor `needs_tax_setup=1` en la PRIMERA carga', async () => {
+    conUrl('?status=unconfigured');
+    await montar();
+    expect(paginas.length, 'la lista se ha cargado al menos una vez').toBeGreaterThan(0);
+    expect(
+      paginas[0].needs_tax_setup,
+      'la primera petición ya llega filtrada: si el filtro se aplicase después, el encargado vería ' +
+        'las 280 filas parpadear antes de acotarse',
+    ).toBe('1');
+  });
+
+  it('CONTROL: sin query string la lista se pide SIN `needs_tax_setup` (el control caza el positivo)', async () => {
+    conUrl('');
+    await montar();
+    expect(paginas.length).toBeGreaterThan(0);
+    expect(paginas[0].needs_tax_setup, 'sin parámetro no se filtra nada').toBeUndefined();
+    expect(paginas[0].is_active, 'y tampoco se filtra por actividad').toBeUndefined();
+  });
+
+  it('un valor desconocido se IGNORA y abre la lista normal — nunca una lista vacía sin explicar', async () => {
+    conUrl('?status=azul');
+    await montar();
+    expect(paginas[0].needs_tax_setup).toBeUndefined();
+    expect(paginas[0].is_active).toBeUndefined();
+  });
+
+  it('`?status=active` / `?status=inactive` usan la MISMA columna que el desplegable de estado', async () => {
+    conUrl('?status=active');
+    await montar();
+    expect(paginas[0].is_active).toBe('1');
+    expect(paginas[0].needs_tax_setup).toBeUndefined();
+
+    conUrl('?status=inactive');
+    await montar();
+    expect(paginas[0].is_active).toBe('0');
+  });
+
+  it('la pantalla DICE que está filtrada y ofrece quitarlo (el desplegable no lo pinta en modo servidor)', async () => {
+    conUrl('?status=unconfigured');
+    const el = await montar();
+    const aviso = el.shadowRoot?.querySelector('[data-testid="status-filter-notice"]');
+    expect(aviso, 'una lista acotada en silencio parece un catálogo de 12 artículos').toBeTruthy();
+    expect(aviso?.textContent, 'el aviso nombra el estado por el que se filtra').toContain(
+      'ui.statusUnconfigured',
+    );
+    const quitar = aviso?.querySelector('ion-button');
+    expect(quitar, 'y trae la salida: quitar el filtro sin adivinar dónde está').toBeTruthy();
+  });
+
+  it('sin filtro de estado NO hay aviso (no se pinta ruido en la pantalla normal)', async () => {
+    conUrl('');
+    const el = await montar();
+    expect(el.shadowRoot?.querySelector('[data-testid="status-filter-notice"]')).toBeNull();
+  });
+
+  it('quitar el filtro vuelve a pedir la lista COMPLETA', async () => {
+    conUrl('?status=unconfigured');
+    const el = await montar();
+    const quitar = el.shadowRoot?.querySelector(
+      '[data-testid="status-filter-notice"] ion-button',
+    ) as HTMLElement | null;
+    quitar?.click();
+    await new Promise((r) => setTimeout(r, 0));
+    await (el as unknown as { updateComplete: Promise<unknown> }).updateComplete;
+    expect(paginas.length, 'quitar el filtro recarga').toBeGreaterThan(1);
+    expect(paginas[paginas.length - 1].needs_tax_setup, 'y la recarga ya no lleva el filtro').toBeUndefined();
+    expect(el.shadowRoot?.querySelector('[data-testid="status-filter-notice"]')).toBeNull();
+  });
+});
+
+// Las cadenas nuevas viajan por i18n con el inglés como fuente y su traducción al español
+// (ADR-0055/0199): una cadena sin `es` sale en inglés en un producto que se vende en español.
+describe('las cadenas del aviso de filtro están en los DOS catálogos (ADR-0055)', () => {
+  it('`ui.filteredBy` y `ui.showAll` existen en `en` y en `es`', () => {
+    const en = jsonDelModulo('locales/en.json').ui as Record<string, string>;
+    const es = jsonDelModulo('locales/es.json').ui as Record<string, string>;
+    for (const clave of ['filteredBy', 'showAll']) {
+      expect(en[clave], `falta \`ui.${clave}\` en el catálogo inglés (idioma fuente)`).toBeTruthy();
+      expect(es[clave], `falta \`ui.${clave}\` en el catálogo español`).toBeTruthy();
+      expect(es[clave], `\`ui.${clave}\` no está traducido: es la cadena inglesa`).not.toBe(en[clave]);
+    }
+  });
+});

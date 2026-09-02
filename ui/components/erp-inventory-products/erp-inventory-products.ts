@@ -73,6 +73,33 @@ interface Product {
 const STATUS_UNCONFIGURED = 'unconfigured';
 
 /**
+ * `?status=<name>` → the value the status column's dropdown carries (inventory#72).
+ *
+ * The three states are exclusive on screen but travel to the server on TWO columns (`is_active` and
+ * `needs_tax_setup`), so the URL names the STATE and `applyStatusFilter` is the only thing that
+ * knows how a state becomes filters. The names are the ones a person would write, not the column
+ * values: `?status=inactive` beats `?is_active=0` for a link that lives in another module's screen.
+ *
+ * Anything not in here is IGNORED and the catalogue opens whole — an unknown value must never
+ * produce an empty list with nothing on screen to explain it.
+ */
+const STATUS_FROM_QUERY: Record<string, string> = {
+  [STATUS_UNCONFIGURED]: STATUS_UNCONFIGURED,
+  active: '1',
+  inactive: '0',
+};
+
+/** The status the URL asks the list to open on, or `''` for «the whole catalogue». */
+export function statusFilterFromSearch(search: string): string {
+  try {
+    return STATUS_FROM_QUERY[new URLSearchParams(search).get('status') ?? ''] ?? '';
+  } catch {
+    // A malformed query string is not a reason to leave the manager without a catalogue.
+    return '';
+  }
+}
+
+/**
  * Row status for the list: the two lifecycle states of always PLUS a third one, «not configured»
  * (inventory#38). A product created before the fiscal category became mandatory does not know
  * whether it is 21%, 10% or exempt; painting it as «active» is a lie the cashier pays for at the
@@ -424,8 +451,26 @@ export class ErpInventoryProducts extends LitElement {
     delete this.ctrl.state.filters.needs_tax_setup;
     if (v === STATUS_UNCONFIGURED) this.ctrl.state.filters.needs_tax_setup = '1';
     else if (v !== '') this.ctrl.state.filters.is_active = v;
+    this.statusFilter = v;
     this.ctrl.state.page = 0;
     void this.ctrl.load();
+  }
+
+  /**
+   * Which status the list is narrowed to right now, `''` = the whole catalogue (inventory#72).
+   *
+   * It is kept HERE and not read back from the table because `ok-data-table` keeps no filter state
+   * in `serverSide` mode: its column controls paint from `clientFilters`, which a server-side table
+   * never writes. Without this the screen would narrow itself — from the URL or from the dropdown —
+   * and show nothing that says so, which reads as «this catalogue has 12 articles».
+   */
+  @state() statusFilter = '';
+
+  /** The active status, in the SAME words the dropdown offers — never a raw `'1'` on screen. */
+  private statusLabel(value: string): string {
+    const t = (k: string): string => erplora().t(CATALOG, k);
+    if (value === STATUS_UNCONFIGURED) return t('ui.statusUnconfigured');
+    return value === '1' ? t('ui.yes') : t('ui.no');
   }
 
   @state() private detail: Product | null = null;
@@ -967,11 +1012,19 @@ export class ErpInventoryProducts extends LitElement {
   }
 
   async firstUpdated(): Promise<void> {
+    // inventory#72 — the POS links here from its «N articles cannot be sold» warning, and it links
+    // to the list ALREADY narrowed. The filter is seeded into the controller instead of applied
+    // after the first load on purpose: applying it later would fetch the 280 rows first and let
+    // them flash on screen before shrinking to twelve.
+    this.statusFilter = statusFilterFromSearch(window.location.search);
+    const filters: Record<string, unknown> = {};
+    if (this.statusFilter === STATUS_UNCONFIGURED) filters.needs_tax_setup = '1';
+    else if (this.statusFilter !== '') filters.is_active = this.statusFilter;
     this.ctrl = createListController<Product>(
       erplora(),
       'inventory.products.list',
       () => this.requestUpdate(),
-      { pageSize: 50, sort: 'name', dir: 'asc' },
+      { pageSize: 50, sort: 'name', dir: 'asc', filters },
     );
     await this.ctrl.load();
     void this.loadTaxCategories();
@@ -1269,6 +1322,23 @@ export class ErpInventoryProducts extends LitElement {
               ${erplora().t(CATALOG, 'ui.importProgress', { done: this.importProgress.done, total: this.importProgress.total })}
               <ion-progress-bar .value=${this.importProgress.total ? this.importProgress.done / this.importProgress.total : 0}></ion-progress-bar>
               <ion-button size="small" fill="clear" @click=${() => this.cancelImport()}>${erplora().t(CATALOG, 'ui.importStop')}</ion-button>
+            </ok-inline-feedback>`
+          : nothing}
+
+        <!-- The list is narrowed and SAYS SO (inventory#72). ok-data-table paints no filter state
+             in serverSide mode, so a list narrowed from the URL — or from the dropdown — would
+             look exactly like a catalogue with twelve articles in it. Same shape every ERP uses for
+             an active filter: what it is filtered by, and the way out. -->
+        ${this.statusFilter
+          ? html`<ok-inline-feedback
+              data-testid="status-filter-notice"
+              tone="info"
+              icon="funnel-outline"
+            >
+              ${t('ui.filteredBy')}: ${this.statusLabel(this.statusFilter)}
+              <ion-button size="small" fill="clear" @click=${() => this.applyStatusFilter('')}>
+                ${t('ui.showAll')}
+              </ion-button>
             </ok-inline-feedback>`
           : nothing}
 
