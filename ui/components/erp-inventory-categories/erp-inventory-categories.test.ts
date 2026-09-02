@@ -208,3 +208,112 @@ describe('clicking the row opens the category (pm#155)', () => {
     expect(wc.editRow).toEqual(CATEGORIA);
   });
 });
+
+// ── inventory#67 ────────────────────────────────────────────────────────────────────────────────
+//
+// ONE format for the fiscal category, module-wide. inventory#58 took the technical key out of the
+// selector and put the rate in front of it; inventory#64 put the translated label on top. Both
+// landed in `taxCategoryOptionLabel()`, and THIS screen never called it — it composed the option by
+// hand as `${name} (${key})`, so the same datum read two ways in the same module:
+//
+//     Alta de producto     →  Producto — general · 21 %
+//     Categorías (aquí)    →  Producto — general (product.generic)
+//
+// The market decides the tie, and it decides it the same way everywhere a tax category is picked
+// (Odoo, Business Central, Square, Shopify, Holded): the name plus the rate the invoice will carry,
+// never the internal code. The key is what gets SAVED, not what gets read. Two ways of painting one
+// datum is how drift comes back, so the screen reuses the helper instead of copying its format.
+describe('el selector fiscal usa el MISMO formato que el alta: nombre · % (inventory#67)', () => {
+  const CANONICA = {
+    id: 't1',
+    key: 'product.generic',
+    name: 'Product — generic',
+    display_name: 'Producto — general',
+  };
+
+  /** Serves BOTH contracts of `taxes`: the categories catalogue and the rules the rate comes from. */
+  function conTaxes(
+    cats: Record<string, unknown>[],
+    reglas: Record<string, unknown>[],
+  ): { name: string; params?: Record<string, unknown> }[] {
+    const llamadas: { name: string; params?: Record<string, unknown> }[] = [];
+    const sdk = (globalThis as Record<string, any>).erplora;
+    sdk.queryAll = async (name: string, params?: Record<string, unknown>) => {
+      llamadas.push({ name, params });
+      if (name === 'taxes.categories.list') return cats;
+      if (name === 'taxes.rules.list') return reglas;
+      return [];
+    };
+    return llamadas;
+  }
+
+  function opciones(el: HTMLElement): string[] {
+    return [...(el.shadowRoot?.querySelectorAll('ion-select-option') ?? [])].map(
+      (o) => (o.textContent ?? '').trim(),
+    );
+  }
+
+  const REGLA_21 = {
+    id: 'r1',
+    tax_category_key: 'product.generic',
+    rate_pct: 21,
+    parent_id: null,
+    valid_from: '2024-01-01',
+    operation_class: 'subject',
+  };
+
+  it('pinta el % aplicable y NO la clave técnica', async () => {
+    conTaxes([CANONICA], [REGLA_21]);
+    const el = await montar();
+    const texto = opciones(el).join(' | ');
+    expect(texto, 'el dato por el que se elige una categoría fiscal es el tipo que aplica').toContain(
+      'Producto — general · 21 %',
+    );
+    expect(
+      texto,
+      'la clave canónica es lo que se GUARDA, no lo que se lee: `(product.generic)` es ruido',
+    ).not.toContain('(product.generic)');
+  });
+
+  it('CONTROL: sin `taxes.rules.list` el control cazaría el positivo (la aserción del % no pasa sola)', async () => {
+    // Without the rules there is no rate to show, so the assertion above MUST fail here. A test
+    // that stays green with the data removed is not testing the data.
+    conTaxes([CANONICA], []);
+    const el = await montar();
+    expect(opciones(el).join(' | ')).not.toContain('· 21 %');
+  });
+
+  it('el % lo trae `taxes.rules.list` — aquí no se recalcula ningún tipo (ADR-0085)', async () => {
+    const llamadas = conTaxes([CANONICA], [REGLA_21]);
+    await montar();
+    expect(
+      llamadas.find((l) => l.name === 'taxes.rules.list'),
+      'el tipo vive en `taxes` (país+región+categoría+fecha) y se lee por su query pública',
+    ).toBeTruthy();
+  });
+
+  it('`taxes` degradado: la opción sigue siendo el nombre, nunca se queda muda', async () => {
+    const sdk = (globalThis as Record<string, any>).erplora;
+    sdk.queryAll = async (name: string) => {
+      if (name === 'taxes.categories.list') return [CANONICA];
+      throw new Error('taxes down');
+    };
+    const el = await montar();
+    expect(opciones(el).join(' | ')).toContain('Producto — general');
+  });
+
+  it('mismo formato que el alta: la opción ES lo que devuelve `taxCategoryOptionLabel`', async () => {
+    // The contract of inventory#67 is not «this string»: it is that ONE helper owns the format for
+    // the whole module. Comparing against the helper is what keeps the two screens from drifting
+    // apart again the next time the format changes.
+    const { taxCategoryOptionLabel } = await import('../../lib/tax-category-option');
+    conTaxes([CANONICA], [REGLA_21]);
+    const el = await montar();
+    const esperado = taxCategoryOptionLabel(
+      CANONICA,
+      new Map([['product.generic', { pct: 21, exempt: false }]]),
+      (k: string) => k,
+    );
+    expect(opciones(el)).toContain(esperado);
+  });
+});

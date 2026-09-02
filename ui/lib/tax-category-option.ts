@@ -64,9 +64,15 @@ interface TaxRuleRow {
   operation_class?: string | null;
 }
 
-/** Cliente mínimo que necesita el cargador (inyectable en tests). */
+/** Cliente mínimo que necesita el cargador (inyectable en tests).
+ *
+ *  `Promise<T[]>` y no `Promise<T>`: es la firma que declara el cliente REAL del módulo
+ *  (`ErploraClientLike`, en las dos pantallas que llaman aquí). Con `Promise<T>` ningún cliente de
+ *  verdad encajaba en este contrato —`erplora()` no era asignable a `TaxRatesClient`— y nadie se
+ *  enteró porque la puerta que corre `tsc` sobre los módulos no existe: el gate pasa por vitest y
+ *  por esbuild, y esbuild no comprueba tipos. */
 export interface TaxRatesClient {
-  queryAll<T = unknown>(name: string, params?: Record<string, unknown>): Promise<T>;
+  queryAll<T = unknown>(name: string, params?: Record<string, unknown>): Promise<T[]>;
 }
 
 /** ¿Es la regla RAÍZ de su categoría? Los hijos son componentes (recargo de equivalencia y
@@ -101,7 +107,7 @@ function rowsOf<T>(r: unknown): T[] {
 export async function loadTaxRates(client: TaxRatesClient): Promise<Map<string, TaxRate>> {
   const out = new Map<string, TaxRate>();
   try {
-    const all = rowsOf<TaxRuleRow>(await client.queryAll<TaxRuleRow[]>('taxes.rules.list'));
+    const all = rowsOf<TaxRuleRow>(await client.queryAll<TaxRuleRow>('taxes.rules.list'));
     const rootByCat = new Map<string, TaxRuleRow>();
     for (const r of all) {
       if (!r || !r.tax_category_key || !isRoot(r)) continue;
