@@ -158,8 +158,6 @@
     "status": "Status",
     "statusUnconfigured": "Not configured",
     "statusUnconfiguredReason": "Missing tax category",
-    "filteredBy": "Filtered by",
-    "showAll": "Show all",
     "fieldTaxCategory": "Tax category",
     "taxCategoryPlaceholder": "Pick a tax category",
     "taxNoneAvailable": "There are no tax categories yet. Create them in Taxes: a product cannot be sold until it is known how it is taxed.",

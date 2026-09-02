@@ -159,8 +159,6 @@
     "status": "Estado",
     "statusUnconfigured": "Sin configurar",
     "statusUnconfiguredReason": "Falta la categoría fiscal",
-    "filteredBy": "Filtrado por",
-    "showAll": "Ver todos",
     "fieldTaxCategory": "Categoría fiscal",
     "taxCategoryPlaceholder": "Elige una categoría fiscal",
     "taxNoneAvailable": "Todavía no hay categorías fiscales. Créalas en Impuestos: un producto no se puede vender sin saber cómo tributa.",

@@ -1549,49 +1549,144 @@ describe('la lista se puede abrir ya filtrada por estado (inventory#72)', () => 
     expect(paginas[0].is_active).toBe('0');
   });
 
-  it('la pantalla DICE que está filtrada y ofrece quitarlo (el desplegable no lo pinta en modo servidor)', async () => {
-    conUrl('?status=unconfigured');
-    const el = await montar();
-    const aviso = el.shadowRoot?.querySelector('[data-testid="status-filter-notice"]');
-    expect(aviso, 'una lista acotada en silencio parece un catálogo de 12 artículos').toBeTruthy();
-    expect(aviso?.textContent, 'el aviso nombra el estado por el que se filtra').toContain(
-      'ui.statusUnconfigured',
-    );
-    const quitar = aviso?.querySelector('ion-button');
-    expect(quitar, 'y trae la salida: quitar el filtro sin adivinar dónde está').toBeTruthy();
-  });
-
-  it('sin filtro de estado NO hay aviso (no se pinta ruido en la pantalla normal)', async () => {
-    conUrl('');
-    const el = await montar();
-    expect(el.shadowRoot?.querySelector('[data-testid="status-filter-notice"]')).toBeNull();
-  });
-
   it('quitar el filtro vuelve a pedir la lista COMPLETA', async () => {
     conUrl('?status=unconfigured');
     const el = await montar();
-    const quitar = el.shadowRoot?.querySelector(
-      '[data-testid="status-filter-notice"] ion-button',
-    ) as HTMLElement | null;
-    quitar?.click();
+    (el as unknown as { applyStatusFilter: (v: unknown) => void }).applyStatusFilter('');
     await new Promise((r) => setTimeout(r, 0));
     await (el as unknown as { updateComplete: Promise<unknown> }).updateComplete;
     expect(paginas.length, 'quitar el filtro recarga').toBeGreaterThan(1);
     expect(paginas[paginas.length - 1].needs_tax_setup, 'y la recarga ya no lleva el filtro').toBeUndefined();
-    expect(el.shadowRoot?.querySelector('[data-testid="status-filter-notice"]')).toBeNull();
   });
 });
 
-// Las cadenas nuevas viajan por i18n con el inglés como fuente y su traducción al español
-// (ADR-0055/0199): una cadena sin `es` sale en inglés en un producto que se vende en español.
-describe('las cadenas del aviso de filtro están en los DOS catálogos (ADR-0055)', () => {
-  it('`ui.filteredBy` y `ui.showAll` existen en `en` y en `es`', () => {
-    const en = jsonDelModulo('locales/en.json').ui as Record<string, string>;
-    const es = jsonDelModulo('locales/es.json').ui as Record<string, string>;
-    for (const clave of ['filteredBy', 'showAll']) {
-      expect(en[clave], `falta \`ui.${clave}\` en el catálogo inglés (idioma fuente)`).toBeTruthy();
-      expect(es[clave], `falta \`ui.${clave}\` en el catálogo español`).toBeTruthy();
-      expect(es[clave], `\`ui.${clave}\` no está traducido: es la cadena inglesa`).not.toBe(en[clave]);
-    }
+// ── inventory#83 (deriva de outfitkit#106/#107) ─────────────────────────────────────────────────
+//
+// La segunda mitad de inventory#72 era un PARCHE: como `ok-data-table` en modo servidor no tenía
+// forma de que el consumidor le dijera qué valor enseñar en un filtro de columna, esta pantalla
+// pintaba su propio aviso «Filtrado por X · Ver todos» encima de la tabla. Funcionaba, pero dejaba
+// el `<ion-select>` de «Estado» EN BLANCO con la lista acotada, y el parche había que repetirlo en
+// cada módulo.
+//
+// `@erplora/outfitkit` ≥ 0.1.57 trae `filterValues` (por `col.key`, con la MISMA forma que emite
+// `filterChange`) y su embudo cuenta los filtros activos en modo servidor. Con eso el control dice
+// la verdad por sí solo y el aviso propio sobra.
+//
+// Dos cosas que este contrato fija y que NO son evidentes:
+//
+//   1. Lo que se le pasa a la tabla es el estado de UI, no el del servidor. El estado tiene TRES
+//      valores en UNA columna de pantalla (`is_active`) que viajan por DOS del servidor
+//      (`is_active` + `needs_tax_setup`, inventory#38), así que `ctrl.state.filters` NO se puede
+//      enlazar tal cual: enseñaría `needs_tax_setup=1` en un desplegable que no tiene esa opción.
+//   2. Se asigna un OBJETO NUEVO en cada cambio. La tabla resiembra su espejo por identidad; mutar
+//      el mismo objeto in-place no la reseeda —a propósito, para que mande el usuario— y el select
+//      se quedaría con el valor viejo.
+describe('el filtro de estado que trae puesto se PINTA en la tabla (inventory#83)', () => {
+  function conUrl(search: string): void {
+    window.history.replaceState(null, '', `/m/inventory/products${search}`);
+    const sdk = (globalThis as Record<string, unknown>).erplora as Record<string, unknown>;
+    sdk.queryPage = async () => ({ rows: [], total: 0, limit: 50, offset: 0 });
+  }
+
+  /** Lo que la tabla recibe hoy en `.filterValues` (undefined = la prop no se está pasando). */
+  function valoresDeFiltro(el: HTMLElement): Record<string, unknown> | undefined {
+    const tabla = el.shadowRoot?.querySelector('ok-data-table') as
+      | (HTMLElement & { filterValues?: Record<string, unknown> })
+      | null;
+    return tabla?.filterValues;
+  }
+
+  it('`?status=unconfigured` deja el desplegable de Estado en «Sin configurar»', async () => {
+    conUrl('?status=unconfigured');
+    const el = await montar();
+    expect(
+      valoresDeFiltro(el),
+      'la lista viene acotada y el control tiene que decirlo: en blanco parece un catálogo de 12',
+    ).toEqual({ is_active: 'unconfigured' });
+  });
+
+  it('CONTROL: sin query string no se siembra ningún filtro (el control caza el positivo)', async () => {
+    conUrl('');
+    const el = await montar();
+    expect(valoresDeFiltro(el)).toEqual({});
+  });
+
+  it('`?status=active` / `?status=inactive` siembran el valor que ofrece el desplegable, no el del servidor', async () => {
+    conUrl('?status=active');
+    expect(valoresDeFiltro(await montar())).toEqual({ is_active: '1' });
+    conUrl('?status=inactive');
+    expect(valoresDeFiltro(await montar())).toEqual({ is_active: '0' });
+  });
+
+  it('el valor sembrado es de UI: nunca aparece `needs_tax_setup`, que el desplegable no ofrece', async () => {
+    conUrl('?status=unconfigured');
+    const el = await montar();
+    expect(
+      Object.keys(valoresDeFiltro(el) ?? {}),
+      'enlazar `ctrl.state.filters` tal cual pintaría una opción inexistente',
+    ).not.toContain('needs_tax_setup');
+  });
+
+  it('cambiar el filtro a mano lo mantiene pintado, y en un objeto NUEVO', async () => {
+    conUrl('');
+    const el = await montar();
+    const antes = valoresDeFiltro(el);
+    (el as unknown as { applyStatusFilter: (v: unknown) => void }).applyStatusFilter('0');
+    await (el as unknown as { updateComplete: Promise<unknown> }).updateComplete;
+    const despues = valoresDeFiltro(el);
+    expect(despues).toEqual({ is_active: '0' });
+    expect(
+      despues,
+      'la tabla resiembra por IDENTIDAD: mutando el mismo objeto el select se queda con el valor viejo',
+    ).not.toBe(antes);
+  });
+
+  it('quitar el filtro borra la clave, no la deja puesta en vacío', async () => {
+    conUrl('?status=unconfigured');
+    const el = await montar();
+    (el as unknown as { applyStatusFilter: (v: unknown) => void }).applyStatusFilter('');
+    await (el as unknown as { updateComplete: Promise<unknown> }).updateComplete;
+    expect(valoresDeFiltro(el)).toEqual({});
+  });
+
+  it('el filtro de OTRA columna sobrevive a un cambio de estado (la resiembra no lo borra)', async () => {
+    // La tabla resiembra su espejo ENTERO desde `filterValues`. Si aquí solo se mandara
+    // `is_active`, tocar el estado borraría de la pantalla el filtro de `sku` que el usuario acaba
+    // de escribir — y la lista seguiría acotada por él, sin nada que lo diga.
+    conUrl('');
+    const el = await montar();
+    const tabla = el.shadowRoot?.querySelector('ok-data-table') as HTMLElement;
+    tabla.dispatchEvent(new CustomEvent('filterChange', { detail: { col: 'sku', value: 'CAF' } }));
+    await (el as unknown as { updateComplete: Promise<unknown> }).updateComplete;
+    expect(valoresDeFiltro(el)).toEqual({ sku: 'CAF' });
+
+    tabla.dispatchEvent(new CustomEvent('filterChange', { detail: { col: 'is_active', value: '0' } }));
+    await (el as unknown as { updateComplete: Promise<unknown> }).updateComplete;
+    expect(valoresDeFiltro(el)).toEqual({ sku: 'CAF', is_active: '0' });
+  });
+
+  it('el aviso propio de inventory#72 se RETIRA: el embudo de la tabla ya lo dice', async () => {
+    conUrl('?status=unconfigured');
+    const el = await montar();
+    expect(
+      el.shadowRoot?.querySelector('[data-testid="status-filter-notice"]'),
+      'dos avisos del mismo filtro es ruido; el parche por módulo se va con la prop de la librería',
+    ).toBeNull();
+  });
+
+  it('la `ok-data-table` que se HORNEA declara la prop (una versión vieja la ignoraría en silencio)', async () => {
+    // Este módulo hornea su copia de OutfitKit en `dist/`, así que «engancharlo» solo significa algo
+    // si el bundle que sale de `erplora build` es ≥ 0.1.57. Se comprueba sobre el elemento REAL y no
+    // sobre un número de versión: una tabla sin la prop se come el `.filterValues` sin un solo
+    // error de consola, y la pantalla volvería al select en blanco sin que nada se ponga rojo.
+    await import('@erplora/outfitkit/ok-data-table');
+    const Tabla = customElements.get('ok-data-table') as
+      | (CustomElementConstructor & { elementProperties?: Map<string, unknown> })
+      | undefined;
+    expect(Tabla, 'ok-data-table no se ha registrado').toBeTruthy();
+    expect(
+      [...(Tabla!.elementProperties?.keys() ?? [])],
+      'la OutfitKit horneada es anterior a 0.1.57 (outfitkit#107): sin `filterValues` esto es un no-op',
+    ).toContain('filterValues');
   });
 });
