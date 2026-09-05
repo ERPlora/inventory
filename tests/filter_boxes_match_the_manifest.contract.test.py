@@ -94,6 +94,11 @@ def components():
     return found
 
 
+#: A column whose object never closes. The source could not be read, and a gate that cannot read
+#: its input has to say so instead of sweeping half a file and calling it green (inventory#86).
+UNCLOSED = object()
+
+
 def declared_columns(src: str):
     """`(column, filterType|None, filterable, sortable)` for every column the component paints."""
     out = []
@@ -109,6 +114,164 @@ def declared_columns(src: str):
             )
         )
     return out
+
+
+#: The check on the CUT (inventory#86, ported from ERPlora/taxes#54). Every case puts the poison
+#: AFTER the last column, which is the one place a slice that runs to the end of the file reaches:
+#: a comment, a docstring or a method that merely NAMES `filterType: '...'` or `filterable: true` is
+#: not a box anybody painted. A gate that goes back to cutting until EOF turns these red, and so
+#: does one that cuts too early and stops at the first nested `}`.
+PARSER_CASES: tuple[tuple[str, str, list], ...] = (
+    (
+        "a `filterType` named BELOW the array is nobody's box",
+        """
+    const columns = [
+      { key: 'name', header: h('name'), filterable: true, filterType: 'text' },
+      { key: 'is_active', header: h('active'), sortable: true },
+    ];
+  }
+
+  /** `ok-data-table` paints a `filterType: 'text'` as an `ion-input` with no dropdown. */
+  private get help(): string { return ''; }
+""",
+        [("name", "text", True, False), ("is_active", None, False, True)],
+    ),
+    (
+        "a `filterable: true` named BELOW the array does not turn the last column into a box",
+        """
+    const columns = [
+      { key: 'sku', header: h('sku'), sortable: true },
+      { key: 'is_active', header: h('active') },
+    ];
+  }
+
+  // The `reference` column of the movements table is `filterable: true` and `sortable: true`.
+""",
+        [("sku", None, False, True), ("is_active", None, False, False)],
+    ),
+    (
+        "a column that nests objects is read whole, PAST the nesting, up to ITS OWN closing brace",
+        # What the column declares sits AFTER the `options` array on purpose: an attribute written
+        # before the nesting is still visible to a cut that stops at the first `}`, so it would not
+        # tell the two apart. Only a positive placed past the nested region does.
+        """
+    const columns = [
+      {
+        key: 'is_active',
+        header: h('active'),
+        options: [
+          { value: '1', label: h('yes') },
+          { value: '0', label: h('no') },
+        ],
+        filterable: true,
+        filterType: 'select',
+        sortable: true,
+        format: (r) => String(r.is_active),
+      },
+    ];
+  }
+
+  // Below the array: filterType: 'range' belongs to no column at all.
+""",
+        [("is_active", "select", True, True)],
+    ),
+    (
+        "a column whose object never closes is UNREADABLE, not a slice of whatever came after",
+        "    const columns = [\n      { key: 'orphan', filterable: true, filterType: 'text'\n",
+        [("orphan", UNCLOSED, False, False)],
+    ),
+    (
+        "a brace inside a STRING is text, not the end of the column (rv ERPlora/taxes#58)",
+        # The permissive direction: a cut that stops at the `}` inside `header` never sees the
+        # `filterable`/`filterType` written after it, and the column drops out of the sweep with
+        # nobody the wiser. The old EOF cut did see them, so this is the one regression the balance
+        # could introduce, and it has to stay red for a scanner that counts braces inside quotes.
+        """
+    const columns = [
+      { key: 'unit', header: '}', filterable: true, filterType: 'text' },
+      { key: 'note', header: "{", sortable: true },
+    ];
+  }
+
+  // Below the array: filterType: 'range' belongs to no column at all.
+""",
+        [("unit", "text", True, False), ("note", None, False, True)],
+    ),
+    (
+        "an apostrophe in a COMMENT inside the column is prose, not an open string",
+        # The other way round: once quotes are honoured, a `'` in a comment must not swallow the
+        # rest of the object, or the fix for the false red hands out a new one.
+        """
+    const columns = [
+      {
+        key: 'owner',
+        // the user's choice, kept as they typed it
+        /* and a block comment with a stray } and a ' too */
+        filterable: true,
+        filterType: 'text',
+      },
+    ];
+  }
+""",
+        [("owner", "text", True, False)],
+    ),
+    (
+        "a template literal is read whole: `${...}` nests code, and its own text may hold a brace",
+        # `ok-data-table` renders are Lit templates: a `${...}` can hold another template, and that
+        # inner template's text can hold a `}`. The column ends at ITS brace, not at that one.
+        """
+    const columns = [
+      {
+        key: 'state',
+        render: (r) => html`<b>${r.ok ? html`<i>}</i>` : ''}</b>`,
+        format: (r) => `{${r.state}}`,
+        filterable: true,
+        filterType: 'select',
+      },
+    ];
+  }
+""",
+        [("state", "select", True, False)],
+    ),
+    (
+        "a quote that never closes on its line makes the column UNREADABLE, not a body pieced together from the lines below",
+        # A stray `'` (a regex literal, say) is a read the scanner cannot trust. Carrying the string
+        # across the newline would resync on the apostrophe in the comment below and hand `left`
+        # the `filterable` of a column that is not its own -- with the sweep still green.
+        """
+    const columns = [
+      { key: 'left', header: 'unterminated
+        filterable: true, filterType: 'text' },
+      { key: 'right', sortable: true },
+      // the user's choice
+    ];
+  }
+""",
+        [("left", UNCLOSED, False, False), ("right", None, False, True)],
+    ),
+)
+
+
+def parser_reads_one_column_at_a_time() -> list[str]:
+    """The check on the cut: what a column declares has to come from ITS OWN object.
+
+    inventory#86. The slice used to be `src.split("key: '")`, so the slice of the LAST column ran to
+    the end of the file -- methods, docstrings and comments included -- and a `filterType: '...'`
+    written anywhere below the array was read as a box that column painted. The gate then failed on
+    a filter nobody had drawn: a false RED, loud instead of silent, but it still costs the next
+    person who writes such a comment a full triage. Here the message was worse still: the last
+    `key: '` of this repo is not a column at all (the import wizard's `{ mode: 'pick', key: '' }`),
+    so the gate named an EMPTY column and sent the reader looking for a box that cannot exist.
+
+    It is ruled out on synthetic sources on purpose: the poison has to sit AFTER the last column,
+    and no real component is obliged to keep a comment like that around for the gate's benefit.
+    """
+    broken = []
+    for name, src, expected in PARSER_CASES:
+        got = declared_columns(src)
+        if got != expected:
+            broken.append(f"{name}\n      expected {expected}\n      got      {got}")
+    return broken
 
 
 def check(path, query, src) -> None:
@@ -158,7 +321,43 @@ def check(path, query, src) -> None:
             )
 
 
+def an_unreadable_column_stops_the_gate() -> str | None:
+    """A column the gate could not parse has to fail IN ITS OWN WORDS (inventory#86).
+
+    Without its own branch the sentinel leaks into the filter-type message and the screen reads
+    «paints `orphan` as `filterType: '<object object at 0x...>'` -- teach it», which sends the next
+    person hunting for a filter type nobody ever wrote instead of for the brace that never closed.
+    """
+    listed = [q for q, spec in MANIFEST["queries"].items() if (spec or {}).get("list")]
+    if not listed:
+        return "no query of this module declares a `list` block, so this check cannot run"
+
+    global failures
+    kept, failures = failures, []
+    try:
+        check(MODULE_DIR / "ui/components/never-written.ts", listed[0], "{ key: 'orphan', ")
+        got = list(failures)
+    finally:
+        failures = kept
+
+    if len(got) != 1 or "never closes" not in got[0]:
+        return f"expected exactly one «never closes» failure, got {got}"
+    return None
+
+
 def main() -> int:
+    misread = parser_reads_one_column_at_a_time()
+    if misread:
+        print(f"FAIL ({len(misread)}): this gate misreads a column declaration, so its sweep means nothing:")
+        for m in misread:
+            print(f"  - {m}")
+        return 1
+
+    leaked = an_unreadable_column_stops_the_gate()
+    if leaked:
+        print(f"FAIL: an unreadable column does not stop this gate cleanly: {leaked}")
+        return 1
+
     pairs = components()
     if len(pairs) < SCREENS_TODAY:
         print(
