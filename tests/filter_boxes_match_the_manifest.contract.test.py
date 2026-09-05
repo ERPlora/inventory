@@ -26,6 +26,16 @@ free-text box. So the check lives here, reads EVERY table of the module, and sta
 The pairs (screen → query) are DISCOVERED from the source, not listed here: a new table has to be
 covered by this gate the day it is written, without anybody remembering to add it.
 
+THE CUT. A column is read from its OWN `{...}` object and no further (inventory#86). The slice used
+to be `split("key: '")`, and the slice of the LAST column ran to the end of the file -- methods,
+comments and docstrings included --, so a `filterType: '...'` merely NAMED down there was read as a
+box that column painted and the gate failed on a filter nobody had drawn. False RED, not false
+green: loud rather than silent, but it still cost the next person who wrote such a comment a full
+triage, and here the message was worse than loud -- the last `key: '` of this repo belongs to the
+import wizard (`{ mode: 'pick', key: '' }`, not a column), so the gate named an EMPTY column.
+`parser_reads_one_column_at_a_time` pins it, with every case putting the poison AFTER the last
+column, which is the one place the old cut reached.
+
 REMAPS. A screen may legitimately paint a box on one key and send another — `erp-inventory-products`
 paints the three-state «status» column on `is_active` and routes its third value to
 `needs_tax_setup` (inventory#38). That is why a remap is DECLARED below with the columns it feeds,
@@ -99,18 +109,124 @@ def components():
 UNCLOSED = object()
 
 
+def _string_end(src: str, i: int, quote: str) -> int | None:
+    """Index just past the `'...'`/`"..."` literal opening at `i`; `None` if it never closes on its line.
+
+    A brace inside quotes is text, not structure. A quote that does not close before the newline is
+    a read the scanner cannot trust, and that is reported (UNCLOSED), never guessed.
+    """
+    i += 1
+    while i < len(src):
+        char = src[i]
+        if char == "\\":
+            i += 2
+            continue
+        if char == quote:
+            return i + 1
+        if char == "\n":
+            return None
+        i += 1
+    return None
+
+
+def _template_end(src: str, i: int) -> int | None:
+    """Index just past the closing backtick of the template literal opening at `i`; `None` if it never closes.
+
+    Its text may hold any brace it likes; only a `${...}` is code, and that code is scanned like the
+    rest of the column (so an inner template -- a Lit `render` -- nests cleanly).
+    """
+    i += 1
+    while i < len(src):
+        char = src[i]
+        if char == "\\":
+            i += 2
+            continue
+        if char == "`":
+            return i + 1
+        if char == "$" and src.startswith("{", i + 1):
+            close = _closing_brace(src, i + 2)
+            if close is None:
+                return None
+            i = close + 1
+            continue
+        i += 1
+    return None
+
+
+def _closing_brace(src: str, start: int) -> int | None:
+    """Index of the `}` that closes the object already open before `start`; `None` if it never closes.
+
+    Braces are balanced, so the nested objects a column legitimately carries (`options: [{...}]`) do
+    not end it early. Strings, template literals and comments are skipped whole: a brace written as
+    TEXT -- `header: '}'`, a `${...}` with a template inside, a `}` in a remark -- is not structure,
+    and an apostrophe in a comment does not open a string.
+    """
+    depth = 0
+    i = start
+    n = len(src)
+    while i < n:
+        char = src[i]
+        if char == "/" and src.startswith("/", i + 1):
+            newline = src.find("\n", i)
+            i = n if newline < 0 else newline
+            continue
+        if char == "/" and src.startswith("*", i + 1):
+            close = src.find("*/", i + 2)
+            if close < 0:
+                return None
+            i = close + 2
+            continue
+        if char in "'\"":
+            after = _string_end(src, i, char)
+            if after is None:
+                return None
+            i = after
+            continue
+        if char == "`":
+            after = _template_end(src, i)
+            if after is None:
+                return None
+            i = after
+            continue
+        if char == "{":
+            depth += 1
+        elif char == "}":
+            if depth == 0:
+                return i
+            depth -= 1
+        i += 1
+    return None
+
+
+def _column_body(src: str, start: int) -> str | None:
+    """The text of ONE column object: from `start` up to the `}` that closes it, and no further.
+
+    `None` means the object never closed -- a parse failure, never a green. Braces inside strings,
+    template literals and comments are text, not structure: see `_closing_brace`.
+    """
+    close = _closing_brace(src, start)
+    return None if close is None else src[start:close]
+
+
 def declared_columns(src: str):
-    """`(column, filterType|None, filterable, sortable)` for every column the component paints."""
+    """`(column, filterType|None, filterable, sortable)` for every column the component paints.
+
+    Each column is read from ITS OWN `{...}` object. The cut used to be `src.split("key: '")`, whose
+    last slice ran to the end of the file: see `parser_reads_one_column_at_a_time` (inventory#86).
+    """
     out = []
-    for chunk in src.split("key: '")[1:]:
-        column = chunk.split("'")[0]
-        kind = re.search(r"filterType: '(\w+)'", chunk)
+    for match in re.finditer(r"key: '([^']*)'", src):
+        body = _column_body(src, match.end())
+        if body is None:
+            out.append((match.group(1), UNCLOSED, False, False))
+            continue
+        kind = re.search(r"filterType: '(\w+)'", body)
         out.append(
             (
-                column,
+                match.group(1),
                 kind.group(1) if kind else None,
-                "filterable: true" in chunk,
-                "sortable: true" in chunk,
+                "filterable: true" in body,
+                "sortable: true" in body,
             )
         )
     return out
@@ -288,6 +404,12 @@ def check(path, query, src) -> None:
     sortable_whitelist = set(block.get("sort") or [])
 
     for column, kind, filterable, sortable in declared_columns(src):
+        if kind is UNCLOSED:
+            fail(
+                f"{screen} declares a `{column}` column whose object never closes: this gate cannot "
+                f"tell what box it paints, and a gate that cannot read does not get to pass"
+            )
+            continue
         remap = REMAPPED.get((query, column))
         if remap:
             # The box does not feed its own key: check the columns it really writes instead.
