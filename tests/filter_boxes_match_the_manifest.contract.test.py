@@ -365,6 +365,21 @@ PARSER_CASES: tuple[tuple[str, str, list], ...] = (
 """,
         [("left", UNCLOSED, False, False), ("right", None, False, True)],
     ),
+    (
+        "an ESCAPED quote stays inside its string: `\\'` does not close it and `\\\"}\\\"` is not a brace",
+        # `_string_end` steps over a backslash and the character it escapes. A scanner that stepped
+        # over the backslash alone would end `header` at the escaped quote, resync on the next one
+        # and read the rest of the line as a string that never closes -- an UNCLOSED for a column
+        # that is perfectly well formed -- and would let the `}` inside `say \"}\"` end `dq` early.
+        """
+    const columns = [
+      { key: 'quoted', header: 'it\\'s', filterable: true, filterType: 'text' },
+      { key: 'dq', header: "say \\"}\\"", sortable: true },
+    ];
+  }
+""",
+        [("quoted", "text", True, False), ("dq", None, False, True)],
+    ),
 )
 
 
