@@ -387,7 +387,7 @@ def run() -> None:
         name="Created",
         price=100,
         cost=0,
-        low_stock_threshold=1,
+        low_stock_threshold=1_000_000,  # one unit in the 10^6 scale (inventory#42)
         ean13=None,
         description="",
         tax_category_key="standard",
@@ -408,7 +408,7 @@ def run() -> None:
         price=1,
         cost=0,
         stock=0,
-        low_stock_threshold=1,
+        low_stock_threshold=1_000_000,  # one unit in the 10^6 scale (inventory#42)
         tax_category_key="standard",
         image="",
         track_stock=0,

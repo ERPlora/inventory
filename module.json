@@ -121,7 +121,8 @@
       "migrations/postgres/005_stock_ledger.sql",
       "migrations/postgres/006_quantity_fixed_point.sql",
       "migrations/postgres/007_quantity_threshold.sql",
-      "migrations/postgres/008_track_stock_per_product.sql"
+      "migrations/postgres/008_track_stock_per_product.sql",
+      "migrations/postgres/009_quantity_grid_guard.sql"
     ]
   },
   "queries": {

@@ -222,7 +222,11 @@ def product(id_: str, hub: str, name: str, sku: str) -> str:
                 "100",
                 "50",
                 "0",
-                "10",
+                # 10 units, in the 10^6 fixed-point scale of ADR-0147 (inventory#42). It read `10`
+                # here — a raw count, i.e. 0,00001 units — which is the very shape of value
+                # `009_quantity_grid_guard.sql` now refuses; the filters this battery is about do
+                # not look at the threshold, so the number was never asserted, only carried.
+                "10000000",
                 "'standard'",
                 "''",
                 "1",
