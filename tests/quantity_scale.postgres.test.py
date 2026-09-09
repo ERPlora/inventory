@@ -319,7 +319,12 @@ def main() -> int:
         psql(["-c", f'DROP DATABASE IF EXISTS "{DB}"'])
         psql(["-c", f'CREATE DATABASE "{DB}"'])
     except RuntimeError as exc:
-        print(f"SKIPPED — no Postgres at `{CONTAINER}`: {str(exc).splitlines()[0]}")
+        # 🔴 `SKIPPED:` — the colon at column 0 is the contract, not decoration. The toolkit reads
+        # `/^SKIPPED:/m` (module-toolkit#57) to tell "the whole battery skipped" from a green run;
+        # written `SKIPPED — …` this returns 0 and `erplora test` prints a ✓ for a battery that
+        # verified NOTHING, which is exactly the green-that-proves-nothing of module-toolkit#50 —
+        # and here it would be the ✓ standing in for the only proof this guard has.
+        print(f"SKIPPED: no Postgres at `{CONTAINER}`: {str(exc).splitlines()[0]}")
         print("  (docker start erplora-test-pg-5433, or set INVENTORY_TEST_PG_CONTAINER)")
         return 0
 

@@ -482,7 +482,7 @@ def main() -> int:
         psql(["-c", f'DROP DATABASE IF EXISTS "{DB}"'])
         psql(["-c", f'CREATE DATABASE "{DB}"'])
     except RuntimeError as exc:
-        print(f"SKIPPED — no Postgres at `{CONTAINER}`: {str(exc).splitlines()[0]}")
+        print(f"SKIPPED: no Postgres at `{CONTAINER}`: {str(exc).splitlines()[0]}")
         print(
             "  (docker start erplora-test-pg-5433, or set INVENTORY_TEST_PG_CONTAINER)"
         )
