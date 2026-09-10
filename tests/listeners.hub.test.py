@@ -254,7 +254,7 @@ def test_track_off_sale_makes_no_movement_and_void_does_not_restock(
         "inventory.settings.update",
         {"track_stock": 0, "allow_sell_without_stock": 0, "low_stock_threshold": 10},
     )
-    pid = create_product(hub, name=unique("Vino"), sku=unique("VIN"), stock=8)
+    pid = create_product(hub, name=unique("Vino"), sku=unique("VIN"), stock=8 * ONE)
 
     sale_id = complete_sale(
         hub,
@@ -273,7 +273,7 @@ def test_track_off_sale_makes_no_movement_and_void_does_not_restock(
     # Nothing to poll FOR here (a negative never resolves by waiting): the relay tick's worth of
     # slack is given explicitly, then the balance and the ledger must both be exactly as they were.
     wait_until(lambda: len(movements(hub, pid)), lambda n: True, timeout=1.5)
-    hub.check("a sale with tracking OFF moves no stock", stock_of(hub, pid), 8)
+    hub.check("a sale with tracking OFF moves no stock", stock_of(hub, pid), 8 * ONE)
     hub.check_true(
         "…and leaves no ledger row",
         len(movements(hub, pid)) == 0,
@@ -285,7 +285,7 @@ def test_track_off_sale_makes_no_movement_and_void_does_not_restock(
     hub.check(
         "voiding a sale that never moved stock does not inflate it either",
         stock_of(hub, pid),
-        8,
+        8 * ONE,
     )
     hub.run(
         "inventory.settings.update",

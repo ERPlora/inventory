@@ -42,6 +42,51 @@ BASE = (
 # Quantities travel in 10^6 fixed point (ADR-0147); money in integer cents (ADR-0007/0123).
 ONE = 1_000_000
 
+#: The coarsest step every unit this module ships is a multiple of, and what
+#: `009_quantity_grid_guard.sql` enforces at the table. The finest grid in the canonical registry is
+#: 1/1000 of the base unit (the gram inside `kg`, the millilitre inside `l`), so EVERY legal
+#: quantity is a multiple of this — and a value that is not cannot be expressed by any unit we ship.
+GRID = 1_000
+
+#: The payload keys that carry a quantity. `stock_after` is absent on purpose: it is a value the
+#: ledger answers, never one a battery sends.
+QUANTITY_FIELDS = ("stock", "low_stock_threshold", "qty", "quantity")
+
+#: `inventory_settings.low_stock_threshold` is NOT on this scale and has no CHECK: `007` rescaled
+#: «el umbral POR PRODUCTO» and deliberately left the hub-wide singleton alone (`001` still
+#: defaults it to 10). A guard that fired here would be wrong about the module, not strict.
+UNSCALED_COMMANDS = ("inventory.settings.update",)
+
+
+def on_grid(value: int, field: str = "quantity") -> int:
+    """A quantity, checked. Returns it untouched, or raises naming the value AND the way out.
+
+    This exists so a fixture that writes a raw count fails HERE, in words, instead of travelling to
+    Postgres and coming back as `400 {'code': 'db'}` — which is all a client may ever see, because
+    `crates/server/tests/error_redaction_door.rs` forbids the constraint name from reaching one.
+    """
+    if isinstance(value, bool) or not isinstance(value, int):
+        return value
+    if value % GRID != 0:
+        raise AssertionError(
+            f"{field}={value} is not on the quantity grid: quantities travel in 10^6 fixed point "
+            f"(ADR-0147) and every legal value is a multiple of {GRID}. If you meant {value} whole "
+            f"units, write {value} * ONE = {value * ONE}."
+        )
+    return value
+
+
+def _guard_quantities(node, field: str = "") -> None:
+    """Walk a command payload and check every quantity it carries, however deep it is nested."""
+    if isinstance(node, dict):
+        for key, item in node.items():
+            _guard_quantities(item, key)
+    elif isinstance(node, list):
+        for item in node:
+            _guard_quantities(item, field)
+    elif field in QUANTITY_FIELDS:
+        on_grid(node, field)
+
 
 def cents(value) -> int:
     """A money aggregate the way Postgres hands it back: `SUM(bigint)` is NUMERIC, so a total may
@@ -170,7 +215,14 @@ class Hub:
         return self._request("POST", "/api/command", {"name": name, "payload": payload})
 
     def run(self, name: str, payload: dict) -> dict:
-        """A command that MUST succeed. Its `data` (`operations`, `new_ids`, …)."""
+        """A command that MUST succeed. Its `data` (`operations`, `new_ids`, …).
+
+        The quantities are checked BEFORE the request leaves (hub#1772). Only here: `command` and
+        `refused` are the doors a battery uses to prove a REJECTION, and several tests send an
+        off-grid quantity on purpose to watch the module turn it down.
+        """
+        if name not in UNSCALED_COMMANDS:
+            _guard_quantities(payload)
         status, body = self.command(name, payload)
         if status != 200 or not (body or {}).get("ok"):
             raise AssertionError(f"command {name} answered {status}: {body}")

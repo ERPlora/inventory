@@ -42,6 +42,8 @@ import sys
 import hub_harness
 from hub_harness import Hub, cents, create_product, product, unique
 
+ONE = hub_harness.ONE
+
 
 def test_creating_a_product_lists_values_and_flags_low_stock(hub: Hub) -> None:
     print(
@@ -109,7 +111,7 @@ def test_bulk_create_autogenerates_skus_for_missing_ones(hub: Hub) -> None:
                     "name": unique("Té"),
                     "sku": explicit_sku,
                     "price": 300,
-                    "stock": 20,
+                    "stock": 20 * ONE,
                     "tax_category_key": "product.generic",
                 },
                 {

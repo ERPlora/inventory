@@ -30,6 +30,8 @@ import sys
 import hub_harness
 from hub_harness import Hub, create_product, product, stock_of, unique
 
+ONE = hub_harness.ONE
+
 
 def movements(hub: Hub, product_id: str, **filters) -> list:
     params = {"f_product_id": product_id}
@@ -41,14 +43,16 @@ def test_receive_writes_a_reception_movement_and_updates_cost(hub: Hub) -> None:
     print(
         "\n1 · stock.receive writes a `reception` movement AND updates the product's cost"
     )
-    pid = create_product(hub, name=unique("REC"), sku=unique("REC"), cost=200, stock=10)
+    pid = create_product(
+        hub, name=unique("REC"), sku=unique("REC"), cost=200, stock=10 * ONE
+    )
 
     hub.run(
         "inventory.stock.receive",
-        {"items": [{"product_id": pid, "qty": 4, "unit_cost": 180}]},
+        {"items": [{"product_id": pid, "qty": 4 * ONE, "unit_cost": 180}]},
     )
 
-    hub.check("stock after receiving 4 of 10", stock_of(hub, pid), 14)
+    hub.check("stock after receiving 4 of 10", stock_of(hub, pid), 14 * ONE)
     hub.check(
         "the received unit_cost updates the product's cost",
         product(hub, pid)["cost"],
@@ -57,8 +61,8 @@ def test_receive_writes_a_reception_movement_and_updates_cost(hub: Hub) -> None:
     movs = movements(hub, pid)
     reception = next((m for m in movs if m["movement_type"] == "reception"), None)
     hub.check_true("a reception movement exists", reception is not None, str(movs))
-    hub.check("its qty is the delta received", reception["qty"], 4)
-    hub.check("its stock_after is the new balance", reception["stock_after"], 14)
+    hub.check("its qty is the delta received", reception["qty"], 4 * ONE)
+    hub.check("its stock_after is the new balance", reception["stock_after"], 14 * ONE)
     hub.check("its unit_cost is what was received", reception["unit_cost"], 180)
     hub.check(
         "its location is the hub's resolved default location (`<hub_id>:default`)",
@@ -85,9 +89,9 @@ def test_receiving_without_a_cost_keeps_the_cost_it_had(hub: Hub) -> None:
         hub, name=unique("NOCOST"), sku=unique("NOC"), cost=500, stock=0
     )
 
-    hub.run("inventory.stock.receive", {"items": [{"product_id": pid, "qty": 3}]})
+    hub.run("inventory.stock.receive", {"items": [{"product_id": pid, "qty": 3 * ONE}]})
 
-    hub.check("the stock went up all the same", stock_of(hub, pid), 3)
+    hub.check("the stock went up all the same", stock_of(hub, pid), 3 * ONE)
     hub.check(
         "the article KEEPS the cost it had: omitting the cost is not costing it zero",
         product(hub, pid)["cost"],
@@ -110,14 +114,14 @@ def test_receiving_without_a_cost_keeps_the_cost_it_had(hub: Hub) -> None:
     # to keep catching, and the reason the assertion below is here and not in its own battery.
     status, body = hub.command(
         "inventory.stock.receive",
-        {"items": [{"product_id": pid, "qty": 2, "unit_cost": 700}]},
+        {"items": [{"product_id": pid, "qty": 2 * ONE, "unit_cost": 700}]},
     )
     hub.check_true(
         "receiving WITH a cost right after one WITHOUT it is accepted (hub#1348 → hub#1386)",
         status == 200,
         f"HTTP {status}: {body}",
     )
-    hub.check("…and the stock adds up both receptions", stock_of(hub, pid), 5)
+    hub.check("…and the stock adds up both receptions", stock_of(hub, pid), 5 * ONE)
     hub.check("…and that one DOES set the cost", product(hub, pid)["cost"], 700)
 
 
@@ -125,11 +129,13 @@ def test_adjust_is_absolute_with_mandatory_reason(hub: Hub) -> None:
     print(
         "\n2 · stock.adjust is an ABSOLUTE recount, the reason is mandatory, no-diff writes nothing"
     )
-    pid = create_product(hub, name=unique("CNT"), sku=unique("CNT"), cost=0, stock=10)
+    pid = create_product(hub, name=unique("CNT"), sku=unique("CNT"), cost=0, stock=10 * ONE)
 
     # The schema itself demands a reason (`additionalProperties:false`, `required` — no round trip
     # to the database needed to prove it).
-    status, _ = hub.command("inventory.stock.adjust", {"product_id": pid, "stock": 7})
+    status, _ = hub.command(
+        "inventory.stock.adjust", {"product_id": pid, "stock": 7 * ONE}
+    )
     hub.check_true(
         "a recount without a reason is rejected before touching the row",
         status != 200,
@@ -138,22 +144,22 @@ def test_adjust_is_absolute_with_mandatory_reason(hub: Hub) -> None:
 
     hub.run(
         "inventory.stock.adjust",
-        {"product_id": pid, "stock": 7, "reason": "weekly count: shrinkage"},
+        {"product_id": pid, "stock": 7 * ONE, "reason": "weekly count: shrinkage"},
     )
-    hub.check("the ABSOLUTE value is fixed, not subtracted", stock_of(hub, pid), 7)
+    hub.check("the ABSOLUTE value is fixed, not subtracted", stock_of(hub, pid), 7 * ONE)
     movs = movements(hub, pid, f_movement_type="count")
     hub.check_true("exactly one count movement", len(movs) == 1, str(movs))
     hub.check(
-        "the movement records the DIFFERENCE, not the new value", movs[0]["qty"], -3
+        "the movement records the DIFFERENCE, not the new value", movs[0]["qty"], -3 * ONE
     )
-    hub.check("its stock_after is the counted value", movs[0]["stock_after"], 7)
+    hub.check("its stock_after is the counted value", movs[0]["stock_after"], 7 * ONE)
     hub.check(
         "its reason is kept verbatim", movs[0]["reason"], "weekly count: shrinkage"
     )
 
     hub.run(
         "inventory.stock.adjust",
-        {"product_id": pid, "stock": 7, "reason": "recount, no change"},
+        {"product_id": pid, "stock": 7 * ONE, "reason": "recount, no change"},
     )
     movs = movements(hub, pid, f_movement_type="count")
     hub.check_true(
@@ -170,17 +176,17 @@ def test_rejected_and_untracked_decreases_leave_no_movement(hub: Hub) -> None:
         name=unique("REJ"),
         sku=unique("REJ"),
         cost=0,
-        stock=3 * hub_harness.ONE,
-        low_stock_threshold=10 * hub_harness.ONE,
+        stock=3 * ONE,
+        low_stock_threshold=10 * ONE,
     )
     hub.refused(
         "decreasing 9 of a balance of 3, overselling not allowed",
         "inventory.stock.decrease",
-        {"product_id": pid, "qty": 9 * hub_harness.ONE},
+        {"product_id": pid, "qty": 9 * ONE},
         "inventory.insufficient_stock",
     )
     hub.check(
-        "stock intact after the rejection", stock_of(hub, pid), 3 * hub_harness.ONE
+        "stock intact after the rejection", stock_of(hub, pid), 3 * ONE
     )
     hub.check_true(
         "a rejection leaves no ledger trace",
@@ -192,7 +198,7 @@ def test_rejected_and_untracked_decreases_leave_no_movement(hub: Hub) -> None:
         "inventory.settings.update",
         {"track_stock": 0, "allow_sell_without_stock": 0, "low_stock_threshold": 10},
     )
-    hub.run("inventory.stock.decrease", {"product_id": pid, "qty": 1 * hub_harness.ONE})
+    hub.run("inventory.stock.decrease", {"product_id": pid, "qty": 1 * ONE})
     hub.check_true(
         "tracking off: no movement either",
         len(movements(hub, pid)) == 0,
@@ -207,15 +213,15 @@ def test_rejected_and_untracked_decreases_leave_no_movement(hub: Hub) -> None:
 def test_movements_query_filters_by_type_and_projects_the_product(hub: Hub) -> None:
     print("\n4 · the ledger query filters by type and reference, and projects name/sku")
     sku = unique("FIL")
-    pid = create_product(hub, name="Filtrable", sku=sku, cost=0, stock=10)
+    pid = create_product(hub, name="Filtrable", sku=sku, cost=0, stock=10 * ONE)
 
     hub.run(
         "inventory.stock.receive",
-        {"items": [{"product_id": pid, "qty": 5}]},
+        {"items": [{"product_id": pid, "qty": 5 * ONE}]},
     )
     hub.run(
         "inventory.stock.adjust",
-        {"product_id": pid, "stock": 12, "reason": "recount"},
+        {"product_id": pid, "stock": 12 * ONE, "reason": "recount"},
     )
 
     all_movs = movements(hub, pid)
@@ -235,17 +241,17 @@ def test_stock_permissions_are_separate_from_product_editing(hub: Hub) -> None:
     print(
         "\n5 · adjusting stock and editing a product are governed by SEPARATE permissions"
     )
-    pid = create_product(hub, name=unique("PRM"), sku=unique("PRM"), cost=0, stock=10)
+    pid = create_product(hub, name=unique("PRM"), sku=unique("PRM"), cost=0, stock=10 * ONE)
 
     # A caller who can only EDIT products has no business recounting stock.
     hub.refused_permission_as(
         "an editor without inventory.adjust_stock cannot adjust stock",
         "inventory.change_product",
         "inventory.stock.adjust",
-        {"product_id": pid, "stock": 5, "reason": "x"},
+        {"product_id": pid, "stock": 5 * ONE, "reason": "x"},
     )
     hub.check(
-        "the stock was not touched by the refused attempt", stock_of(hub, pid), 10
+        "the stock was not touched by the refused attempt", stock_of(hub, pid), 10 * ONE
     )
 
     # …and a caller who CAN adjust stock does not need product-editing rights to do so, nor to
@@ -254,10 +260,10 @@ def test_stock_permissions_are_separate_from_product_editing(hub: Hub) -> None:
     status, _ = hub.command_as(
         counter_perms,
         "inventory.stock.adjust",
-        {"product_id": pid, "stock": 5, "reason": "recount"},
+        {"product_id": pid, "stock": 5 * ONE, "reason": "recount"},
     )
     hub.check("a counter with the RIGHT permission succeeds", status, 200)
-    hub.check("the stock reflects the counter's recount", stock_of(hub, pid), 5)
+    hub.check("the stock reflects the counter's recount", stock_of(hub, pid), 5 * ONE)
     rows = hub.query_as(
         counter_perms, "inventory.stock.movements", {"f_product_id": pid}
     )
