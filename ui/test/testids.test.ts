@@ -728,9 +728,10 @@ describe('the guard reads a Lit open tag, not a JavaScript one (inventory#92)', 
     // Cutting a comment OUT takes its newlines with it, and every line below slides up by as many
     // as the comment had. The rule still fires — it is the line number in its message that lies,
     // and it lies by more the further down the file the control sits: measured on the product
-    // screen, an unhooked `<ion-button>` on line 1955 was reported as line 1846. A hundred lines
-    // away, in a 1900-line component, is the author checking an element that HAS its hook and
-    // concluding the guard is wrong. A comment is BLANKED, never removed.
+    // screen with an unhooked `<ion-button>` planted on line 1954, cutting the comments out
+    // reported it on line 1844. A hundred and ten lines away, in a 1960-line component, is the
+    // author checking an element that HAS its hook and concluding the guard is wrong. A comment
+    // is BLANKED, never removed.
     const source = [
       'html`<div>',
       '  <!-- the create form is projected ALWAYS, even while closed:',
