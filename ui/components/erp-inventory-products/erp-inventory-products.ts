@@ -394,6 +394,7 @@ export class ErpInventoryProducts extends LitElement {
         return can('inventory.change_product')
           ? html`
               <ion-toggle
+                data-testid=${`inventory-products-active-${r.id}`}
                 aria-label=${t('ui.active')}
                 style="--track-background-checked: rgba(var(--ion-color-success-rgb, 45,211,111), 0.5); --handle-background-checked: var(--ion-color-success, #2dd36f);"
                 ?checked=${!!r.is_active}
@@ -425,6 +426,7 @@ export class ErpInventoryProducts extends LitElement {
     const editable = can('inventory.change_product');
     return html`
       <ion-chip
+        data-testid=${`inventory-products-unconfigured-${row.id}`}
         color="warning"
         title=${reason}
         ?disabled=${!editable}
@@ -950,7 +952,7 @@ export class ErpInventoryProducts extends LitElement {
           <ion-toolbar>
             <ion-title>${t('ui.importTaxTitle')}</ion-title>
             <ion-buttons slot="end">
-              <ion-button @click=${() => (this.importOpen = false)}>${t('ui.btnCancel')}</ion-button>
+              <ion-button data-testid="inventory-products-import-tax-close" @click=${() => (this.importOpen = false)}>${t('ui.btnCancel')}</ion-button>
             </ion-buttons>
           </ion-toolbar>
         </ion-header>
@@ -962,25 +964,25 @@ export class ErpInventoryProducts extends LitElement {
               <!-- La cadena vacía no es un texto del CSV: es el cajón de las filas que no traen
                    columna fiscal (inventory#38). Pintarla entre comillas no diría nada. -->
               <strong>${text === '' ? t('ui.importTaxMissingLabel') : `"${text}"`}</strong>
-              <ion-segment .value=${c.mode} @ionChange=${(e: any) => setChoice(text, { mode: e.detail.value })} style="margin:.5rem 0;">
-                <ion-segment-button value="pick"><ion-label>${t('ui.importPick')}</ion-label></ion-segment-button>
-                <ion-segment-button value="create"><ion-label>${t('ui.importCreate')}</ion-label></ion-segment-button>
-                <ion-segment-button value="skip"><ion-label>${t('ui.importSkip')}</ion-label></ion-segment-button>
+              <ion-segment data-testid=${`inventory-products-import-tax-mode-${text}`} .value=${c.mode} @ionChange=${(e: any) => setChoice(text, { mode: e.detail.value })} style="margin:.5rem 0;">
+                <ion-segment-button data-testid=${`inventory-products-import-tax-pick-${text}`} value="pick"><ion-label>${t('ui.importPick')}</ion-label></ion-segment-button>
+                <ion-segment-button data-testid=${`inventory-products-import-tax-create-${text}`} value="create"><ion-label>${t('ui.importCreate')}</ion-label></ion-segment-button>
+                <ion-segment-button data-testid=${`inventory-products-import-tax-skip-${text}`} value="skip"><ion-label>${t('ui.importSkip')}</ion-label></ion-segment-button>
               </ion-segment>
               ${c.mode === 'pick'
-                ? html`<ion-select mode="md" fill="outline" label-placement="floating" label=${t('ui.colCategory')} .value=${c.key} @ionChange=${(e: any) => setChoice(text, { key: e.detail.value })}>
+                ? html`<ion-select mode="md" data-testid=${`inventory-products-import-tax-category-${text}`} fill="outline" label-placement="floating" label=${t('ui.colCategory')} .value=${c.key} @ionChange=${(e: any) => setChoice(text, { key: e.detail.value })}>
                     ${this.taxCategories.map((cat) => html`<ion-select-option .value=${cat.key}>${taxCategoryOptionLabel(cat, this.taxRates, t)}</ion-select-option>`)}
                   </ion-select>`
                 : nothing}
               ${c.mode === 'create'
                 ? html`<div style="display:flex;gap:.5rem;flex-wrap:wrap;">
-                    <ion-input mode="md" fill="outline" label-placement="floating" label=${t('ui.colKey')} placeholder="restaurant.food" .value=${c.newKey} @ionInput=${(e: any) => setChoice(text, { newKey: e.target.value })}></ion-input>
-                    <ion-input mode="md" fill="outline" label-placement="floating" label=${t('ui.colName')} .value=${c.newName} @ionInput=${(e: any) => setChoice(text, { newName: e.target.value })}></ion-input>
+                    <ion-input mode="md" data-testid=${`inventory-products-import-tax-new-key-${text}`} fill="outline" label-placement="floating" label=${t('ui.colKey')} placeholder="restaurant.food" .value=${c.newKey} @ionInput=${(e: any) => setChoice(text, { newKey: e.target.value })}></ion-input>
+                    <ion-input mode="md" data-testid=${`inventory-products-import-tax-new-name-${text}`} fill="outline" label-placement="floating" label=${t('ui.colName')} .value=${c.newName} @ionInput=${(e: any) => setChoice(text, { newName: e.target.value })}></ion-input>
                   </div>`
                 : nothing}
             </div>`;
           })}
-          <ion-button expand="block" @click=${() => this.confirmImportResolution()}>${t('ui.importConfirm')}</ion-button>
+          <ion-button data-testid="inventory-products-import-tax-submit" expand="block" @click=${() => this.confirmImportResolution()}>${t('ui.importConfirm')}</ion-button>
         </ion-content>
       </ion-modal>
     `;
@@ -1334,21 +1336,22 @@ export class ErpInventoryProducts extends LitElement {
     const t = (k: string): string => erplora().t(CATALOG, k);
     return html`
       <div class="page">
-        ${this.formError ? html`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.formError}</ok-inline-feedback>` : nothing}
-        ${this.ctrl?.error ? html`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : nothing}
+        ${this.formError ? html`<ok-inline-feedback data-testid="inventory-products-form-error" tone="danger" icon="alert-circle-outline">${this.formError}</ok-inline-feedback>` : nothing}
+        ${this.ctrl?.error ? html`<ok-inline-feedback data-testid="inventory-products-load-error" tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : nothing}
         <!-- Importación en marcha (inventory#13): por dónde va y una salida. Con 280 filas, lo
              único que había era una pantalla quieta durante minutos. -->
         ${this.importProgress
-          ? html`<ok-inline-feedback tone="info" icon="cloud-upload-outline">
+          ? html`<ok-inline-feedback data-testid="inventory-products-import-progress" tone="info" icon="cloud-upload-outline">
               ${erplora().t(CATALOG, 'ui.importProgress', { done: this.importProgress.done, total: this.importProgress.total })}
               <ion-progress-bar .value=${this.importProgress.total ? this.importProgress.done / this.importProgress.total : 0}></ion-progress-bar>
-              <ion-button size="small" fill="clear" @click=${() => this.cancelImport()}>${erplora().t(CATALOG, 'ui.importStop')}</ion-button>
+              <ion-button data-testid="inventory-products-import-stop" size="small" fill="clear" @click=${() => this.cancelImport()}>${erplora().t(CATALOG, 'ui.importStop')}</ion-button>
             </ok-inline-feedback>`
           : nothing}
 
         <!-- The «detail» button is not the only door: rowClickable makes the whole row open the
              same detail modal (outfitkit#67 — the actions column can be off-screen at 1440 px). -->
         <ok-data-table
+          testid="inventory-products-table"
           .serverSide=${true}
           .filterValues=${this.tableFilters}
           .fill=${true}
@@ -1394,16 +1397,17 @@ export class ErpInventoryProducts extends LitElement {
           }}
         >
           <!-- Formulario de alta: el botón "+" del data-table despliega este acordeón. -->
-          <form slot="create" class="form" @submit=${(e: Event) => this.createProduct(e)}>
+          <form slot="create" class="form" data-testid="inventory-products-form" @submit=${(e: Event) => this.createProduct(e)}>
             ${this.editingId
               ? html`<div class="drow" style="align-items:center;">
                   <b>${erplora().t(CATALOG, 'ui.editingTitle')}</b>
-                  <ion-button size="small" fill="clear" @click=${() => this.cancelEdit()}>
+                  <ion-button data-testid="inventory-products-edit-cancel" size="small" fill="clear" @click=${() => this.cancelEdit()}>
                     ${erplora().t(CATALOG, 'ui.editingCancel')}
                   </ion-button>
                 </div>`
               : nothing}
             <ion-input mode="md"
+              data-testid="inventory-products-name"
               fill="outline"
               label=${erplora().t(CATALOG, 'ui.name')}
               label-placement="floating"
@@ -1411,6 +1415,7 @@ export class ErpInventoryProducts extends LitElement {
               @ionInput=${(e: Event) => (this.newName = (e.target as HTMLInputElement).value)}
             ></ion-input>
             <ion-input mode="md"
+              data-testid="inventory-products-sku"
               fill="outline"
               label="SKU"
               label-placement="floating"
@@ -1420,6 +1425,7 @@ export class ErpInventoryProducts extends LitElement {
               @ionInput=${(e: Event) => (this.newSku = (e.target as HTMLInputElement).value)}
             ></ion-input>
             <ion-input mode="md"
+              data-testid="inventory-products-price"
               fill="outline"
               label=${erplora().t(CATALOG, 'ui.price')}
               label-placement="floating"
@@ -1429,6 +1435,7 @@ export class ErpInventoryProducts extends LitElement {
               @ionInput=${(e: Event) => (this.newPrice = (e.target as HTMLInputElement).value)}
             ></ion-input>
             <ion-input mode="md"
+              data-testid="inventory-products-cost"
               fill="outline"
               label=${`${erplora().t(CATALOG, 'ui.fieldCost')} (${erplora().currency})`}
               label-placement="floating"
@@ -1438,6 +1445,7 @@ export class ErpInventoryProducts extends LitElement {
             ></ion-input>
             ${!this.editingId
               ? html`<ion-input mode="md"
+                  data-testid="inventory-products-initial-stock"
                   fill="outline"
                   label=${erplora().t(CATALOG, 'ui.fieldInitialStock')}
                   label-placement="floating"
@@ -1447,6 +1455,7 @@ export class ErpInventoryProducts extends LitElement {
                 ></ion-input>`
               : nothing}
             <ion-input mode="md"
+              data-testid="inventory-products-threshold"
               fill="outline"
               label=${erplora().t(CATALOG, 'ui.fieldThreshold')}
               label-placement="floating"
@@ -1455,6 +1464,7 @@ export class ErpInventoryProducts extends LitElement {
               @ionInput=${(e: Event) => (this.newThreshold = (e.target as HTMLInputElement).value)}
             ></ion-input>
             <ion-input mode="md"
+              data-testid="inventory-products-ean13"
               fill="outline"
               label="EAN-13"
               label-placement="floating"
@@ -1463,6 +1473,7 @@ export class ErpInventoryProducts extends LitElement {
               @ionInput=${(e: Event) => (this.newEan = (e.target as HTMLInputElement).value)}
             ></ion-input>
             <ion-input mode="md"
+              data-testid="inventory-products-description"
               fill="outline"
               label=${erplora().t(CATALOG, 'ui.fieldDescription')}
               label-placement="floating"
@@ -1471,6 +1482,7 @@ export class ErpInventoryProducts extends LitElement {
             ></ion-input>
             ${!this.editingId
               ? html`<ion-select mode="md"
+                  data-testid="inventory-products-type"
                   fill="outline"
                   label-placement="floating"
                   label=${erplora().t(CATALOG, 'ui.fieldType')}
@@ -1486,6 +1498,7 @@ export class ErpInventoryProducts extends LitElement {
                           (Square «Track stock», Odoo «Track Inventory», Shopify «Track quantity»).
                           Shows the EFFECTIVE value; touching it makes the choice explicit. -->
                   <ion-checkbox
+                    data-testid="inventory-products-track-stock"
                     label-placement="end"
                     justify="start"
                     .checked=${this.trackStockEffective()}
@@ -1500,6 +1513,7 @@ export class ErpInventoryProducts extends LitElement {
                   </ion-note>`
               : nothing}
             <ion-select mode="md"
+              data-testid="inventory-products-unit"
               fill="outline"
               label-placement="floating"
               interface="popover"
@@ -1513,6 +1527,7 @@ export class ErpInventoryProducts extends LitElement {
                  Sin catálogo de categorías no hay nada que elegir, así que se dice en vez de
                  dejar guardar un producto que después nadie puede cobrar. -->
             <ion-select mode="md"
+              data-testid="inventory-products-tax-category"
               fill="outline"
               label-placement="floating"
               required
@@ -1524,12 +1539,13 @@ export class ErpInventoryProducts extends LitElement {
               ${this.taxOptions()}
             </ion-select>
             ${this.taxCategories.length === 0
-              ? html`<ok-inline-feedback tone="warning" icon="alert-circle-outline">
+              ? html`<ok-inline-feedback data-testid="inventory-products-tax-none" tone="warning" icon="alert-circle-outline">
                   ${erplora().t(CATALOG, 'ui.taxNoneAvailable')}
                 </ok-inline-feedback>`
               : nothing}
             ${this.productCategories.length
               ? html`<ion-select mode="md"
+                  data-testid="inventory-products-categories"
                   fill="outline"
                   label-placement="floating"
                   label=${erplora().t(CATALOG, 'ui.fieldCategories')}
@@ -1545,7 +1561,7 @@ export class ErpInventoryProducts extends LitElement {
                   )}
                 </ion-select>`
               : nothing}
-            <ion-button type="submit" ?disabled=${this.saving || !this.newName || !this.newSku || !this.newTaxCategoryKey}>
+            <ion-button data-testid="inventory-products-submit" type="submit" ?disabled=${this.saving || !this.newName || !this.newSku || !this.newTaxCategoryKey}>
               ${this.saving
                 ? erplora().t(CATALOG, 'ui.saving')
                 : this.editingId
@@ -1566,7 +1582,7 @@ export class ErpInventoryProducts extends LitElement {
             <ion-toolbar>
               <ion-title>${this.detail?.name ?? ''}</ion-title>
               <ion-buttons slot="end">
-                <ion-button aria-label=${erplora().t(CATALOG, 'ui.btnClose')} @click=${() => { this.detail = null; this.printError = ''; }}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
+                <ion-button data-testid="inventory-products-detail-close" aria-label=${erplora().t(CATALOG, 'ui.btnClose')} @click=${() => { this.detail = null; this.printError = ''; }}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
               </ion-buttons>
             </ion-toolbar>
           </ion-header>
@@ -1607,9 +1623,9 @@ export class ErpInventoryProducts extends LitElement {
                     <div style="font:14px ui-monospace,monospace; margin-top:.4rem; letter-spacing:.08em; color:#000;">${this.detail.sku}</div>
                   </div>
                   ${this.printError
-                    ? html`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.printError}</ok-inline-feedback>`
+                    ? html`<ok-inline-feedback data-testid="inventory-products-print-error" tone="danger" icon="alert-circle-outline">${this.printError}</ok-inline-feedback>`
                     : nothing}
-                  <ion-button expand="block" @click=${() => this.detail && void this.printBarcode(this.detail)}>
+                  <ion-button data-testid="inventory-products-print-barcode" expand="block" @click=${() => this.detail && void this.printBarcode(this.detail)}>
                     <ion-icon name="print-outline" slot="start"></ion-icon> ${t('ui.printBarcode')}
                   </ion-button>
                 `
@@ -1654,7 +1670,7 @@ export class ErpInventoryProducts extends LitElement {
           <ion-toolbar>
             <ion-title>${t('ui.previewTitle')}</ion-title>
             <ion-buttons slot="end">
-              <ion-button aria-label=${t('ui.btnCancel')} @click=${() => this.cancelPreview()}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
+              <ion-button data-testid="inventory-products-preview-close" aria-label=${t('ui.btnCancel')} @click=${() => this.cancelPreview()}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
             </ion-buttons>
           </ion-toolbar>
         </ion-header>
@@ -1666,6 +1682,7 @@ export class ErpInventoryProducts extends LitElement {
             ${headers.map(
               (h) => html`<ion-item>
                 <ion-select
+                  data-testid=${`inventory-products-preview-column-${h}`}
                   label=${h}
                   label-placement="stacked"
                   .value=${this.previewMapping[h] ?? ''}
@@ -1705,6 +1722,7 @@ export class ErpInventoryProducts extends LitElement {
 
           ${this.previewReady
             ? html`<ok-inline-feedback
+                data-testid="inventory-products-preview-summary"
                 class="ion-margin-top"
                 tone=${summary.failed.length ? 'warning' : 'success'}
                 icon=${summary.failed.length ? 'alert-circle-outline' : 'checkmark-outline'}
@@ -1716,11 +1734,12 @@ export class ErpInventoryProducts extends LitElement {
                     </ul>`
                   : nothing}
               </ok-inline-feedback>`
-            : html`<ok-inline-feedback class="ion-margin-top" tone="danger" icon="alert-circle-outline">
+            : html`<ok-inline-feedback data-testid="inventory-products-preview-missing-required" class="ion-margin-top" tone="danger" icon="alert-circle-outline">
                 ${t('ui.previewMissingRequired')}
               </ok-inline-feedback>`}
 
           <ion-button
+            data-testid="inventory-products-preview-submit"
             class="ion-margin-top"
             expand="block"
             ?disabled=${!this.previewReady || summary.ready === 0}
@@ -1728,7 +1747,7 @@ export class ErpInventoryProducts extends LitElement {
           >
             ${t('ui.previewConfirm', { n: summary.ready })}
           </ion-button>
-          <ion-button expand="block" fill="outline" @click=${() => this.cancelPreview()}>${t('ui.btnCancel')}</ion-button>
+          <ion-button data-testid="inventory-products-preview-cancel" expand="block" fill="outline" @click=${() => this.cancelPreview()}>${t('ui.btnCancel')}</ion-button>
         </ion-content>
       </ion-modal>
     `;
@@ -1745,7 +1764,7 @@ export class ErpInventoryProducts extends LitElement {
           <ion-toolbar>
             <ion-title>${t('ui.importReportTitle')}</ion-title>
             <ion-buttons slot="end">
-              <ion-button aria-label=${t('ui.btnClose')} @click=${() => (this.importReport = null)}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
+              <ion-button data-testid="inventory-products-import-report-close" aria-label=${t('ui.btnClose')} @click=${() => (this.importReport = null)}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
             </ion-buttons>
           </ion-toolbar>
         </ion-header>
@@ -1754,7 +1773,7 @@ export class ErpInventoryProducts extends LitElement {
             ? html`
                 <!-- Auto-estilado (reparent a <body>): Ionic puro, sin clases del shadow. -->
                 ${rep.cancelled
-                  ? html`<ok-inline-feedback tone="warning" icon="alert-circle-outline">${t('ui.importCancelledNote')}</ok-inline-feedback>`
+                  ? html`<ok-inline-feedback data-testid="inventory-products-import-report-cancelled" tone="warning" icon="alert-circle-outline">${t('ui.importCancelledNote')}</ok-inline-feedback>`
                   : nothing}
                 <ion-list lines="full">
                   <ion-item>
@@ -1785,7 +1804,7 @@ export class ErpInventoryProducts extends LitElement {
                           </ion-item>`,
                         )}
                       </ion-list>
-                      <ion-button class="ion-margin-top" expand="block" fill="outline"
+                      <ion-button data-testid="inventory-products-import-report-copy" class="ion-margin-top" expand="block" fill="outline"
                         @click=${() => navigator.clipboard?.writeText(this.importReportText())}>
                         <ion-icon name="copy-outline" slot="start"></ion-icon>${t('ui.importCopy')}
                       </ion-button>
@@ -1816,10 +1835,10 @@ export class ErpInventoryProducts extends LitElement {
               </ion-label>
             </ion-item>
           </ion-list>
-          <ion-button class="ion-margin-top" expand="block" color="danger" @click=${() => this.confirmDelete()}>
+          <ion-button data-testid="inventory-products-delete-submit" class="ion-margin-top" expand="block" color="danger" @click=${() => this.confirmDelete()}>
             ${t('ui.actionDelete')}
           </ion-button>
-          <ion-button expand="block" fill="outline" @click=${() => (this.deleteTarget = null)}>
+          <ion-button data-testid="inventory-products-delete-cancel" expand="block" fill="outline" @click=${() => (this.deleteTarget = null)}>
             ${t('ui.btnCancel')}
           </ion-button>
         </ion-content>
@@ -1850,7 +1869,7 @@ export class ErpInventoryProducts extends LitElement {
           <ion-toolbar>
             <ion-title>${t('ui.countTitle')} — ${this.countTarget?.name ?? ''}</ion-title>
             <ion-buttons slot="end">
-              <ion-button aria-label=${t('ui.btnClose')} @click=${() => (this.countTarget = null)}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
+              <ion-button data-testid="inventory-products-count-close" aria-label=${t('ui.btnClose')} @click=${() => (this.countTarget = null)}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
             </ion-buttons>
           </ion-toolbar>
         </ion-header>
@@ -1870,16 +1889,16 @@ export class ErpInventoryProducts extends LitElement {
                 </ion-item>`
               : nothing}
           </ion-list>
-          <ion-input mode="md" class="ion-margin-top" fill="outline" label-placement="floating" label=${t('ui.countNew')}
+          <ion-input mode="md" data-testid="inventory-products-count-qty" class="ion-margin-top" fill="outline" label-placement="floating" label=${t('ui.countNew')}
             type="number" .step=${this.quantityStep(this.countTarget?.unit_code)} min="0" inputmode="decimal"
             .value=${this.countValue}
             @ionInput=${(e: CustomEvent) => (this.countValue = String((e.detail as { value?: string }).value ?? ''))}
           ></ion-input>
-          <ion-input mode="md" class="ion-margin-top" fill="outline" label-placement="floating" label=${t('ui.countReason')}
+          <ion-input mode="md" data-testid="inventory-products-count-reason" class="ion-margin-top" fill="outline" label-placement="floating" label=${t('ui.countReason')}
             .value=${this.countReason} required
             @ionInput=${(e: CustomEvent) => (this.countReason = String((e.detail as { value?: string }).value ?? ''))}
           ></ion-input>
-          <ion-button class="ion-margin-top" expand="block" .disabled=${diff === null || this.countReason.trim() === ''}
+          <ion-button data-testid="inventory-products-count-submit" class="ion-margin-top" expand="block" .disabled=${diff === null || this.countReason.trim() === ''}
             @click=${() => this.submitCount()}>
             ${t('ui.countApply')}
           </ion-button>
@@ -1906,7 +1925,7 @@ export class ErpInventoryProducts extends LitElement {
           <ion-toolbar>
             <ion-title>${t('ui.receiveTitle')} — ${this.receiveTarget?.name ?? ''}</ion-title>
             <ion-buttons slot="end">
-              <ion-button aria-label=${t('ui.btnClose')} @click=${() => (this.receiveTarget = null)}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
+              <ion-button data-testid="inventory-products-receive-close" aria-label=${t('ui.btnClose')} @click=${() => (this.receiveTarget = null)}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
             </ion-buttons>
           </ion-toolbar>
         </ion-header>
@@ -1918,17 +1937,17 @@ export class ErpInventoryProducts extends LitElement {
               <ion-note slot="end">${formatQuantity(this.receiveTarget?.stock ?? 0)}</ion-note>
             </ion-item>
           </ion-list>
-          <ion-input mode="md" class="ion-margin-top" fill="outline" label-placement="floating" label=${t('ui.receiveQty')}
+          <ion-input mode="md" data-testid="inventory-products-receive-qty" class="ion-margin-top" fill="outline" label-placement="floating" label=${t('ui.receiveQty')}
             type="number" .step=${this.quantityStep(this.receiveTarget?.unit_code)} min="0.000001" inputmode="decimal"
             .value=${this.receiveQty}
             @ionInput=${(e: CustomEvent) => (this.receiveQty = String((e.detail as { value?: string }).value ?? ''))}
           ></ion-input>
-          <ion-input mode="md" class="ion-margin-top" fill="outline" label-placement="floating" label=${`${t('ui.receiveCost')} (${erplora().currency})`}
+          <ion-input mode="md" data-testid="inventory-products-receive-cost" class="ion-margin-top" fill="outline" label-placement="floating" label=${`${t('ui.receiveCost')} (${erplora().currency})`}
             type="number" step="0.01" min="0" inputmode="decimal"
             .value=${this.receiveCost}
             @ionInput=${(e: CustomEvent) => (this.receiveCost = String((e.detail as { value?: string }).value ?? ''))}
           ></ion-input>
-          <ion-button class="ion-margin-top" expand="block" .disabled=${this.receiveQty.trim() === ''}
+          <ion-button data-testid="inventory-products-receive-submit" class="ion-margin-top" expand="block" .disabled=${this.receiveQty.trim() === ''}
             @click=${() => this.submitReceive()}>
             ${t('ui.receiveApply')}
           </ion-button>

@@ -1808,6 +1808,7 @@ var rawClose = '<svg viewBox="0 0 512 512" width="1.2em" height="1.2em" ><path f
 var rawCloseOutline = '<svg viewBox="0 0 512 512" width="1.2em" height="1.2em" ><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M368 368L144 144m224 0L144 368"/></svg>';
 var rawCloudUploadOutline = '<svg viewBox="0 0 512 512" width="1.2em" height="1.2em" ><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M320 367.79h76c55 0 100-29.21 100-83.6s-53-81.47-96-83.6c-8.89-85.06-71-136.8-144-136.8c-69 0-113.44 45.79-128 91.2c-60 5.7-112 43.88-112 106.4s54 106.4 120 106.4h56"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="m320 255.79l-64-64l-64 64m64 192.42V207.79"/></svg>';
 var rawCreateOutline = '<svg viewBox="0 0 512 512" width="1.2em" height="1.2em" ><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M384 224v184a40 40 0 0 1-40 40H104a40 40 0 0 1-40-40V168a40 40 0 0 1 40-40h167.48"/><path fill="currentColor" d="M459.94 53.25a16.06 16.06 0 0 0-23.22-.56L424.35 65a8 8 0 0 0 0 11.31l11.34 11.32a8 8 0 0 0 11.34 0l12.06-12c6.1-6.09 6.67-16.01.85-22.38M399.34 90L218.82 270.2a9 9 0 0 0-2.31 3.93L208.16 299a3.91 3.91 0 0 0 4.86 4.86l24.85-8.35a9 9 0 0 0 3.93-2.31L422 112.66a9 9 0 0 0 0-12.66l-9.95-10a9 9 0 0 0-12.71 0"/></svg>';
+var rawContractOutline = '<svg viewBox="0 0 512 512" width="1.2em" height="1.2em" ><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M304 416V304h112m-101.8 10.23L432 432M208 96v112H96m101.8-10.23L80 80m336 128H304V96m10.23 101.8L432 80M96 304h112v112m-10.23-101.8L80 432"/></svg>';
 var rawDocumentAttachOutline = '<svg viewBox="0 0 512 512" width="1.2em" height="1.2em" ><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M208 64h66.75a32 32 0 0 1 22.62 9.37l141.26 141.26a32 32 0 0 1 9.37 22.62V432a48 48 0 0 1-48 48H192a48 48 0 0 1-48-48V304"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M288 72v120a32 32 0 0 0 32 32h120"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="32" d="M160 80v152a23.69 23.69 0 0 1-24 24c-12 0-24-9.1-24-24V88c0-30.59 16.57-56 48-56s48 24.8 48 55.38v138.75c0 43-27.82 77.87-72 77.87s-72-34.86-72-77.87V144"/></svg>';
 var rawDocumentOutline = '<svg viewBox="0 0 512 512" width="1.2em" height="1.2em" ><path fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="32" d="M416 221.25V416a48 48 0 0 1-48 48H144a48 48 0 0 1-48-48V96a48 48 0 0 1 48-48h98.75a32 32 0 0 1 22.62 9.37l141.26 141.26a32 32 0 0 1 9.37 22.62Z"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M256 56v120a32 32 0 0 0 32 32h120"/></svg>';
 var rawDocumentTextOutline = '<svg viewBox="0 0 512 512" width="1.2em" height="1.2em" ><path fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="32" d="M416 221.25V416a48 48 0 0 1-48 48H144a48 48 0 0 1-48-48V96a48 48 0 0 1 48-48h98.75a32 32 0 0 1 22.62 9.37l141.26 141.26a32 32 0 0 1 9.37 22.62Z"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M256 56v120a32 32 0 0 0 32 32h120m-232 80h160m-160 80h160"/></svg>';
@@ -1857,6 +1858,7 @@ var iconCloseOutline = bake(rawCloseOutline);
 var iconCloudUploadOutline = bake(rawCloudUploadOutline);
 var iconCreateOutline = bake(rawCreateOutline);
 var iconDocumentAttachOutline = bake(rawDocumentAttachOutline);
+var iconContractOutline = bake(rawContractOutline);
 var iconDocumentOutline = bake(rawDocumentOutline);
 var iconDocumentTextOutline = bake(rawDocumentTextOutline);
 var iconDownloadOutline = bake(rawDownloadOutline);
@@ -1903,6 +1905,7 @@ var BY_NAME = {
   "cloud-upload-outline": iconCloudUploadOutline,
   "create-outline": iconCreateOutline,
   "document-attach-outline": iconDocumentAttachOutline,
+  "contract-outline": iconContractOutline,
   "document-outline": iconDocumentOutline,
   "document-text-outline": iconDocumentTextOutline,
   "download-outline": iconDownloadOutline,
@@ -2347,6 +2350,16 @@ var __decorateClass3 = (decorators, target, key, kind) => {
   if (result) __defProp3(target, key, result);
   return result;
 };
+function decideRowActionsFit(input) {
+  const { containerWidth, contentWidth, collapsed, decidedAtWidth } = input;
+  if (!(containerWidth > 0)) return { collapsed, decidedAtWidth };
+  if (containerWidth !== decidedAtWidth) {
+    if (collapsed) return { collapsed: false, decidedAtWidth: containerWidth };
+    return { collapsed: contentWidth > containerWidth, decidedAtWidth: containerWidth };
+  }
+  if (!collapsed && contentWidth > containerWidth) return { collapsed: true, decidedAtWidth };
+  return { collapsed, decidedAtWidth };
+}
 var DEFAULT_LABELS2 = {
   search: "Search\u2026",
   empty: "No results",
@@ -2466,14 +2479,22 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
     this.viewChosenByUser = false;
     this.isMobile = false;
     this.xOverflow = false;
+    this.actionsTrackPx = 0;
+    this.rowActionsCollapsed = false;
+    this.fitDecidedAtWidth = -1;
+    this.rowMenuOpen = false;
     this.hiddenKeys = /* @__PURE__ */ new Set();
     this.internalSelection = /* @__PURE__ */ new Set();
     this.menuOpen = false;
     this.onLocaleChanged = () => this.requestUpdate();
-    this.onWindowResize = () => this.measureXOverflow();
+    this.onWindowResize = () => {
+      this.measureXOverflow();
+      this.measureRowActionsFit();
+    };
     this.onSearch = (ev) => {
       const value = ev.target.value ?? "";
       if (this.serverSide) {
+        this.q = value;
         this.emit("searchChange", value);
       } else {
         this.q = value;
@@ -2618,8 +2639,13 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
     .primary-btn { --background: var(--primary); --color: var(--primary-contrast); }
     /* #76 — El alta en MÓVIL: botón primario CON etiqueta y área táctil de 44px, en vez del «+»
        icónico de 36px al final de la barra. Fresha/Square/Shopify POS ponen la acción primaria
-       de la lista como botón visible con texto (o FAB), nunca como icono anónimo. */
-    .add-btn { min-height: 44px; --border-radius: 10px; --padding-start: 0.9rem; --padding-end: 1rem; margin: 0; font-weight: 600; }
+       de la lista como botón visible con texto (o FAB), nunca como icono anónimo.
+       #113 — Y en ESCRITORIO igual: Odoo («New»), Business Central, Shopify («Add product»),
+       WooCommerce, Lightspeed y Fresha rotulan y rellenan la acción principal de un listado; NN/g
+       reserva el botón sin rótulo para lo universal (buscar, cerrar). Aquí solo cambia la ALTURA:
+       36px para alinear con .toolbtn y el buscador, y los 44px táctiles vuelven abajo con el
+       resto de objetivos de puntero grueso. */
+    .add-btn { min-height: 36px; --border-radius: 10px; --padding-start: 0.9rem; --padding-end: 1rem; margin: 0; font-weight: 600; }
     .add-btn ion-icon { margin-inline-end: 0.35rem; }
 
     /* Selects de la toolbar: fondo + borde visibles (como el buscador y la pastilla de fechas) para
@@ -2659,7 +2685,14 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
     .scroll::-webkit-scrollbar-track { background: transparent; }
     .scroll::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--color) 25%, transparent); border-radius: 6px; }
     .scroll::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--color) 40%, transparent); }
-    .grid { min-width: max-content; font-size: 14px; }
+    /* #120 - The grid floor is the SUM OF THE COLUMN MINIMUMS (min-content), not its maximum
+       size. With max-content the grid sizes itself to what the widest column asks for and, in
+       doing so, every 1fr track ends up as wide AS THAT ONE: at 834px each column measured
+       148.86px for content asking between 10px (a "4") and 100px ("Familia Perez"). The table
+       always overflowed and the pinned actions column sat on top of Pax and Estado. With
+       min-content the grid fits its container as long as the minimums fit, and 1fr shares out the
+       leftover space; horizontal scroll shows up only when not even the minimums fit. */
+    .grid { min-width: min-content; font-size: 14px; }
     .grow { display: grid; align-items: center; gap: 0.5rem; padding: 0 1rem; }
     .ghead { position: sticky; top: 0; z-index: 2; border-bottom: 1px solid var(--border-color);
       background: var(--header-background); padding-top: 0.55rem; padding-bottom: 0.55rem; }
@@ -2667,17 +2700,24 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
     .gcell > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .gcell.right { justify-content: flex-end; text-align: right; }
     .gcell.center { justify-content: center; text-align: center; }
-    /* #67 — COLUMNA DE ACCIONES FIJADA. Con seis columnas o más la rejilla desborda por diseño
-       (min-width: max-content) y el botón que abre el registro se iba fuera de la pantalla: a
-       1440px quedaba a 335px del borde, sin nada que lo delatara. Se queda pegada al borde
-       derecho, como en Zendesk/Freshdesk/Shopify. Con background:inherit la hereda de la fila (que
-       por eso es opaca), así conserva hover y selección sin que se lea nada por debajo. */
+    /* #67 - PINNED ACTIONS COLUMN. When the grid overflows (since #120 only when not even the
+       column minimums fit; before that it happened with six columns and room to spare) the button
+       that opens the record went off screen: at 1440px it sat 335px past the edge with nothing to
+       give it away. It stays stuck to the right edge, like Zendesk/Freshdesk/Shopify. With
+       background:inherit it takes the row background (which is opaque for this very reason), so it
+       keeps hover and selection without anything showing through. */
     .gcell.actions-col { position: sticky; right: 0; z-index: 1; background: inherit;
       margin-right: -1rem; padding-right: 1rem; }
     /* La sombra solo aparece cuando de verdad hay algo escondido a la izquierda (clase x-overflow);
        si la tabla cabe entera no se pinta nada. */
     .scroll.x-overflow .gcell.actions-col { box-shadow: -10px 0 10px -10px color-mix(in srgb, var(--color) 45%, transparent); }
-    .ghead .gcell.actions-col { z-index: 3; }
+    /* #120 - The pinned header has to be OPAQUE. background:inherit took --header-background,
+       which is a 4% alpha TINT (measured rgba(24,24,27,0.04)): when the grid overflows the
+       "Acciones" header went see-through and "PAX" and "ESTADO" could be read through it - the
+       "PAXCIONESTAD" of the issue. It now sits on the opaque table background with the tint laid
+       back on top, the same way .grow-data:hover does. */
+    .ghead .gcell.actions-col { z-index: 3;
+      background: linear-gradient(var(--header-background), var(--header-background)), var(--background); }
     .gh { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-muted); }
     .gh.sortable { cursor: pointer; user-select: none; white-space: nowrap; transition: background-color var(--ok-transition, 150ms ease), color var(--ok-transition, 150ms ease), box-shadow var(--ok-transition, 150ms ease), transform 120ms ease; }
     @media (hover: hover) {
@@ -2747,11 +2787,23 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
     .empty .empty-ic { display: grid; place-items: center; width: 3.25rem; height: 3.25rem; border-radius: 999px; background: var(--header-background); font-size: 26px; }
 
     .actions { display: flex; gap: 0.25rem; justify-content: flex-end; }
+    /* #121 - The buttons NEVER shrink. Their track is pinned to the width measured here
+       (the scrollWidth of .actions); if they could shrink, a narrow track would shrink the
+       measurement, which would shrink the track again. flex: 0 0 auto is what makes the
+       measurement a property of the CONTENT instead of a property of the current layout. */
+    .actions ion-button { flex: 0 0 auto; }
+    /* #122 - Header of the actions column while the buttons are folded into the menu. "ACCIONES"
+       measures 62.83px and the folded track is 44px: painted, it spills out of its own cell and
+       over "Estado" - the very thing the issue is about. The column keeps its name for assistive
+       tech and paints nothing. */
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+      clip-path: inset(50%); white-space: nowrap; border: 0; }
     /* Las acciones de fila son icon-only y de tamaño small en escritorio. En tablet/móvil se
      * amplía el host completo (no solo el icono) para que el área táctil alcance 44×44 px. */
     @media (pointer: coarse), (max-width: 834px) {
       .actions ion-button { min-width: 44px; min-height: 44px; margin: 0; }
       .toolbtn { width: 44px; height: 44px; }
+      .add-btn { min-height: 44px; }
       .pager .nav ion-button { min-width: 44px; min-height: 44px; margin: 0; }
     }
     /* Spinner de acción en curso (loading): contenido dentro del ion-button small (Ionic lo fija
@@ -2813,12 +2865,45 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
     const overflow = !!scroll && scroll.scrollWidth > scroll.clientWidth;
     if (this.xOverflow !== overflow) this.xOverflow = overflow;
   }
+  /** #121 — Ancho natural de los botones de acción de una fila, para clavar su pista en px.
+   *
+   * Se lee del `scrollWidth` de `.actions`, que es el ancho de SU CONTENIDO: como los botones
+   * llevan `flex: 0 0 auto` nunca se encogen, así que la medida no depende de lo ancha que sea la
+   * pista en ese momento. Eso es lo que la hace estable: clavar la pista al ancho natural no
+   * cambia el ancho natural, así que la siguiente medida sale igual y no hay bucle. */
+  measureActionsTrack() {
+    if (!this.actions.length) {
+      if (this.actionsTrackPx !== 0) this.actionsTrackPx = 0;
+      return;
+    }
+    const el = this.renderRoot?.querySelector?.(".grow-data .gcell.actions-col .actions");
+    const width = el ? Math.ceil(el.scrollWidth) : 0;
+    if (width > 0 && width !== this.actionsTrackPx) this.actionsTrackPx = width;
+  }
+  /** #122 — Decide si los botones de acción de la fila caben o se pliegan en el menú «⋮».
+   *  El criterio y la garantía de que no oscila viven en `decideRowActionsFit`. */
+  measureRowActionsFit() {
+    const scroll = this.renderRoot?.querySelector?.(".scroll");
+    if (!scroll) return;
+    const next = decideRowActionsFit({
+      containerWidth: scroll.clientWidth,
+      contentWidth: scroll.scrollWidth,
+      collapsed: this.rowActionsCollapsed,
+      decidedAtWidth: this.fitDecidedAtWidth
+    });
+    this.fitDecidedAtWidth = next.decidedAtWidth;
+    if (this.rowActionsCollapsed !== next.collapsed) this.rowActionsCollapsed = next.collapsed;
+  }
   /** Engancha el observador al contenedor de scroll del render actual (cambia entre vistas). */
   observeXOverflow() {
     if (typeof ResizeObserver === "undefined") return;
     const scroll = this.renderRoot?.querySelector?.(".scroll");
     if (!scroll) return;
-    this.xObserver ??= new ResizeObserver(() => this.measureXOverflow());
+    this.xObserver ??= new ResizeObserver(() => {
+      this.measureXOverflow();
+      this.measureActionsTrack();
+      this.measureRowActionsFit();
+    });
     this.xObserver.disconnect();
     this.xObserver.observe(scroll);
     const grid = scroll.querySelector(".grid");
@@ -2827,6 +2912,11 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
   updated(changed) {
     this.observeXOverflow();
     this.measureXOverflow();
+    if (changed.has("columns") || changed.has("actions") || changed.has("hiddenKeys") || changed.has("selectable")) {
+      this.fitDecidedAtWidth = -1;
+    }
+    this.measureActionsTrack();
+    this.measureRowActionsFit();
     if (changed.has("panel")) this.syncSheetTop();
   }
   /** #75 — Where the mobile sheet starts. `position: fixed; inset: 0` painted it from y=0 and the
@@ -3268,6 +3358,54 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
     this.menuEv = ev;
     this.menuOpen = true;
   }
+  /** #122 — Abre el menú «⋮» de UNA fila. Un solo popover para toda la tabla (uno por fila serían
+   *  tantos como filas), anclado por evento porque `trigger` no resuelve dentro de Shadow DOM. */
+  openRowMenu(ev, row) {
+    ev.stopPropagation();
+    this.rowMenuEv = ev;
+    this.rowMenuRow = row;
+    this.rowMenuOpen = true;
+  }
+  /** #122 — Las mismas acciones de la fila, como lista. Respeta `disabled`/`loading` por fila: una
+   *  acción que no se puede pulsar en su botón tampoco se puede pulsar aquí. */
+  renderRowMenu() {
+    const row = this.rowMenuRow;
+    if (!this.actions.length || !row) return A;
+    return b2`
+      <ion-popover
+        class="row-menu"
+        .isOpen=${this.rowMenuOpen}
+        .event=${this.rowMenuEv}
+        dismiss-on-select="true"
+        @didDismiss=${() => this.rowMenuOpen = false}
+      >
+        <ion-content>
+          <ion-list lines="none">
+            ${this.actions.map((a3) => {
+      const disabled = a3.loading?.(row) === true || a3.disabled?.(row) === true;
+      const label = typeof a3.label === "function" ? a3.label(row) : a3.label;
+      return b2`
+                <ion-item
+                  button
+                  ?disabled=${disabled}
+                  aria-disabled=${disabled ? "true" : A}
+                  .detail=${false}
+                  @click=${() => {
+        if (disabled) return;
+        this.rowMenuOpen = false;
+        this.emit("rowAction", { actionId: a3.id, row });
+      }}
+                >
+                  ${a3.icon ? b2`<ion-icon slot="start" .icon=${okIcon(a3.icon)} color=${a3.color ?? A}></ion-icon>` : A}
+                  <ion-label color=${a3.color ?? A}>${label}</ion-label>
+                </ion-item>
+              `;
+    })}
+          </ion-list>
+        </ion-content>
+      </ion-popover>
+    `;
+  }
   // Aplica la vista inicial declarada (`default-view`) una sola vez, tras el primer render. Es la
   // forma robusta de arrancar en tarjetas sin depender de fijar `viewMode` por referencia (que
   // falla si la tabla monta detrás de un `v-if`/loading y el ref aún es null).
@@ -3289,6 +3427,13 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
   willUpdate(changed) {
     this.applyInitialView();
     if (changed.has("filterValues")) this.serverFilters = { ...this.filterValues ?? {} };
+    if (changed.has("search") && this.search !== void 0) {
+      this.q = this.search;
+      if (!this.serverSide) {
+        this.clientPage = 0;
+        this.mobileShown = 0;
+      }
+    }
     if (!this.serverSide && changed.has("rows") && this.mobileShown !== 0) this.mobileShown = 0;
   }
   applyInitialView() {
@@ -3445,14 +3590,34 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
     `;
   }
   // Botones de acción de una fila (compartido por vista tabla y tarjetas).
-  actionButtons(row) {
+  // `collapsible` = la vista lista, la única que puede quedarse sin ancho (#122). Las tarjetas
+  // tienen su propia fila de acciones a lo ancho de la tarjeta y ahí siempre caben.
+  actionButtons(row, collapsible = false) {
     if (!this.actions.length) return A;
+    if (collapsible && this.rowActionsCollapsed) {
+      return b2`
+        <div class="actions">
+          <ion-button
+            size="small"
+            fill="clear"
+            color="medium"
+            aria-label=${this.t.moreActions}
+            title=${this.t.moreActions}
+            aria-haspopup="menu"
+            @click=${(e5) => this.openRowMenu(e5, row)}
+          >
+            <ion-icon slot="icon-only" .icon=${okIcon(iconEllipsisVertical)}></ion-icon>
+          </ion-button>
+        </div>
+      `;
+    }
     return b2`
       <div class="actions">
         ${this.actions.map(
       (a3) => {
         const loading = a3.loading?.(row) === true;
         const disabled = loading || a3.disabled?.(row) === true;
+        const label = typeof a3.label === "function" ? a3.label(row) : a3.label;
         return b2`
             <ion-button
               size="small"
@@ -3460,11 +3625,11 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
               color=${a3.color ?? "medium"}
               ?disabled=${disabled}
               aria-disabled=${disabled ? "true" : A}
-              aria-label=${a3.label}
-              title=${a3.label}
+              aria-label=${label}
+              title=${label}
               @click=${() => this.emit("rowAction", { actionId: a3.id, row })}
             >
-              ${loading ? b2`<ion-spinner slot="icon-only" name="dots"></ion-spinner>` : a3.icon ? b2`<ion-icon slot="icon-only" .icon=${okIcon(a3.icon)}></ion-icon>` : a3.label}
+              ${loading ? b2`<ion-spinner slot="icon-only" name="dots"></ion-spinner>` : a3.icon ? b2`<ion-icon slot="icon-only" .icon=${okIcon(a3.icon)}></ion-icon>` : label}
             </ion-button>
           `;
       }
@@ -3486,8 +3651,22 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
   gridTemplate() {
     return [
       this.selectable ? "2.75rem" : null,
-      ...this.visibleColumns.map((c5) => c5.width ?? "minmax(8rem,1fr)"),
-      this.actions.length ? "auto" : null
+      // #120 - 5.5rem (88px) is the narrowest a data column can be and stay readable: ~11
+      // characters at 14px, plus the ellipsis `.gcell > span` already applies. With the previous
+      // floor (8rem = 128px) the six columns of a bookings list did not fit the counter tablet
+      // (128x6 + 188 for actions + gaps = 1036px against 834) and the pinned column ended up on
+      // top of the data. With 5.5rem they fit (796px) and `1fr` stretches them to 94px each.
+      ...this.visibleColumns.map((c5) => c5.width ?? "minmax(5.5rem,1fr)"),
+      // #121 - a LENGTH, not `max-content`. The header and every row are separate grids that
+      // share this string, and a content-sized track is not a length: each grid resolves it
+      // against ITS OWN content - the word "ACCIONES" (62.83px) in the header, four buttons
+      // (188px) in the row. The leftover the `1fr` columns share then differed between the two,
+      // and the header slid right, up to 125px by the last column (measured at 834px).
+      // `actionsTrackPx` is the width of the buttons MEASURED on screen, so it also keeps #120's
+      // contract: the track never shrinks under its content (an `auto` track collapsed to 16px
+      // and the buttons spilled over the neighbouring column). Until the first measurement lands
+      // - one frame - `max-content` reserves the same room it always did.
+      this.actions.length ? this.actionsTrackPx > 0 ? `${this.actionsTrackPx}px` : "max-content" : null
     ].filter(Boolean).join(" ");
   }
   /** Lista de páginas a mostrar en el pager numerado (1-based): primera, última, vecinas de la
@@ -3543,7 +3722,7 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
         this.mobileShown = 0;
       }
     };
-    const searchbar = this.serverSide ? b2`<ion-searchbar class="ion-no-border" placeholder=${this.effSearchPlaceholder} debounce="250" @ionInput=${this.onSearch}></ion-searchbar>` : b2`<ion-searchbar class="ion-no-border" .value=${this.q} placeholder=${this.effSearchPlaceholder} debounce="250" @ionInput=${this.onSearch}></ion-searchbar>`;
+    const searchbar = b2`<ion-searchbar class="ion-no-border" .value=${this.q} placeholder=${this.effSearchPlaceholder} debounce="250" @ionInput=${this.onSearch}></ion-searchbar>`;
     const selCount = this.selection.size;
     const showTopbar = !!this.title || this.hasSearch || this.viewToggle || this.effColumnPicker || this.effExport || this.effImport || this.hasFilterRow || this.addable || !!this.primaryAction;
     return b2`
@@ -3591,24 +3770,19 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
                           <input class="tk-file" type="file" accept=".csv,text/csv" hidden @change=${(e5) => this.onImportFile(e5)} />
                         ` : A}
                     ${this.effExport ? this.toolButton("download-outline", false, () => this.exportCsv(), this.t.exportCsv) : A}
-                    ${this.addable ? this.isMobile ? b2`
-                            <ion-button class="primary-btn add-btn" size="small" @click=${() => this.toggle("create")}>
-                              <ion-icon slot="start" .icon=${okIcon("add")}></ion-icon>${this.t.add}
-                            </ion-button>
-                          ` : this.toolButton("add", this.panel === "create", () => this.toggle("create"), this.t.add) : A}
+                    <!-- #113 — Mismo botón en los dos viewports: la acción principal de la pantalla
+                         se lee, no se adivina. En escritorio era un «+» de 36px idéntico a los
+                         iconos de vista/filtrar/exportar, y era el último de cuatro. -->
+                    ${this.addable ? b2`
+                          <ion-button class="primary-btn add-btn" size="small" @click=${() => this.toggle("create")}>
+                            <ion-icon slot="start" .icon=${okIcon("add")}></ion-icon>${this.t.add}
+                          </ion-button>
+                        ` : A}
                     ${this.renderOverflowMenu()}
-                    ${this.primaryAction ? this.isMobile ? b2`
-                            <ion-button class="primary-btn add-btn" size="small" @click=${() => this.emit("primaryAction", {})}>
-                              <ion-icon slot="start" .icon=${okIcon(this.primaryAction.icon ?? "add")}></ion-icon>${this.primaryAction.label}
-                            </ion-button>
-                          ` : b2`
-                          <ion-button
-                            class="primary-btn"
-                            size="small"
-                            title=${this.primaryAction.label}
-                            aria-label=${this.primaryAction.label}
-                            @click=${() => this.emit("primaryAction", {})}
-                          ><ion-icon slot="icon-only" .icon=${okIcon(this.primaryAction.icon ?? "add")}></ion-icon></ion-button>
+                    ${this.primaryAction ? b2`
+                          <ion-button class="primary-btn add-btn" size="small" @click=${() => this.emit("primaryAction", {})}>
+                            <ion-icon slot="start" .icon=${okIcon(this.primaryAction.icon ?? "add")}></ion-icon>${this.primaryAction.label}
+                          </ion-button>
                         ` : A}
                     <!-- El módulo proyecta aquí acciones globales adicionales. -->
                     <slot name="toolbar"></slot>
@@ -3757,7 +3931,9 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
                 </div>
               `;
     })}
-            ${this.actions.length ? b2`<div class="gcell gh right actions-col" role="columnheader">${this.t.actions}</div>` : A}
+            ${this.actions.length ? b2`<div class="gcell gh right actions-col" role="columnheader">
+                  ${this.rowActionsCollapsed ? b2`<span class="sr-only">${this.t.actions}</span>` : b2`<span>${this.t.actions}</span>`}
+                </div>` : A}
           </div>
 
           <!-- Filas -->
@@ -3780,13 +3956,14 @@ var _OkDataTable = class _OkDataTable2 extends i3 {
                   ${cols.map(
           (c5) => b2`<div class=${`gcell ${alignCls(c5.align)}${c5.pinned === "end" ? " actions-col" : ""}`} role="cell">${c5.render ? c5.render(row) : b2`<span>${this.cell(c5, row)}</span>`}</div>`
         )}
-                  ${this.actions.length ? b2`<div class="gcell right actions-col" role="cell" @click=${(e5) => e5.stopPropagation()}>${this.actionButtons(row)}</div>` : A}
+                  ${this.actions.length ? b2`<div class="gcell right actions-col" role="cell" @click=${(e5) => e5.stopPropagation()}>${this.actionButtons(row, true)}</div>` : A}
                 </div>
               `;
       }
     )}
         </div>
       </div>
+      ${this.renderRowMenu()}
     `;
   }
   renderCards(visible) {
@@ -3892,6 +4069,9 @@ __decorateClass3([
 ], _OkDataTable.prototype, "searchable");
 __decorateClass3([
   n4({ type: String })
+], _OkDataTable.prototype, "search");
+__decorateClass3([
+  n4({ type: String })
 ], _OkDataTable.prototype, "sort");
 __decorateClass3([
   n4({ attribute: "sort-dir" })
@@ -3986,6 +4166,15 @@ __decorateClass3([
 __decorateClass3([
   r5()
 ], _OkDataTable.prototype, "xOverflow");
+__decorateClass3([
+  r5()
+], _OkDataTable.prototype, "actionsTrackPx");
+__decorateClass3([
+  r5()
+], _OkDataTable.prototype, "rowActionsCollapsed");
+__decorateClass3([
+  r5()
+], _OkDataTable.prototype, "rowMenuOpen");
 __decorateClass3([
   r5()
 ], _OkDataTable.prototype, "hiddenKeys");
@@ -4424,12 +4613,13 @@ var ErpInventoryCategories = class extends i3 {
   render() {
     return b2`
       <div class="page">
-        ${this.formError ? b2`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.formError}</ok-inline-feedback>` : A}
-        ${this.ctrl?.error ? b2`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : A}
+        ${this.formError ? b2`<ok-inline-feedback data-testid="inventory-categories-form-error" tone="danger" icon="alert-circle-outline">${this.formError}</ok-inline-feedback>` : A}
+        ${this.ctrl?.error ? b2`<ok-inline-feedback data-testid="inventory-categories-load-error" tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : A}
 
         <!-- The «Edit» button is not the only door: rowClickable makes the whole row open the
              same edit panel (outfitkit#67 — the actions column can be off-screen at 1440 px). -->
         <ok-data-table
+          testid="inventory-categories-table"
           .serverSide=${true}
           .fill=${true}
           .labels=${dataTableLabels(erplora().locale)}
@@ -4461,8 +4651,9 @@ var ErpInventoryCategories = class extends i3 {
           @searchChange=${(e5) => this.ctrl.setSearch(e5.detail)}
           @filterChange=${(e5) => this.ctrl.setFilter(e5.detail.col, e5.detail.value)}
         >
-          <form slot="create" class="form" @submit=${(e5) => this.create(e5)}>
+          <form slot="create" class="form" data-testid="inventory-categories-form" @submit=${(e5) => this.create(e5)}>
             <ion-input mode="md"
+              data-testid="inventory-categories-name"
               fill="outline"
               label=${erplora().t(CATALOG, "ui.name")}
               label-placement="floating"
@@ -4470,6 +4661,7 @@ var ErpInventoryCategories = class extends i3 {
               @ionInput=${(e5) => this.newName = e5.target.value}
             ></ion-input>
             <ion-input mode="md"
+              data-testid="inventory-categories-slug"
               fill="outline"
               label=${erplora().t(CATALOG, "ui.slugOptional")}
               label-placement="floating"
@@ -4477,6 +4669,7 @@ var ErpInventoryCategories = class extends i3 {
               @ionInput=${(e5) => this.newSlug = e5.target.value}
             ></ion-input>
             <ion-select mode="md"
+              data-testid="inventory-categories-tax-rate"
               fill="outline"
               label-placement="floating"
               label=${erplora().t(CATALOG, "ui.taxRate")}
@@ -4485,10 +4678,10 @@ var ErpInventoryCategories = class extends i3 {
             >
               ${this.taxOptions()}
             </ion-select>
-            ${this.editingId ? b2`<ion-button size="small" fill="clear" @click=${() => this.cancelEdit()}>
+            ${this.editingId ? b2`<ion-button data-testid="inventory-categories-edit-cancel" size="small" fill="clear" @click=${() => this.cancelEdit()}>
                   ${erplora().t(CATALOG, "ui.editingCancel")}
                 </ion-button>` : A}
-            <ion-button type="submit" ?disabled=${this.saving || !this.newName}>
+            <ion-button data-testid="inventory-categories-submit" type="submit" ?disabled=${this.saving || !this.newName}>
               ${this.saving ? erplora().t(CATALOG, "ui.saving") : this.editingId ? erplora().t(CATALOG, "ui.saveChanges") : erplora().t(CATALOG, "ui.save")}
             </ion-button>
           </form>
@@ -4511,10 +4704,10 @@ var ErpInventoryCategories = class extends i3 {
                 </ion-label>
               </ion-item>
             </ion-list>
-            <ion-button class="ion-margin-top" expand="block" color="danger" @click=${() => this.confirmDelete()}>
+            <ion-button data-testid="inventory-categories-delete-submit" class="ion-margin-top" expand="block" color="danger" @click=${() => this.confirmDelete()}>
               ${erplora().t(CATALOG, "ui.deleteCatConfirm")}
             </ion-button>
-            <ion-button expand="block" fill="outline" @click=${() => this.deleteTarget = null}>
+            <ion-button data-testid="inventory-categories-delete-cancel" expand="block" fill="outline" @click=${() => this.deleteTarget = null}>
               ${erplora().t(CATALOG, "ui.btnCancel")}
             </ion-button>
           </ion-content>
@@ -4797,27 +4990,28 @@ var ErpInventoryDashboard = class extends i3 {
     const productsHref = "/m/inventory/products";
     return b2`
       <div class="cards">
-        <a href=${productsHref}><ok-kpi label=${t5("ui.statsTracked")} value=${n6(s5.products_tracked)} icon="cube-outline"></ok-kpi></a>
-        <a href=${productsHref}><ok-kpi label=${t5("ui.statsInStock")} value=${n6(s5.products_in_stock)} icon="checkmark-circle-outline"></ok-kpi></a>
-        <a href=${productsHref}><ok-kpi label=${t5("ui.statsOutOfStock")} value=${n6(s5.products_out_of_stock)} icon="close-circle-outline" trend=${s5.products_out_of_stock > 0 ? "down" : "flat"}></ok-kpi></a>
-        <a href=${productsHref}><ok-kpi label=${t5("ui.statsLowStock")} value=${n6(s5.products_low_stock)} icon="warning-outline" trend=${s5.products_low_stock > 0 ? "down" : "flat"}></ok-kpi></a>
-        <ok-kpi label=${t5("ui.statsValue")} value=${erplora2().formatMoney(Number(s5.total_inventory_value ?? 0))} icon="pricetag-outline" delta=${t5("ui.statsValueAtCost")}></ok-kpi>
+        <a href=${productsHref}><ok-kpi data-testid="inventory-dashboard-kpi-tracked" label=${t5("ui.statsTracked")} value=${n6(s5.products_tracked)} icon="cube-outline"></ok-kpi></a>
+        <a href=${productsHref}><ok-kpi data-testid="inventory-dashboard-kpi-in-stock" label=${t5("ui.statsInStock")} value=${n6(s5.products_in_stock)} icon="checkmark-circle-outline"></ok-kpi></a>
+        <a href=${productsHref}><ok-kpi data-testid="inventory-dashboard-kpi-out-of-stock" label=${t5("ui.statsOutOfStock")} value=${n6(s5.products_out_of_stock)} icon="close-circle-outline" trend=${s5.products_out_of_stock > 0 ? "down" : "flat"}></ok-kpi></a>
+        <a href=${productsHref}><ok-kpi data-testid="inventory-dashboard-kpi-low-stock" label=${t5("ui.statsLowStock")} value=${n6(s5.products_low_stock)} icon="warning-outline" trend=${s5.products_low_stock > 0 ? "down" : "flat"}></ok-kpi></a>
+        <ok-kpi data-testid="inventory-dashboard-kpi-value" label=${t5("ui.statsValue")} value=${erplora2().formatMoney(Number(s5.total_inventory_value ?? 0))} icon="pricetag-outline" delta=${t5("ui.statsValueAtCost")}></ok-kpi>
       </div>
-      ${s5.products_without_cost > 0 ? b2`<ion-note color="warning">${s5.products_without_cost} ${t5("ui.statsWithoutCost")}</ion-note>` : A}
+      ${s5.products_without_cost > 0 ? b2`<ion-note data-testid="inventory-dashboard-without-cost" color="warning">${s5.products_without_cost} ${t5("ui.statsWithoutCost")}</ion-note>` : A}
     `;
   }
   render() {
     const t5 = (k2) => erplora2().t(CATALOG2, k2);
     return b2`
       <div>
-        ${this.statsLoading ? b2`<p class="state">${t5("ui.loading")}</p>` : A}
-        ${this.statsError ? b2`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${t5("ui.statsError")}</ok-inline-feedback>` : A}
+        ${this.statsLoading ? b2`<p data-testid="inventory-dashboard-loading" class="state">${t5("ui.loading")}</p>` : A}
+        ${this.statsError ? b2`<ok-inline-feedback data-testid="inventory-dashboard-stats-error" tone="danger" icon="alert-circle-outline">${t5("ui.statsError")}</ok-inline-feedback>` : A}
         ${this.stats ? this.kpis() : A}
 
         <div class="section">
           <h2>${t5("ui.lowStockTitle")}</h2>
-          ${this.ctrl?.error ? b2`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : A}
+          ${this.ctrl?.error ? b2`<ok-inline-feedback data-testid="inventory-dashboard-load-error" tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : A}
           <ok-data-table
+            testid="inventory-dashboard-low-stock-table"
             .serverSide=${true}
             .labels=${dataTableLabels(erplora2().locale)}
             .columns=${this.columns}
@@ -4940,8 +5134,9 @@ var ErpInventoryMovements = class extends i3 {
     const t5 = (k2) => erplora3().t(CATALOG3, k2);
     return b2`
       <div class="page">
-      ${this.ctrl?.error ? b2`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : A}
+      ${this.ctrl?.error ? b2`<ok-inline-feedback data-testid="inventory-movements-load-error" tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : A}
       <ok-data-table
+        testid="inventory-movements-table"
         fill
         .serverSide=${true}
         .labels=${dataTableLabels(erplora3().locale)}
@@ -5409,6 +5604,7 @@ var ErpInventoryProducts = class extends i3 {
           if (statusOf(r6) === STATUS_UNCONFIGURED) return this.renderUnconfigured(r6);
           return can2("inventory.change_product") ? b2`
               <ion-toggle
+                data-testid=${`inventory-products-active-${r6.id}`}
                 aria-label=${t5("ui.active")}
                 style="--track-background-checked: rgba(var(--ion-color-success-rgb, 45,211,111), 0.5); --handle-background-checked: var(--ion-color-success, #2dd36f);"
                 ?checked=${!!r6.is_active}
@@ -5437,6 +5633,7 @@ var ErpInventoryProducts = class extends i3 {
     const editable = can2("inventory.change_product");
     return b2`
       <ion-chip
+        data-testid=${`inventory-products-unconfigured-${row.id}`}
         color="warning"
         title=${reason}
         ?disabled=${!editable}
@@ -5858,7 +6055,7 @@ var ErpInventoryProducts = class extends i3 {
           <ion-toolbar>
             <ion-title>${t5("ui.importTaxTitle")}</ion-title>
             <ion-buttons slot="end">
-              <ion-button @click=${() => this.importOpen = false}>${t5("ui.btnCancel")}</ion-button>
+              <ion-button data-testid="inventory-products-import-tax-close" @click=${() => this.importOpen = false}>${t5("ui.btnCancel")}</ion-button>
             </ion-buttons>
           </ion-toolbar>
         </ion-header>
@@ -5870,21 +6067,21 @@ var ErpInventoryProducts = class extends i3 {
               <!-- La cadena vacía no es un texto del CSV: es el cajón de las filas que no traen
                    columna fiscal (inventory#38). Pintarla entre comillas no diría nada. -->
               <strong>${text === "" ? t5("ui.importTaxMissingLabel") : `"${text}"`}</strong>
-              <ion-segment .value=${c5.mode} @ionChange=${(e5) => setChoice(text, { mode: e5.detail.value })} style="margin:.5rem 0;">
-                <ion-segment-button value="pick"><ion-label>${t5("ui.importPick")}</ion-label></ion-segment-button>
-                <ion-segment-button value="create"><ion-label>${t5("ui.importCreate")}</ion-label></ion-segment-button>
-                <ion-segment-button value="skip"><ion-label>${t5("ui.importSkip")}</ion-label></ion-segment-button>
+              <ion-segment data-testid=${`inventory-products-import-tax-mode-${text}`} .value=${c5.mode} @ionChange=${(e5) => setChoice(text, { mode: e5.detail.value })} style="margin:.5rem 0;">
+                <ion-segment-button data-testid=${`inventory-products-import-tax-pick-${text}`} value="pick"><ion-label>${t5("ui.importPick")}</ion-label></ion-segment-button>
+                <ion-segment-button data-testid=${`inventory-products-import-tax-create-${text}`} value="create"><ion-label>${t5("ui.importCreate")}</ion-label></ion-segment-button>
+                <ion-segment-button data-testid=${`inventory-products-import-tax-skip-${text}`} value="skip"><ion-label>${t5("ui.importSkip")}</ion-label></ion-segment-button>
               </ion-segment>
-              ${c5.mode === "pick" ? b2`<ion-select mode="md" fill="outline" label-placement="floating" label=${t5("ui.colCategory")} .value=${c5.key} @ionChange=${(e5) => setChoice(text, { key: e5.detail.value })}>
+              ${c5.mode === "pick" ? b2`<ion-select mode="md" data-testid=${`inventory-products-import-tax-category-${text}`} fill="outline" label-placement="floating" label=${t5("ui.colCategory")} .value=${c5.key} @ionChange=${(e5) => setChoice(text, { key: e5.detail.value })}>
                     ${this.taxCategories.map((cat) => b2`<ion-select-option .value=${cat.key}>${taxCategoryOptionLabel(cat, this.taxRates, t5)}</ion-select-option>`)}
                   </ion-select>` : A}
               ${c5.mode === "create" ? b2`<div style="display:flex;gap:.5rem;flex-wrap:wrap;">
-                    <ion-input mode="md" fill="outline" label-placement="floating" label=${t5("ui.colKey")} placeholder="restaurant.food" .value=${c5.newKey} @ionInput=${(e5) => setChoice(text, { newKey: e5.target.value })}></ion-input>
-                    <ion-input mode="md" fill="outline" label-placement="floating" label=${t5("ui.colName")} .value=${c5.newName} @ionInput=${(e5) => setChoice(text, { newName: e5.target.value })}></ion-input>
+                    <ion-input mode="md" data-testid=${`inventory-products-import-tax-new-key-${text}`} fill="outline" label-placement="floating" label=${t5("ui.colKey")} placeholder="restaurant.food" .value=${c5.newKey} @ionInput=${(e5) => setChoice(text, { newKey: e5.target.value })}></ion-input>
+                    <ion-input mode="md" data-testid=${`inventory-products-import-tax-new-name-${text}`} fill="outline" label-placement="floating" label=${t5("ui.colName")} .value=${c5.newName} @ionInput=${(e5) => setChoice(text, { newName: e5.target.value })}></ion-input>
                   </div>` : A}
             </div>`;
     })}
-          <ion-button expand="block" @click=${() => this.confirmImportResolution()}>${t5("ui.importConfirm")}</ion-button>
+          <ion-button data-testid="inventory-products-import-tax-submit" expand="block" @click=${() => this.confirmImportResolution()}>${t5("ui.importConfirm")}</ion-button>
         </ion-content>
       </ion-modal>
     `;
@@ -6181,19 +6378,20 @@ var ErpInventoryProducts = class extends i3 {
     const t5 = (k2) => erplora4().t(CATALOG4, k2);
     return b2`
       <div class="page">
-        ${this.formError ? b2`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.formError}</ok-inline-feedback>` : A}
-        ${this.ctrl?.error ? b2`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : A}
+        ${this.formError ? b2`<ok-inline-feedback data-testid="inventory-products-form-error" tone="danger" icon="alert-circle-outline">${this.formError}</ok-inline-feedback>` : A}
+        ${this.ctrl?.error ? b2`<ok-inline-feedback data-testid="inventory-products-load-error" tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : A}
         <!-- Importación en marcha (inventory#13): por dónde va y una salida. Con 280 filas, lo
              único que había era una pantalla quieta durante minutos. -->
-        ${this.importProgress ? b2`<ok-inline-feedback tone="info" icon="cloud-upload-outline">
+        ${this.importProgress ? b2`<ok-inline-feedback data-testid="inventory-products-import-progress" tone="info" icon="cloud-upload-outline">
               ${erplora4().t(CATALOG4, "ui.importProgress", { done: this.importProgress.done, total: this.importProgress.total })}
               <ion-progress-bar .value=${this.importProgress.total ? this.importProgress.done / this.importProgress.total : 0}></ion-progress-bar>
-              <ion-button size="small" fill="clear" @click=${() => this.cancelImport()}>${erplora4().t(CATALOG4, "ui.importStop")}</ion-button>
+              <ion-button data-testid="inventory-products-import-stop" size="small" fill="clear" @click=${() => this.cancelImport()}>${erplora4().t(CATALOG4, "ui.importStop")}</ion-button>
             </ok-inline-feedback>` : A}
 
         <!-- The «detail» button is not the only door: rowClickable makes the whole row open the
              same detail modal (outfitkit#67 — the actions column can be off-screen at 1440 px). -->
         <ok-data-table
+          testid="inventory-products-table"
           .serverSide=${true}
           .filterValues=${this.tableFilters}
           .fill=${true}
@@ -6234,14 +6432,15 @@ var ErpInventoryProducts = class extends i3 {
     }}
         >
           <!-- Formulario de alta: el botón "+" del data-table despliega este acordeón. -->
-          <form slot="create" class="form" @submit=${(e5) => this.createProduct(e5)}>
+          <form slot="create" class="form" data-testid="inventory-products-form" @submit=${(e5) => this.createProduct(e5)}>
             ${this.editingId ? b2`<div class="drow" style="align-items:center;">
                   <b>${erplora4().t(CATALOG4, "ui.editingTitle")}</b>
-                  <ion-button size="small" fill="clear" @click=${() => this.cancelEdit()}>
+                  <ion-button data-testid="inventory-products-edit-cancel" size="small" fill="clear" @click=${() => this.cancelEdit()}>
                     ${erplora4().t(CATALOG4, "ui.editingCancel")}
                   </ion-button>
                 </div>` : A}
             <ion-input mode="md"
+              data-testid="inventory-products-name"
               fill="outline"
               label=${erplora4().t(CATALOG4, "ui.name")}
               label-placement="floating"
@@ -6249,6 +6448,7 @@ var ErpInventoryProducts = class extends i3 {
               @ionInput=${(e5) => this.newName = e5.target.value}
             ></ion-input>
             <ion-input mode="md"
+              data-testid="inventory-products-sku"
               fill="outline"
               label="SKU"
               label-placement="floating"
@@ -6258,6 +6458,7 @@ var ErpInventoryProducts = class extends i3 {
               @ionInput=${(e5) => this.newSku = e5.target.value}
             ></ion-input>
             <ion-input mode="md"
+              data-testid="inventory-products-price"
               fill="outline"
               label=${erplora4().t(CATALOG4, "ui.price")}
               label-placement="floating"
@@ -6267,6 +6468,7 @@ var ErpInventoryProducts = class extends i3 {
               @ionInput=${(e5) => this.newPrice = e5.target.value}
             ></ion-input>
             <ion-input mode="md"
+              data-testid="inventory-products-cost"
               fill="outline"
               label=${`${erplora4().t(CATALOG4, "ui.fieldCost")} (${erplora4().currency})`}
               label-placement="floating"
@@ -6275,6 +6477,7 @@ var ErpInventoryProducts = class extends i3 {
               @ionInput=${(e5) => this.newCost = e5.target.value}
             ></ion-input>
             ${!this.editingId ? b2`<ion-input mode="md"
+                  data-testid="inventory-products-initial-stock"
                   fill="outline"
                   label=${erplora4().t(CATALOG4, "ui.fieldInitialStock")}
                   label-placement="floating"
@@ -6283,6 +6486,7 @@ var ErpInventoryProducts = class extends i3 {
                   @ionInput=${(e5) => this.newStock = e5.target.value}
                 ></ion-input>` : A}
             <ion-input mode="md"
+              data-testid="inventory-products-threshold"
               fill="outline"
               label=${erplora4().t(CATALOG4, "ui.fieldThreshold")}
               label-placement="floating"
@@ -6291,6 +6495,7 @@ var ErpInventoryProducts = class extends i3 {
               @ionInput=${(e5) => this.newThreshold = e5.target.value}
             ></ion-input>
             <ion-input mode="md"
+              data-testid="inventory-products-ean13"
               fill="outline"
               label="EAN-13"
               label-placement="floating"
@@ -6299,6 +6504,7 @@ var ErpInventoryProducts = class extends i3 {
               @ionInput=${(e5) => this.newEan = e5.target.value}
             ></ion-input>
             <ion-input mode="md"
+              data-testid="inventory-products-description"
               fill="outline"
               label=${erplora4().t(CATALOG4, "ui.fieldDescription")}
               label-placement="floating"
@@ -6306,6 +6512,7 @@ var ErpInventoryProducts = class extends i3 {
               @ionInput=${(e5) => this.newDescription = e5.target.value}
             ></ion-input>
             ${!this.editingId ? b2`<ion-select mode="md"
+                  data-testid="inventory-products-type"
                   fill="outline"
                   label-placement="floating"
                   label=${erplora4().t(CATALOG4, "ui.fieldType")}
@@ -6319,6 +6526,7 @@ var ErpInventoryProducts = class extends i3 {
                           (Square «Track stock», Odoo «Track Inventory», Shopify «Track quantity»).
                           Shows the EFFECTIVE value; touching it makes the choice explicit. -->
                   <ion-checkbox
+                    data-testid="inventory-products-track-stock"
                     label-placement="end"
                     justify="start"
                     .checked=${this.trackStockEffective()}
@@ -6328,6 +6536,7 @@ var ErpInventoryProducts = class extends i3 {
                     ${this.newTrackStock == null ? erplora4().t(CATALOG4, "ui.trackStockInherit") : this.newTrackStock === 0 ? erplora4().t(CATALOG4, "ui.trackStockOff") : A}
                   </ion-note>` : A}
             <ion-select mode="md"
+              data-testid="inventory-products-unit"
               fill="outline"
               label-placement="floating"
               interface="popover"
@@ -6341,6 +6550,7 @@ var ErpInventoryProducts = class extends i3 {
                  Sin catálogo de categorías no hay nada que elegir, así que se dice en vez de
                  dejar guardar un producto que después nadie puede cobrar. -->
             <ion-select mode="md"
+              data-testid="inventory-products-tax-category"
               fill="outline"
               label-placement="floating"
               required
@@ -6351,10 +6561,11 @@ var ErpInventoryProducts = class extends i3 {
             >
               ${this.taxOptions()}
             </ion-select>
-            ${this.taxCategories.length === 0 ? b2`<ok-inline-feedback tone="warning" icon="alert-circle-outline">
+            ${this.taxCategories.length === 0 ? b2`<ok-inline-feedback data-testid="inventory-products-tax-none" tone="warning" icon="alert-circle-outline">
                   ${erplora4().t(CATALOG4, "ui.taxNoneAvailable")}
                 </ok-inline-feedback>` : A}
             ${this.productCategories.length ? b2`<ion-select mode="md"
+                  data-testid="inventory-products-categories"
                   fill="outline"
                   label-placement="floating"
                   label=${erplora4().t(CATALOG4, "ui.fieldCategories")}
@@ -6369,7 +6580,7 @@ var ErpInventoryProducts = class extends i3 {
       (c5) => b2`<ion-select-option .value=${c5.id}>${c5.name}</ion-select-option>`
     )}
                 </ion-select>` : A}
-            <ion-button type="submit" ?disabled=${this.saving || !this.newName || !this.newSku || !this.newTaxCategoryKey}>
+            <ion-button data-testid="inventory-products-submit" type="submit" ?disabled=${this.saving || !this.newName || !this.newSku || !this.newTaxCategoryKey}>
               ${this.saving ? erplora4().t(CATALOG4, "ui.saving") : this.editingId ? erplora4().t(CATALOG4, "ui.saveChanges") : erplora4().t(CATALOG4, "ui.save")}
             </ion-button>
           </form>
@@ -6386,7 +6597,7 @@ var ErpInventoryProducts = class extends i3 {
             <ion-toolbar>
               <ion-title>${this.detail?.name ?? ""}</ion-title>
               <ion-buttons slot="end">
-                <ion-button aria-label=${erplora4().t(CATALOG4, "ui.btnClose")} @click=${() => {
+                <ion-button data-testid="inventory-products-detail-close" aria-label=${erplora4().t(CATALOG4, "ui.btnClose")} @click=${() => {
       this.detail = null;
       this.printError = "";
     }}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
@@ -6428,8 +6639,8 @@ var ErpInventoryProducts = class extends i3 {
                     ${this.renderBarcode(this.detail.sku)}
                     <div style="font:14px ui-monospace,monospace; margin-top:.4rem; letter-spacing:.08em; color:#000;">${this.detail.sku}</div>
                   </div>
-                  ${this.printError ? b2`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.printError}</ok-inline-feedback>` : A}
-                  <ion-button expand="block" @click=${() => this.detail && void this.printBarcode(this.detail)}>
+                  ${this.printError ? b2`<ok-inline-feedback data-testid="inventory-products-print-error" tone="danger" icon="alert-circle-outline">${this.printError}</ok-inline-feedback>` : A}
+                  <ion-button data-testid="inventory-products-print-barcode" expand="block" @click=${() => this.detail && void this.printBarcode(this.detail)}>
                     <ion-icon name="print-outline" slot="start"></ion-icon> ${t5("ui.printBarcode")}
                   </ion-button>
                 ` : A}
@@ -6476,7 +6687,7 @@ var ErpInventoryProducts = class extends i3 {
           <ion-toolbar>
             <ion-title>${t5("ui.previewTitle")}</ion-title>
             <ion-buttons slot="end">
-              <ion-button aria-label=${t5("ui.btnCancel")} @click=${() => this.cancelPreview()}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
+              <ion-button data-testid="inventory-products-preview-close" aria-label=${t5("ui.btnCancel")} @click=${() => this.cancelPreview()}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
             </ion-buttons>
           </ion-toolbar>
         </ion-header>
@@ -6488,6 +6699,7 @@ var ErpInventoryProducts = class extends i3 {
             ${headers.map(
       (h4) => b2`<ion-item>
                 <ion-select
+                  data-testid=${`inventory-products-preview-column-${h4}`}
                   label=${h4}
                   label-placement="stacked"
                   .value=${this.previewMapping[h4] ?? ""}
@@ -6527,6 +6739,7 @@ var ErpInventoryProducts = class extends i3 {
           </div>
 
           ${this.previewReady ? b2`<ok-inline-feedback
+                data-testid="inventory-products-preview-summary"
                 class="ion-margin-top"
                 tone=${summary.failed.length ? "warning" : "success"}
                 icon=${summary.failed.length ? "alert-circle-outline" : "checkmark-outline"}
@@ -6535,11 +6748,12 @@ var ErpInventoryProducts = class extends i3 {
                 ${summary.failed.length ? b2`<ul style="margin:.3rem 0 0; padding-left:1.1rem">
                       ${summary.failed.slice(0, 10).map((f3) => b2`<li>${t5("ui.importLine")} ${f3.line}: ${f3.reason}</li>`)}
                     </ul>` : A}
-              </ok-inline-feedback>` : b2`<ok-inline-feedback class="ion-margin-top" tone="danger" icon="alert-circle-outline">
+              </ok-inline-feedback>` : b2`<ok-inline-feedback data-testid="inventory-products-preview-missing-required" class="ion-margin-top" tone="danger" icon="alert-circle-outline">
                 ${t5("ui.previewMissingRequired")}
               </ok-inline-feedback>`}
 
           <ion-button
+            data-testid="inventory-products-preview-submit"
             class="ion-margin-top"
             expand="block"
             ?disabled=${!this.previewReady || summary.ready === 0}
@@ -6547,7 +6761,7 @@ var ErpInventoryProducts = class extends i3 {
           >
             ${t5("ui.previewConfirm", { n: summary.ready })}
           </ion-button>
-          <ion-button expand="block" fill="outline" @click=${() => this.cancelPreview()}>${t5("ui.btnCancel")}</ion-button>
+          <ion-button data-testid="inventory-products-preview-cancel" expand="block" fill="outline" @click=${() => this.cancelPreview()}>${t5("ui.btnCancel")}</ion-button>
         </ion-content>
       </ion-modal>
     `;
@@ -6563,14 +6777,14 @@ var ErpInventoryProducts = class extends i3 {
           <ion-toolbar>
             <ion-title>${t5("ui.importReportTitle")}</ion-title>
             <ion-buttons slot="end">
-              <ion-button aria-label=${t5("ui.btnClose")} @click=${() => this.importReport = null}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
+              <ion-button data-testid="inventory-products-import-report-close" aria-label=${t5("ui.btnClose")} @click=${() => this.importReport = null}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
             </ion-buttons>
           </ion-toolbar>
         </ion-header>
         <ion-content class="ion-padding">
           ${rep ? b2`
                 <!-- Auto-estilado (reparent a <body>): Ionic puro, sin clases del shadow. -->
-                ${rep.cancelled ? b2`<ok-inline-feedback tone="warning" icon="alert-circle-outline">${t5("ui.importCancelledNote")}</ok-inline-feedback>` : A}
+                ${rep.cancelled ? b2`<ok-inline-feedback data-testid="inventory-products-import-report-cancelled" tone="warning" icon="alert-circle-outline">${t5("ui.importCancelledNote")}</ok-inline-feedback>` : A}
                 <ion-list lines="full">
                   <ion-item>
                     <ion-label>${t5("ui.importTotal")}</ion-label>
@@ -6599,7 +6813,7 @@ var ErpInventoryProducts = class extends i3 {
                           </ion-item>`
     )}
                       </ion-list>
-                      <ion-button class="ion-margin-top" expand="block" fill="outline"
+                      <ion-button data-testid="inventory-products-import-report-copy" class="ion-margin-top" expand="block" fill="outline"
                         @click=${() => navigator.clipboard?.writeText(this.importReportText())}>
                         <ion-icon name="copy-outline" slot="start"></ion-icon>${t5("ui.importCopy")}
                       </ion-button>
@@ -6627,10 +6841,10 @@ var ErpInventoryProducts = class extends i3 {
               </ion-label>
             </ion-item>
           </ion-list>
-          <ion-button class="ion-margin-top" expand="block" color="danger" @click=${() => this.confirmDelete()}>
+          <ion-button data-testid="inventory-products-delete-submit" class="ion-margin-top" expand="block" color="danger" @click=${() => this.confirmDelete()}>
             ${t5("ui.actionDelete")}
           </ion-button>
-          <ion-button expand="block" fill="outline" @click=${() => this.deleteTarget = null}>
+          <ion-button data-testid="inventory-products-delete-cancel" expand="block" fill="outline" @click=${() => this.deleteTarget = null}>
             ${t5("ui.btnCancel")}
           </ion-button>
         </ion-content>
@@ -6659,7 +6873,7 @@ var ErpInventoryProducts = class extends i3 {
           <ion-toolbar>
             <ion-title>${t5("ui.countTitle")} — ${this.countTarget?.name ?? ""}</ion-title>
             <ion-buttons slot="end">
-              <ion-button aria-label=${t5("ui.btnClose")} @click=${() => this.countTarget = null}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
+              <ion-button data-testid="inventory-products-count-close" aria-label=${t5("ui.btnClose")} @click=${() => this.countTarget = null}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
             </ion-buttons>
           </ion-toolbar>
         </ion-header>
@@ -6677,16 +6891,16 @@ var ErpInventoryProducts = class extends i3 {
                   <ion-note slot="end" color=${diff < 0 ? "danger" : "success"}>${diff > 0 ? `+${diff}` : diff}</ion-note>
                 </ion-item>` : A}
           </ion-list>
-          <ion-input mode="md" class="ion-margin-top" fill="outline" label-placement="floating" label=${t5("ui.countNew")}
+          <ion-input mode="md" data-testid="inventory-products-count-qty" class="ion-margin-top" fill="outline" label-placement="floating" label=${t5("ui.countNew")}
             type="number" .step=${this.quantityStep(this.countTarget?.unit_code)} min="0" inputmode="decimal"
             .value=${this.countValue}
             @ionInput=${(e5) => this.countValue = String(e5.detail.value ?? "")}
           ></ion-input>
-          <ion-input mode="md" class="ion-margin-top" fill="outline" label-placement="floating" label=${t5("ui.countReason")}
+          <ion-input mode="md" data-testid="inventory-products-count-reason" class="ion-margin-top" fill="outline" label-placement="floating" label=${t5("ui.countReason")}
             .value=${this.countReason} required
             @ionInput=${(e5) => this.countReason = String(e5.detail.value ?? "")}
           ></ion-input>
-          <ion-button class="ion-margin-top" expand="block" .disabled=${diff === null || this.countReason.trim() === ""}
+          <ion-button data-testid="inventory-products-count-submit" class="ion-margin-top" expand="block" .disabled=${diff === null || this.countReason.trim() === ""}
             @click=${() => this.submitCount()}>
             ${t5("ui.countApply")}
           </ion-button>
@@ -6710,7 +6924,7 @@ var ErpInventoryProducts = class extends i3 {
           <ion-toolbar>
             <ion-title>${t5("ui.receiveTitle")} — ${this.receiveTarget?.name ?? ""}</ion-title>
             <ion-buttons slot="end">
-              <ion-button aria-label=${t5("ui.btnClose")} @click=${() => this.receiveTarget = null}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
+              <ion-button data-testid="inventory-products-receive-close" aria-label=${t5("ui.btnClose")} @click=${() => this.receiveTarget = null}><ion-icon name="close" slot="icon-only"></ion-icon></ion-button>
             </ion-buttons>
           </ion-toolbar>
         </ion-header>
@@ -6722,17 +6936,17 @@ var ErpInventoryProducts = class extends i3 {
               <ion-note slot="end">${formatQuantity2(this.receiveTarget?.stock ?? 0)}</ion-note>
             </ion-item>
           </ion-list>
-          <ion-input mode="md" class="ion-margin-top" fill="outline" label-placement="floating" label=${t5("ui.receiveQty")}
+          <ion-input mode="md" data-testid="inventory-products-receive-qty" class="ion-margin-top" fill="outline" label-placement="floating" label=${t5("ui.receiveQty")}
             type="number" .step=${this.quantityStep(this.receiveTarget?.unit_code)} min="0.000001" inputmode="decimal"
             .value=${this.receiveQty}
             @ionInput=${(e5) => this.receiveQty = String(e5.detail.value ?? "")}
           ></ion-input>
-          <ion-input mode="md" class="ion-margin-top" fill="outline" label-placement="floating" label=${`${t5("ui.receiveCost")} (${erplora4().currency})`}
+          <ion-input mode="md" data-testid="inventory-products-receive-cost" class="ion-margin-top" fill="outline" label-placement="floating" label=${`${t5("ui.receiveCost")} (${erplora4().currency})`}
             type="number" step="0.01" min="0" inputmode="decimal"
             .value=${this.receiveCost}
             @ionInput=${(e5) => this.receiveCost = String(e5.detail.value ?? "")}
           ></ion-input>
-          <ion-button class="ion-margin-top" expand="block" .disabled=${this.receiveQty.trim() === ""}
+          <ion-button data-testid="inventory-products-receive-submit" class="ion-margin-top" expand="block" .disabled=${this.receiveQty.trim() === ""}
             @click=${() => this.submitReceive()}>
             ${t5("ui.receiveApply")}
           </ion-button>

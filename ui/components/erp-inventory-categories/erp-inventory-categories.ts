@@ -324,12 +324,13 @@ export class ErpInventoryCategories extends LitElement {
   render() {
     return html`
       <div class="page">
-        ${this.formError ? html`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.formError}</ok-inline-feedback>` : nothing}
-        ${this.ctrl?.error ? html`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : nothing}
+        ${this.formError ? html`<ok-inline-feedback data-testid="inventory-categories-form-error" tone="danger" icon="alert-circle-outline">${this.formError}</ok-inline-feedback>` : nothing}
+        ${this.ctrl?.error ? html`<ok-inline-feedback data-testid="inventory-categories-load-error" tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : nothing}
 
         <!-- The «Edit» button is not the only door: rowClickable makes the whole row open the
              same edit panel (outfitkit#67 — the actions column can be off-screen at 1440 px). -->
         <ok-data-table
+          testid="inventory-categories-table"
           .serverSide=${true}
           .fill=${true}
           .labels=${dataTableLabels(erplora().locale)}
@@ -363,8 +364,9 @@ export class ErpInventoryCategories extends LitElement {
           @filterChange=${(e: CustomEvent<{ col: string; value: unknown }>) =>
             this.ctrl.setFilter(e.detail.col, e.detail.value)}
         >
-          <form slot="create" class="form" @submit=${(e: Event) => this.create(e)}>
+          <form slot="create" class="form" data-testid="inventory-categories-form" @submit=${(e: Event) => this.create(e)}>
             <ion-input mode="md"
+              data-testid="inventory-categories-name"
               fill="outline"
               label=${erplora().t(CATALOG, 'ui.name')}
               label-placement="floating"
@@ -372,6 +374,7 @@ export class ErpInventoryCategories extends LitElement {
               @ionInput=${(e: Event) => (this.newName = (e.target as HTMLInputElement).value)}
             ></ion-input>
             <ion-input mode="md"
+              data-testid="inventory-categories-slug"
               fill="outline"
               label=${erplora().t(CATALOG, 'ui.slugOptional')}
               label-placement="floating"
@@ -379,6 +382,7 @@ export class ErpInventoryCategories extends LitElement {
               @ionInput=${(e: Event) => (this.newSlug = (e.target as HTMLInputElement).value)}
             ></ion-input>
             <ion-select mode="md"
+              data-testid="inventory-categories-tax-rate"
               fill="outline"
               label-placement="floating"
               label=${erplora().t(CATALOG, 'ui.taxRate')}
@@ -388,11 +392,11 @@ export class ErpInventoryCategories extends LitElement {
               ${this.taxOptions()}
             </ion-select>
             ${this.editingId
-              ? html`<ion-button size="small" fill="clear" @click=${() => this.cancelEdit()}>
+              ? html`<ion-button data-testid="inventory-categories-edit-cancel" size="small" fill="clear" @click=${() => this.cancelEdit()}>
                   ${erplora().t(CATALOG, 'ui.editingCancel')}
                 </ion-button>`
               : nothing}
-            <ion-button type="submit" ?disabled=${this.saving || !this.newName}>
+            <ion-button data-testid="inventory-categories-submit" type="submit" ?disabled=${this.saving || !this.newName}>
               ${this.saving
                 ? erplora().t(CATALOG, 'ui.saving')
                 : this.editingId
@@ -419,10 +423,10 @@ export class ErpInventoryCategories extends LitElement {
                 </ion-label>
               </ion-item>
             </ion-list>
-            <ion-button class="ion-margin-top" expand="block" color="danger" @click=${() => this.confirmDelete()}>
+            <ion-button data-testid="inventory-categories-delete-submit" class="ion-margin-top" expand="block" color="danger" @click=${() => this.confirmDelete()}>
               ${erplora().t(CATALOG, 'ui.deleteCatConfirm')}
             </ion-button>
-            <ion-button expand="block" fill="outline" @click=${() => (this.deleteTarget = null)}>
+            <ion-button data-testid="inventory-categories-delete-cancel" expand="block" fill="outline" @click=${() => (this.deleteTarget = null)}>
               ${erplora().t(CATALOG, 'ui.btnCancel')}
             </ion-button>
           </ion-content>

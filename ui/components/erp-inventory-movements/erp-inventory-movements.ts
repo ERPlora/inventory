@@ -117,8 +117,9 @@ export class ErpInventoryMovements extends LitElement {
     const t = (k: string): string => erplora().t(CATALOG, k);
     return html`
       <div class="page">
-      ${this.ctrl?.error ? html`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : nothing}
+      ${this.ctrl?.error ? html`<ok-inline-feedback data-testid="inventory-movements-load-error" tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : nothing}
       <ok-data-table
+        testid="inventory-movements-table"
         fill
         .serverSide=${true}
         .labels=${dataTableLabels(erplora().locale)}

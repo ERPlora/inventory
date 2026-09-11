@@ -133,14 +133,14 @@ export class ErpInventoryDashboard extends LitElement {
     const productsHref = '/m/inventory/products';
     return html`
       <div class="cards">
-        <a href=${productsHref}><ok-kpi label=${t('ui.statsTracked')} value=${n(s.products_tracked)} icon="cube-outline"></ok-kpi></a>
-        <a href=${productsHref}><ok-kpi label=${t('ui.statsInStock')} value=${n(s.products_in_stock)} icon="checkmark-circle-outline"></ok-kpi></a>
-        <a href=${productsHref}><ok-kpi label=${t('ui.statsOutOfStock')} value=${n(s.products_out_of_stock)} icon="close-circle-outline" trend=${s.products_out_of_stock > 0 ? 'down' : 'flat'}></ok-kpi></a>
-        <a href=${productsHref}><ok-kpi label=${t('ui.statsLowStock')} value=${n(s.products_low_stock)} icon="warning-outline" trend=${s.products_low_stock > 0 ? 'down' : 'flat'}></ok-kpi></a>
-        <ok-kpi label=${t('ui.statsValue')} value=${erplora().formatMoney(Number(s.total_inventory_value ?? 0))} icon="pricetag-outline" delta=${t('ui.statsValueAtCost')}></ok-kpi>
+        <a href=${productsHref}><ok-kpi data-testid="inventory-dashboard-kpi-tracked" label=${t('ui.statsTracked')} value=${n(s.products_tracked)} icon="cube-outline"></ok-kpi></a>
+        <a href=${productsHref}><ok-kpi data-testid="inventory-dashboard-kpi-in-stock" label=${t('ui.statsInStock')} value=${n(s.products_in_stock)} icon="checkmark-circle-outline"></ok-kpi></a>
+        <a href=${productsHref}><ok-kpi data-testid="inventory-dashboard-kpi-out-of-stock" label=${t('ui.statsOutOfStock')} value=${n(s.products_out_of_stock)} icon="close-circle-outline" trend=${s.products_out_of_stock > 0 ? 'down' : 'flat'}></ok-kpi></a>
+        <a href=${productsHref}><ok-kpi data-testid="inventory-dashboard-kpi-low-stock" label=${t('ui.statsLowStock')} value=${n(s.products_low_stock)} icon="warning-outline" trend=${s.products_low_stock > 0 ? 'down' : 'flat'}></ok-kpi></a>
+        <ok-kpi data-testid="inventory-dashboard-kpi-value" label=${t('ui.statsValue')} value=${erplora().formatMoney(Number(s.total_inventory_value ?? 0))} icon="pricetag-outline" delta=${t('ui.statsValueAtCost')}></ok-kpi>
       </div>
       ${s.products_without_cost > 0
-        ? html`<ion-note color="warning">${s.products_without_cost} ${t('ui.statsWithoutCost')}</ion-note>`
+        ? html`<ion-note data-testid="inventory-dashboard-without-cost" color="warning">${s.products_without_cost} ${t('ui.statsWithoutCost')}</ion-note>`
         : nothing}
     `;
   }
@@ -149,14 +149,15 @@ export class ErpInventoryDashboard extends LitElement {
     const t = (k: string): string => erplora().t(CATALOG, k);
     return html`
       <div>
-        ${this.statsLoading ? html`<p class="state">${t('ui.loading')}</p>` : nothing}
-        ${this.statsError ? html`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${t('ui.statsError')}</ok-inline-feedback>` : nothing}
+        ${this.statsLoading ? html`<p data-testid="inventory-dashboard-loading" class="state">${t('ui.loading')}</p>` : nothing}
+        ${this.statsError ? html`<ok-inline-feedback data-testid="inventory-dashboard-stats-error" tone="danger" icon="alert-circle-outline">${t('ui.statsError')}</ok-inline-feedback>` : nothing}
         ${this.stats ? this.kpis() : nothing}
 
         <div class="section">
           <h2>${t('ui.lowStockTitle')}</h2>
-          ${this.ctrl?.error ? html`<ok-inline-feedback tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : nothing}
+          ${this.ctrl?.error ? html`<ok-inline-feedback data-testid="inventory-dashboard-load-error" tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : nothing}
           <ok-data-table
+            testid="inventory-dashboard-low-stock-table"
             .serverSide=${true}
             .labels=${dataTableLabels(erplora().locale)}
             .columns=${this.columns}
