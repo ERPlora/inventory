@@ -96,7 +96,17 @@ def check(label: str, expected, actual) -> None:
 
 
 def apply_migrations() -> None:
-    for rel in (MANIFEST.get("migrations") or {}).get("postgres", []):
+    """`erplora test` hands the resolved migration paths over; standalone, the manifest does.
+
+    Every entry is a plain string today, but the object form `{file, kind, since}` is the only way
+    to declare a `contract` migration (hub#542), and a loop that takes the entry for a path dies on
+    the first one — in another pull request's merge ref, which is where nobody is looking
+    (module-toolkit#180).
+    """
+    published = [p for p in os.environ.get("ERPLORA_MIGRATION_FILES", "").splitlines() if p.strip()]
+    entries = published or (MANIFEST.get("migrations") or {}).get("postgres", [])
+    for entry in entries:
+        rel = entry if isinstance(entry, str) else entry["file"]
         psql([], db=DB, stdin=(MODULE_DIR / rel).read_text())
 
 
