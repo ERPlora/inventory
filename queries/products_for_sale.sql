@@ -16,6 +16,14 @@
 -- Filas ESTRECHAS a propósito: esto se pre-carga en CADA venta, así que solo van las columnas que
 -- deciden algo en el servidor. Nada de descripción, imagen ni stock.
 --
+-- sales#288 — `name` y `sku` decidieron algo: el NOMBRE que congela la línea lo escribe el SERVIDOR,
+-- con la misma regla que el precio (si la línea dice venir del catálogo, manda el catálogo). Sin
+-- estas dos columnas `sales` no tiene de dónde escribirlo, y una línea añadida por la API con solo
+-- el `product_id` llegaba a la pantalla de cocina sin nombre: el pase imprimía el UUID crudo.
+-- Son DISPLAY, no dinero — no se valida nada contra ellas—, y por eso su ausencia degrada (un hub
+-- con `inventory` anterior a este cambio sigue escribiendo el texto que mande el llamante) en vez
+-- de rechazar la venta, que es lo que hace la falta del catálogo entero.
+--
 -- `track_stock` (inventory#48) es el valor EFECTIVO por artículo — el propio, o el del hub si es
 -- NULL (tri-estado ADR-0210); un servicio nunca controla. El TPV lo usa para saber que ese artículo
 -- no tiene disponibilidad que mostrar, y `decrease_on_sale` para saltar la línea sin descuento.
@@ -23,6 +31,8 @@
 -- Solo productos activos y no borrados: vender uno desactivado es una decisión de negocio que el
 -- TPV no debería poder tomar por su cuenta.
 SELECT id,
+       name,                    -- lo que lee la persona: el pase, el tique y el KDS (sales#288)
+       sku,                     -- la referencia del artículo, congelada con el nombre
        price,                   -- unidades mínimas (ADR-0007/0123)
        cost,                    -- unidades mínimas
        tax_category_key,        -- con qué regla tributa (ADR-0085)
