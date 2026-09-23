@@ -14,16 +14,16 @@
 // happy-dom neither lays out nor loads Ionic's CSS, so what is pinned here is the CONTRACT (no
 // `color=` in the source, and every coloured element carries its tone inline); the computed colours
 // were measured in a real browser.
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { render } from 'lit';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ionTone } from './lib/ion-tone';
 
-// Module root ON DISK, not from `import.meta.url` (Vite hands it over relative to the workspace).
-const MODULE_ROOT = [path.join(process.cwd(), 'modules/inventory-wt-392'), path.join(process.cwd(), 'modules/inventory'), process.cwd()]
-  .find((dir) => existsSync(path.join(dir, 'module.json')) && existsSync(path.join(dir, 'ui/ionic-color.test.ts')))!;
-const UI = path.join(MODULE_ROOT, 'ui');
+// The `ui/` of THIS checkout, from the test's own URL: a fixed folder name (`modules/inventory`, a
+// worktree) would scan a sibling checkout and let a `color=` added HERE through.
+const UI = path.dirname(fileURLToPath(import.meta.url));
 
 function sources(dir: string): string[] {
   const out: string[] = [];
