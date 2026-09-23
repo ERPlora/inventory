@@ -1,4 +1,5 @@
 import { LitElement, html, css, nothing } from 'lit';
+import { ionTone } from '../../lib/ion-tone';
 import { state } from 'lit/decorators.js';
 import { resolveTaxCategories, pickTaxValue, normalizeAlias } from '../../lib/tax-resolve';
 import { loadTaxRates, taxCategoryOptionLabel, type TaxRate } from '../../lib/tax-category-option';
@@ -423,7 +424,7 @@ export class ErpInventoryCategories extends LitElement {
                 </ion-label>
               </ion-item>
             </ion-list>
-            <ion-button data-testid="inventory-categories-delete-submit" class="ion-margin-top" expand="block" color="danger" @click=${() => this.confirmDelete()}>
+            <ion-button data-testid="inventory-categories-delete-submit" class="ion-margin-top" expand="block" style=${ionTone('solid', 'danger')} @click=${() => this.confirmDelete()}>
               ${erplora().t(CATALOG, 'ui.deleteCatConfirm')}
             </ion-button>
             <ion-button data-testid="inventory-categories-delete-cancel" expand="block" fill="outline" @click=${() => (this.deleteTarget = null)}>
