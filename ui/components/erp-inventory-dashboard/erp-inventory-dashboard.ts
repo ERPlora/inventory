@@ -1,4 +1,5 @@
 import { LitElement, html, css, nothing } from 'lit';
+import { ionTone } from '../../lib/ion-tone';
 import { state } from 'lit/decorators.js';
 import { define } from '@erplora/outfitkit/define';
 import '@erplora/outfitkit/ok-data-table';
@@ -140,7 +141,7 @@ export class ErpInventoryDashboard extends LitElement {
         <ok-kpi data-testid="inventory-dashboard-kpi-value" label=${t('ui.statsValue')} value=${erplora().formatMoney(Number(s.total_inventory_value ?? 0))} icon="pricetag-outline" delta=${t('ui.statsValueAtCost')}></ok-kpi>
       </div>
       ${s.products_without_cost > 0
-        ? html`<ion-note data-testid="inventory-dashboard-without-cost" color="warning">${s.products_without_cost} ${t('ui.statsWithoutCost')}</ion-note>`
+        ? html`<ion-note data-testid="inventory-dashboard-without-cost" style=${ionTone('text', 'warning')}>${s.products_without_cost} ${t('ui.statsWithoutCost')}</ion-note>`
         : nothing}
     `;
   }

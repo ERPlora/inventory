@@ -1,4 +1,5 @@
 import { LitElement, html, css, nothing, svg } from 'lit';
+import { ionTone } from '../../lib/ion-tone';
 import { state } from 'lit/decorators.js';
 import { code128b } from '../../lib/code128';
 import { printBarcodeLabel } from '../../lib/barcode-print';
@@ -427,15 +428,14 @@ export class ErpInventoryProducts extends LitElement {
     return html`
       <ion-chip
         data-testid=${`inventory-products-unconfigured-${row.id}`}
-        color="warning"
         title=${reason}
         ?disabled=${!editable}
-        style=${editable ? 'cursor:pointer;' : ''}
+        style=${`${ionTone('chip', 'warning')}${editable ? ' cursor:pointer;' : ''}`}
         @click=${() => editable && this.onRowAction(
           new CustomEvent('rowAction', { detail: { actionId: 'edit', row } }),
         )}
       >
-        <ion-icon name="alert-circle-outline"></ion-icon>
+        <ion-icon name="alert-circle-outline" style="color: inherit"></ion-icon>
         <ion-label>${label} · ${reason}</ion-label>
       </ion-chip>
     `;
@@ -1608,7 +1608,7 @@ export class ErpInventoryProducts extends LitElement {
                       <ion-label>${t('ui.status')}</ion-label>
                       <ion-note
                         slot="end"
-                        color=${this.productStatus(this.detail as unknown as Record<string, unknown>).id === 'unconfigured' ? 'warning' : 'medium'}
+                        style=${ionTone('text', this.productStatus(this.detail as unknown as Record<string, unknown>).id === 'unconfigured' ? 'warning' : 'medium')}
                       >
                         ${this.productStatus(this.detail as unknown as Record<string, unknown>).label}
                         ${this.productStatus(this.detail as unknown as Record<string, unknown>).reason}
@@ -1782,7 +1782,7 @@ export class ErpInventoryProducts extends LitElement {
                   </ion-item>
                   <ion-item>
                     <ion-label>${t('ui.importCreated')}</ion-label>
-                    <ion-note slot="end" color="success">${rep.created}</ion-note>
+                    <ion-note slot="end" style=${ionTone('text', 'success')}>${rep.created}</ion-note>
                   </ion-item>
                   <ion-item>
                     <ion-label>${t('ui.importSkipped')}</ion-label>
@@ -1790,7 +1790,7 @@ export class ErpInventoryProducts extends LitElement {
                   </ion-item>
                   <ion-item>
                     <ion-label>${t('ui.importFailed')}</ion-label>
-                    <ion-note slot="end" color=${rep.failed.length ? 'danger' : 'success'}>${rep.failed.length}</ion-note>
+                    <ion-note slot="end" style=${ionTone('text', rep.failed.length ? 'danger' : 'success')}>${rep.failed.length}</ion-note>
                   </ion-item>
                 </ion-list>
                 ${rep.failed.length
@@ -1835,7 +1835,7 @@ export class ErpInventoryProducts extends LitElement {
               </ion-label>
             </ion-item>
           </ion-list>
-          <ion-button data-testid="inventory-products-delete-submit" class="ion-margin-top" expand="block" color="danger" @click=${() => this.confirmDelete()}>
+          <ion-button data-testid="inventory-products-delete-submit" class="ion-margin-top" expand="block" style=${ionTone('solid', 'danger')} @click=${() => this.confirmDelete()}>
             ${t('ui.actionDelete')}
           </ion-button>
           <ion-button data-testid="inventory-products-delete-cancel" expand="block" fill="outline" @click=${() => (this.deleteTarget = null)}>
@@ -1885,7 +1885,7 @@ export class ErpInventoryProducts extends LitElement {
             ${diff !== null
               ? html`<ion-item>
                   <ion-label>${t('ui.countDiff')}</ion-label>
-                  <ion-note slot="end" color=${diff < 0 ? 'danger' : 'success'}>${diff > 0 ? `+${diff}` : diff}</ion-note>
+                  <ion-note slot="end" style=${ionTone('text', diff < 0 ? 'danger' : 'success')}>${diff > 0 ? `+${diff}` : diff}</ion-note>
                 </ion-item>`
               : nothing}
           </ion-list>
@@ -1906,7 +1906,7 @@ export class ErpInventoryProducts extends LitElement {
                operario mirando el modal sin saber qué le falta; con las cajas ya visibles, esto
                cierra el hueco nombrando el campo que falta en vez de callar. -->
           ${this.countBlockedReason()
-            ? html`<ion-note class="ion-margin-top" color="medium" style="display:block;text-align:center;">
+            ? html`<ion-note class="ion-margin-top" style=${`display:block;text-align:center;${ionTone('text', 'medium')}`}>
                 ${t(this.countBlockedReason() as string)}
               </ion-note>`
             : nothing}
