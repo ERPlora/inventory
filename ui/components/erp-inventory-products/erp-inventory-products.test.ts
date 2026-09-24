@@ -378,22 +378,89 @@ describe('importador CSV: los errores se VEN, nunca parcial silencioso (inventor
     expect(wc.importReport!.failed[0].line).toBe(3);
   });
 
-  it('duplicado en BD (UNIQUE del runtime) cuenta como OMITIDA, y el resto sigue', async () => {
+  // hub#1737 — the REAL contract of a duplicate SKU. The runtime never lets the driver's text reach
+  // a module (hub#1074): a unique-index violation arrives as code `db` with the fixed redacted line,
+  // and the SDK surfaces that same pair. The double this test used to have threw SQLite's own
+  // «UNIQUE constraint failed» text, which no hub has sent since hub#1074 — so it proved a regex
+  // that never matches in production, and a re-imported product was reported as a FAILED row with
+  // «could not be completed» instead of an omitted one.
+  const REDACTED = 'the request could not be completed — the hub recorded the details';
+  function dbRefusal(): Error {
+    return Object.assign(new Error(REDACTED), { code: 'db' });
+  }
+  /** Hub whose catalogue already holds `existing` and whose unique index refuses it again. */
+  function hubWithCatalogue(existing: string[]): void {
+    const base = (globalThis as { erplora: Record<string, unknown> }).erplora;
     (globalThis as Record<string, unknown>).erplora = {
-      ...(globalThis as { erplora: object }).erplora,
+      ...base,
+      query: async (name: string, params: Record<string, unknown> = {}) => {
+        if (name !== 'inventory.products.list') return (base.query as (n: string) => unknown)(name);
+        // `f_sku` is a LIKE filter: it may bring near-misses, the caller must match exactly.
+        const needle = String(params.f_sku ?? '');
+        return existing
+          .filter((sku) => sku.includes(needle))
+          .map((sku, i) => ({ id: `p-${i}`, name: sku, sku, price: 100, stock: 0, unit_code: 'ud', is_active: 1 }));
+      },
       command: async (name: string, payload: Record<string, unknown>) => {
         comandos.push({ name, payload });
-        if (payload.sku === 'YA-EXISTE') throw new Error('UNIQUE constraint failed: inventory_product.sku');
+        if (name === 'inventory.products.create' && existing.includes(String(payload.sku))) throw dbRefusal();
         return {};
       },
     };
+  }
+
+  it('re-importing a product that already exists counts it as SKIPPED, not failed (hub#1737)', async () => {
+    hubWithCatalogue(['MAHOU']);
     const wc = await importarConResultado([
       { name: 'Nuevo', sku: 'NUEVO', price: '1.00' },
-      { name: 'Viejo', sku: 'YA-EXISTE', price: '2.00' },
+      { name: 'Cerveza Mahou', sku: 'MAHOU', price: '2.00' },
     ]);
-    expect(wc.importReport!.created).toBe(1);
-    expect(wc.importReport!.skipped, 'el duplicado de BD se OMITE (política definida), no se calla').toBe(1);
-    expect(wc.importReport!.failed).toHaveLength(0);
+    const rep = wc.importReport!;
+    expect(rep.total).toBe(2);
+    expect(rep.created).toBe(1);
+    expect(rep.skipped, 'the product that was already there is counted as omitted').toBe(1);
+    expect(rep.failed).toHaveLength(0);
+    expect(rep.created + rep.skipped + rep.failed.length, 'the counters add up to the rows of the file').toBe(rep.total);
+  });
+
+  it('a `db` refusal for a SKU that is NOT in the catalogue stays a FAILED row with its line (hub#1737)', async () => {
+    hubWithCatalogue(['MAHOU-LATA']); // a near-miss the LIKE filter returns: it is not this SKU
+    (globalThis as { erplora: Record<string, unknown> }).erplora.command = async (
+      name: string,
+      payload: Record<string, unknown>,
+    ) => {
+      comandos.push({ name, payload });
+      throw dbRefusal();
+    };
+    const wc = await importarConResultado([{ name: 'Cerveza Mahou', sku: 'MAHOU', price: '2.00' }]);
+    const rep = wc.importReport!;
+    expect(rep.skipped, 'an unrelated database failure is never passed off as «already existed»').toBe(0);
+    expect(rep.failed).toHaveLength(1);
+    expect(rep.failed[0].line).toBe(2);
+    expect(rep.total).toBe(1);
+  });
+
+  it('confirming the import twice runs it ONCE: the report is never overwritten with zeros (hub#1737)', async () => {
+    const el = await montar();
+    const wc = el as unknown as {
+      confirmImportResolution: () => Promise<void>;
+      importRows: Record<string, string>[];
+      importUnresolved: string[];
+      importChoice: Record<string, { mode: string; key: string; newKey: string; newName: string }>;
+      importReport: { total: number; created: number; skipped: number; failed: unknown[] } | null;
+    };
+    wc.importRows = [{ name: 'Cerveza Mahou', sku: 'MAHOU', price: '2.00' }];
+    wc.importUnresolved = [''];
+    wc.importChoice = { '': { mode: 'pick', key: 'standard', newKey: '', newName: '' } };
+    // A double tap on «Import» while the modal is still animating out.
+    await Promise.all([wc.confirmImportResolution(), wc.confirmImportResolution()]);
+    expect(comandos.filter((c) => c.name === 'inventory.products.create')).toHaveLength(1);
+    expect(wc.importReport, 'the report of the run that happened').toMatchObject({ total: 1, created: 1, skipped: 0 });
+  });
+
+  it('an import with no rows to process never paints a report of zeros (hub#1737)', async () => {
+    const wc = await importarConResultado([]);
+    expect(wc.importReport, 'nothing ran, so there is nothing to report').toBeNull();
   });
 
   it('el informe es copiable: texto con línea y motivo por fila fallida', async () => {
