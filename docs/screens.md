@@ -74,8 +74,8 @@ says the import was stopped and counts what had already been created.
 Rows are created one by one, on purpose: it is the only way to report line by line today. Each row
 ends up **created**, **skipped** (a product with that SKU is already in the catalogue — it is left
 untouched, so re-importing the same file is safe) or **failed** (with its line and reason), and the
-three counters always add up to the rows of the file. A soft-deleted product still holds its SKU
-(see `limits.md`), so its row is reported as failed, not skipped. The final report is copyable.
+three counters always add up to the rows of the file. A deleted product frees its SKU, so a row
+that brings the code of a deleted product creates a new product. The final report is copyable.
 
 Requires `inventory.import_product` and `inventory.add_product`.
 

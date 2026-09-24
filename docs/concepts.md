@@ -126,7 +126,8 @@ per product; it is decided by the sale or the import.
 
 `inventory.products.delete` marks the row deleted; it does not erase it. History that references the
 product — sales, movements — stays readable. A deleted product disappears from the catalogue and from
-the POS, but the ledger entries it produced remain, because the ledger is immutable.
+the POS, but the ledger entries it produced remain, because the ledger is immutable. Its SKU and
+EAN-13 become free: a new product can take them.
 
 ## Only one location exists today
 
