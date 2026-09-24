@@ -5599,6 +5599,10 @@ var ErpInventoryProducts = class extends i3 {
     this.previewMapping = {};
     this.importProgress = null;
     this.importCancelled = false;
+    // hub#1737: an import already confirmed. A second tap on «Import» while the modal animates out
+    // used to start a second run over rows the first had already cleared — and its report of
+    // zeros overwrote the real one.
+    this.importBusy = false;
     this.tableFilters = {};
     this.detail = null;
     this.printError = "";
@@ -5993,6 +5997,15 @@ var ErpInventoryProducts = class extends i3 {
   // categoría existente (learnAlias) o crea una categoría nueva + alias (createCategoryWithAlias),
   // actualiza el mapa y procede con la creación de productos (ADR-0085).
   async confirmImportResolution() {
+    if (this.importBusy) return;
+    this.importBusy = true;
+    try {
+      await this.resolveAndImport();
+    } finally {
+      this.importBusy = false;
+    }
+  }
+  async resolveAndImport() {
     const map = new Map(this.importMap);
     for (const text of this.importUnresolved) {
       const c5 = this.importChoice[text];
@@ -6065,6 +6078,7 @@ var ErpInventoryProducts = class extends i3 {
   }
   async finalizeImport(rows, map) {
     const t5 = (k2) => erplora4().t(CATALOG4, k2);
+    if (rows.length === 0) return;
     const failed = [];
     let created = 0;
     let skipped = 0;
@@ -6093,11 +6107,10 @@ var ErpInventoryProducts = class extends i3 {
         });
         created++;
       } catch (e5) {
-        const msg = e5 instanceof Error ? e5.message : String(e5);
-        if (/unique|duplicate/i.test(msg)) {
+        if (await this.skuInCatalogue(parsed.sku)) {
           skipped++;
         } else {
-          failed.push({ line, sku: parsed.sku, reason: msg });
+          failed.push({ line, sku: parsed.sku, reason: e5 instanceof Error ? e5.message : String(e5) });
         }
       }
     }
@@ -6108,6 +6121,19 @@ var ErpInventoryProducts = class extends i3 {
     this.importRows = [];
     this.importUnresolved = [];
     await this.ctrl.load();
+  }
+  /**
+   * Is there already a (not deleted) product with exactly this SKU? `f_sku` is a LIKE filter, so
+   * the rows it brings are matched exactly here. A lookup that fails answers «no»: the row then
+   * stays failed with its reason, which is the honest outcome when nothing could be checked.
+   */
+  async skuInCatalogue(sku) {
+    try {
+      const rows = await erplora4().query("inventory.products.list", { f_sku: sku, limit: 50 });
+      return Array.isArray(rows) && rows.some((r6) => r6.sku === sku);
+    } catch {
+      return false;
+    }
   }
   /** Informe copiable: una línea por fila fallida (`línea N · SKU · motivo`). */
   importReportText() {
