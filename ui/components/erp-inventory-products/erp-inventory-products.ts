@@ -341,6 +341,10 @@ export class ErpInventoryProducts extends LitElement {
   // Progreso de la importación en curso (`x/N`) y su interruptor de parada.
   @state() importProgress: { done: number; total: number } | null = null;
   private importCancelled = false;
+  // hub#1737: an import already confirmed. A second tap on «Import» while the modal animates out
+  // used to start a second run over rows the first had already cleared — and its report of
+  // zeros overwrote the real one.
+  private importBusy = false;
 
   private ctrl!: ListController<Product>;
   private unsub?: () => void;
@@ -792,6 +796,16 @@ export class ErpInventoryProducts extends LitElement {
   // categoría existente (learnAlias) o crea una categoría nueva + alias (createCategoryWithAlias),
   // actualiza el mapa y procede con la creación de productos (ADR-0085).
   private async confirmImportResolution(): Promise<void> {
+    if (this.importBusy) return;
+    this.importBusy = true;
+    try {
+      await this.resolveAndImport();
+    } finally {
+      this.importBusy = false;
+    }
+  }
+
+  private async resolveAndImport(): Promise<void> {
     const map = new Map(this.importMap);
     for (const text of this.importUnresolved) {
       const c = this.importChoice[text];
@@ -872,6 +886,9 @@ export class ErpInventoryProducts extends LitElement {
 
   async finalizeImport(rows: Record<string, string>[], map: Map<string, string>): Promise<void> {
     const t = (k: string): string => erplora().t(CATALOG, k);
+    // hub#1737: a run with no rows did nothing, so it has nothing to report. Painting «0 · 0 · 0 · 0»
+    // (a second confirm over rows the first run had already consumed) only hid the real report.
+    if (rows.length === 0) return;
     const failed: { line: number; sku: string; reason: string }[] = [];
     let created = 0;
     let skipped = 0;
@@ -911,12 +928,14 @@ export class ErpInventoryProducts extends LitElement {
         });
         created++;
       } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        // Política de duplicados en BD: OMITIR (contado, reintentable tras corregir).
-        if (/unique|duplicate/i.test(msg)) {
+        // Duplicate policy: a product already in the catalogue is OMITTED (counted, never silent).
+        // It is decided by LOOKING at the catalogue, not by reading the error: the runtime redacts
+        // database errors (hub#1074), so a duplicate SKU arrives as code `db` with a generic line
+        // and a text match never fired — the row was reported as failed (hub#1737).
+        if (await this.skuInCatalogue(parsed.sku)) {
           skipped++;
         } else {
-          failed.push({ line, sku: parsed.sku, reason: msg });
+          failed.push({ line, sku: parsed.sku, reason: e instanceof Error ? e.message : String(e) });
         }
       }
     }
@@ -928,6 +947,22 @@ export class ErpInventoryProducts extends LitElement {
     this.importRows = [];
     this.importUnresolved = [];
     await this.ctrl.load();
+  }
+
+  /**
+   * Is there already a (not deleted) product with exactly this SKU? The `sku` filter is a LIKE, so
+   * the rows it brings are matched exactly here — and ALL of them are read (`queryAll`): a short
+   * numeric SKU («1») is contained in many others, and one page of them may not hold it. A lookup
+   * that fails answers «no»: the row then stays failed with its reason, which is the honest outcome
+   * when nothing could be checked.
+   */
+  private async skuInCatalogue(sku: string): Promise<boolean> {
+    try {
+      const rows = await erplora().queryAll<Product>('inventory.products.list', { filters: { sku } });
+      return Array.isArray(rows) && rows.some((r) => r.sku === sku);
+    } catch {
+      return false;
+    }
   }
 
   /** Informe copiable: una línea por fila fallida (`línea N · SKU · motivo`). */
