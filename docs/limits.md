@@ -8,7 +8,7 @@
 | `inventory.unknown_product` (HTTP 409) | The decrease pointed at a product that does not exist or is deleted | Check the product id; a soft-deleted product cannot be decreased |
 | Quantity rejected as invalid | The quantity does not fall on the minimum increment of the product's unit | Send a quantity that is a multiple of the unit's increment — the hub will not round it for you |
 | Tax category rejected on save | `tax_category_key` does not exist in `taxes` | Create the category in `taxes` first, or leave the field empty to use the hub default |
-| Duplicate SKU or EAN-13 on save | SKU and EAN-13 are unique per hub | Use a different code; a soft-deleted product still holds its code |
+| Duplicate SKU or EAN-13 on save | Another product that is not deleted already uses that SKU or EAN-13 — codes are unique per hub | Use a different code. A deleted product frees its codes, so they can be given to a new product |
 
 A rejected decrease does **not** emit `inventory.stock_changed`, so dashboards and widgets will not
 flicker on a failure.
