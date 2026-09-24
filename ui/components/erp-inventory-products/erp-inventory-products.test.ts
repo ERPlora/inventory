@@ -1560,6 +1560,85 @@ describe('la lista se puede abrir ya filtrada por estado (inventory#72)', () => 
   });
 });
 
+// ── ERPlora/hub#1797 · the deep link is served on EVERY `popstate`, not only on mount ──────────
+//
+// The shell no longer rebuilds a screen that is already mounted when only the part after `?`
+// changes (hub#1797: rebuilding put two copies of the POS side by side and they raced). The module
+// contract for a deep link is the one flows#57 and sales#279 already follow: whoever pushes the URL
+// fires `popstate`, and the screen that is alive serves it. So the POS warning «N articles cannot
+// be sold» → `/m/inventory/products?status=unconfigured` has to narrow a product list that the
+// manager had opened earlier in the shift, not only a freshly mounted one.
+describe('an already-open list follows a `?status=` link (hub#1797)', () => {
+  const pages: Record<string, unknown>[] = [];
+
+  function recordPages(): void {
+    const sdk = (globalThis as Record<string, unknown>).erplora as Record<string, unknown>;
+    sdk.queryPage = async (_name: string, params: { filters?: Record<string, unknown> }) => {
+      pages.push({ ...(params?.filters ?? {}) });
+      return { rows: [], total: 0, limit: 50, offset: 0 };
+    };
+  }
+
+  async function openPlainList() {
+    // Earlier describes leave their lists in the body; they would answer the `popstate` too.
+    document.querySelectorAll('erp-inventory-products').forEach((n) => n.remove());
+    window.history.replaceState(null, '', '/m/inventory/products');
+    recordPages();
+    const el = await montar();
+    pages.length = 0;
+    return el;
+  }
+
+  async function follow(el: { updateComplete: Promise<unknown> }, url: string): Promise<void> {
+    window.history.pushState({}, '', url);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    await new Promise((r) => setTimeout(r, 0));
+    await el.updateComplete;
+  }
+
+  it('hub1797_status_link_narrows_a_list_that_was_already_open', async () => {
+    const el = await openPlainList();
+
+    await follow(el, '/m/inventory/products?status=unconfigured');
+
+    expect(pages.length, 'the open list never reloaded').toBeGreaterThan(0);
+    expect(pages[pages.length - 1].needs_tax_setup).toBe('1');
+    expect(
+      (el as unknown as { tableFilters: Record<string, unknown> }).tableFilters,
+      'the status dropdown has to SAY the list is narrowed',
+    ).toEqual({ is_active: 'unconfigured' });
+  });
+
+  it('a `popstate` towards ANOTHER screen does not touch the list', async () => {
+    const el = await openPlainList();
+
+    await follow(el, '/m/sales/pos?status=active');
+
+    expect(pages, 'the list reloaded for somebody else\'s URL').toEqual([]);
+  });
+
+  it('a `popstate` without `?status=` leaves the filter the manager picked', async () => {
+    const el = await openPlainList();
+    (el as unknown as { applyStatusFilter: (v: unknown) => void }).applyStatusFilter('0');
+    await new Promise((r) => setTimeout(r, 0));
+    pages.length = 0;
+
+    await follow(el, '/m/inventory/products#top');
+
+    expect(pages).toEqual([]);
+    expect((el as unknown as { tableFilters: Record<string, unknown> }).tableFilters).toEqual({ is_active: '0' });
+  });
+
+  it('a list that left the page stops listening', async () => {
+    const el = await openPlainList();
+    el.remove();
+
+    await follow(el, '/m/inventory/products?status=unconfigured');
+
+    expect(pages).toEqual([]);
+  });
+});
+
 // ── inventory#83 (deriva de outfitkit#106/#107) ─────────────────────────────────────────────────
 //
 // La segunda mitad de inventory#72 era un PARCHE: como `ok-data-table` en modo servidor no tenía

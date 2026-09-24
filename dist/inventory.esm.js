@@ -5614,6 +5614,19 @@ var ErpInventoryProducts = class extends i3 {
     // Re-render al cambiar el idioma del shell (ADR-0055): los getters `columns`/`actions` y el
     // texto del template se re-evalúan con el nuevo `erplora.locale`.
     this.onLocaleChange = () => this.requestUpdate();
+    /**
+     * hub#1797 — `?status=` is served on EVERY navigation that names it, not only on mount. The shell
+     * keeps this screen mounted when only the query changes, so the POS warning («N articles cannot
+     * be sold» → `/m/inventory/products?status=unconfigured`) reaches a list the manager opened
+     * earlier through `popstate` — the deep-link contract of flows#57 / sales#279. Another screen's
+     * URL, or one of ours without a known status, leaves the manager's own filter alone. Before the
+     * first load `firstUpdated` reads the URL itself.
+     */
+    this.onPopState = () => {
+      if (!this.ctrl || !window.location.pathname.endsWith("/m/inventory/products")) return;
+      const status = statusFilterFromSearch(window.location.search);
+      if (status !== "") this.applyStatusFilter(status);
+    };
   }
   static {
     this.styles = i`
@@ -6195,6 +6208,7 @@ var ErpInventoryProducts = class extends i3 {
   connectedCallback() {
     super.connectedCallback();
     window.addEventListener("erplora:locale-changed", this.onLocaleChange);
+    window.addEventListener("popstate", this.onPopState);
   }
   async firstUpdated() {
     const status = statusFilterFromSearch(window.location.search);
@@ -6226,6 +6240,7 @@ var ErpInventoryProducts = class extends i3 {
   }
   disconnectedCallback() {
     window.removeEventListener("erplora:locale-changed", this.onLocaleChange);
+    window.removeEventListener("popstate", this.onPopState);
     super.disconnectedCallback();
     this.unsub?.();
   }
