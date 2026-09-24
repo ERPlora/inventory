@@ -6123,13 +6123,15 @@ var ErpInventoryProducts = class extends i3 {
     await this.ctrl.load();
   }
   /**
-   * Is there already a (not deleted) product with exactly this SKU? `f_sku` is a LIKE filter, so
-   * the rows it brings are matched exactly here. A lookup that fails answers «no»: the row then
-   * stays failed with its reason, which is the honest outcome when nothing could be checked.
+   * Is there already a (not deleted) product with exactly this SKU? The `sku` filter is a LIKE, so
+   * the rows it brings are matched exactly here — and ALL of them are read (`queryAll`): a short
+   * numeric SKU («1») is contained in many others, and one page of them may not hold it. A lookup
+   * that fails answers «no»: the row then stays failed with its reason, which is the honest outcome
+   * when nothing could be checked.
    */
   async skuInCatalogue(sku) {
     try {
-      const rows = await erplora4().query("inventory.products.list", { f_sku: sku, limit: 50 });
+      const rows = await erplora4().queryAll("inventory.products.list", { filters: { sku } });
       return Array.isArray(rows) && rows.some((r6) => r6.sku === sku);
     } catch {
       return false;

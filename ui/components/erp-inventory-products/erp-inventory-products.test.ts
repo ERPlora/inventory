@@ -393,10 +393,10 @@ describe('importador CSV: los errores se VEN, nunca parcial silencioso (inventor
     const base = (globalThis as { erplora: Record<string, unknown> }).erplora;
     (globalThis as Record<string, unknown>).erplora = {
       ...base,
-      query: async (name: string, params: Record<string, unknown> = {}) => {
-        if (name !== 'inventory.products.list') return (base.query as (n: string) => unknown)(name);
-        // `f_sku` is a LIKE filter: it may bring near-misses, the caller must match exactly.
-        const needle = String(params.f_sku ?? '');
+      // The `sku` filter is a LIKE: it may bring near-misses, the caller must match exactly.
+      queryAll: async (name: string, params: { filters?: Record<string, unknown> } = {}) => {
+        if (name !== 'inventory.products.list') return (base.queryAll as (n: string) => unknown)(name);
+        const needle = String(params.filters?.sku ?? '');
         return existing
           .filter((sku) => sku.includes(needle))
           .map((sku, i) => ({ id: `p-${i}`, name: sku, sku, price: 100, stock: 0, unit_code: 'ud', is_active: 1 }));
@@ -421,6 +421,41 @@ describe('importador CSV: los errores se VEN, nunca parcial silencioso (inventor
     expect(rep.skipped, 'the product that was already there is counted as omitted').toBe(1);
     expect(rep.failed).toHaveLength(0);
     expect(rep.created + rep.skipped + rep.failed.length, 'the counters add up to the rows of the file').toBe(rep.total);
+  });
+
+  it('a short numeric SKU is still found among the many that CONTAIN it: skipped, not failed (hub#1737)', async () => {
+    // Numeric SKUs are common (1, 2 … 300). `f_sku` is a LIKE, so «1» also brings 10–19, 21, 100–199…
+    // and the list engine answers one PAGE of them, sorted by name. The double pages like the
+    // runtime does, so a lookup that reads a single page misses the product that is really there.
+    const skus = Array.from({ length: 300 }, (_, i) => String(i + 1));
+    const catalogue = skus.map((sku) => ({
+      id: `p-${sku}`,
+      name: sku === '1' ? 'Zumo de naranja' : `Artículo ${sku.padStart(3, '0')}`,
+      sku, price: 100, stock: 0, unit_code: 'ud', is_active: 1,
+    }));
+    const matching = (needle: string) =>
+      catalogue.filter((p) => p.sku.includes(needle)).sort((a, b) => a.name.localeCompare(b.name));
+    const base = (globalThis as { erplora: Record<string, unknown> }).erplora;
+    (globalThis as Record<string, unknown>).erplora = {
+      ...base,
+      query: async (name: string, params: Record<string, unknown> = {}) => {
+        if (name !== 'inventory.products.list') return (base.query as (n: string) => unknown)(name);
+        const offset = Number(params.offset ?? 0);
+        return matching(String(params.f_sku ?? '')).slice(offset, offset + Number(params.limit ?? 50));
+      },
+      queryAll: async (name: string, params: { filters?: Record<string, unknown> } = {}) => {
+        if (name !== 'inventory.products.list') return (base.queryAll as (n: string) => unknown)(name);
+        return matching(String(params.filters?.sku ?? ''));
+      },
+      command: async (name: string, payload: Record<string, unknown>) => {
+        comandos.push({ name, payload });
+        if (name === 'inventory.products.create' && skus.includes(String(payload.sku))) throw dbRefusal();
+        return {};
+      },
+    };
+    const wc = await importarConResultado([{ name: 'Zumo de naranja', sku: '1', price: '2.00' }]);
+    expect(wc.importReport!.skipped, 'SKU «1» is in the catalogue, past the first page of the LIKE').toBe(1);
+    expect(wc.importReport!.failed).toHaveLength(0);
   });
 
   it('a `db` refusal for a SKU that is NOT in the catalogue stays a FAILED row with its line (hub#1737)', async () => {
