@@ -9,6 +9,7 @@
 // The label HTML is plain and self-contained (no web components, no app CSS, no scripts) so the
 // SAME document works for the Bridge, the iframe and a future PDF path.
 import { code128b } from './code128.js';
+import { minorToMajor } from './hub-currency.js';
 
 /** Escapes user data (SKU, product name) interpolated into the label markup. */
 function esc(s: string): string {
@@ -60,11 +61,12 @@ export interface PrintBarcodeDeps {
   isInstalledApp?: () => boolean;
 }
 
-/** What goes on the label. Money in CENTS, like everywhere else in the module (ADR-0007/0123). */
+/** What goes on the label. Money in MINOR units of the hub currency, like everywhere else in the
+ *  module (ADR-0007/0123): cents in EUR, yen in JPY, fils in KWD. */
 export interface BarcodeLabel {
   sku: string;
   name: string;
-  /** Shelf price in **cents**, or nothing to leave the price off the label. */
+  /** Shelf price in **minor units**, or nothing to leave the price off the label. */
   priceCents?: number | null;
 }
 
@@ -89,13 +91,14 @@ export interface BarcodePrintOutcome {
  * `peripherals.print`, and `render_barcode_label` (`hub/crates/peripherals/src/escpos.rs`) reads
  * exactly three keys: `product_name` (title), `barcode` (the GS k symbol) and an optional `price`.
  *
- * `price` goes in MAJOR units: the renderer formats `{price:.2}` with no scaling, so cents would
- * turn a 2,20 € coffee into a 220 € one.
+ * `price` goes in MAJOR units: the renderer prints the number with no scaling, so minor units
+ * would turn a 2,20 € coffee into a 220 € one. The minor unit is the HUB currency's (inventory#101):
+ * a fixed `/ 100` printed a 480 ¥ tea as «5» and 1.234 KWD as 12.34.
  */
 export function barcodeLabelData(label: BarcodeLabel): Record<string, unknown> {
   const data: Record<string, unknown> = { product_name: label.name, barcode: label.sku };
   if (label.priceCents != null && Number.isFinite(Number(label.priceCents))) {
-    data.price = Number(label.priceCents) / 100;
+    data.price = minorToMajor(Number(label.priceCents));
   }
   return data;
 }
