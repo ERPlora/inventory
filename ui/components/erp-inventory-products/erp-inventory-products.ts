@@ -4,6 +4,7 @@ import { state } from 'lit/decorators.js';
 import { code128b } from '../../lib/code128';
 import { printBarcodeLabel } from '../../lib/barcode-print';
 import { formatQuantity, fromMicro, onGrid, parseQuantity } from '../../lib/quantity';
+import { hubDecimals, majorToMinor, minorToInput, moneyStep } from '../../lib/hub-currency';
 import { resolveTaxCategories, pickTaxValue, normalizeAlias, learnAlias, createCategoryWithAlias } from '../../lib/tax-resolve';
 // La etiqueta del selector de categoría fiscal (inventory#58): nombre + tipo aplicable, SIN la
 // clave técnica. El % se trae de `taxes` por su query pública; aquí no se recalcula nada.
@@ -15,10 +16,10 @@ import { define } from '@erplora/outfitkit/define';
 import '@erplora/outfitkit/ok-inline-feedback';
 import '@erplora/outfitkit/ok-data-table';
 import type { DataTableColumn, DataTableAction } from '@erplora/outfitkit';
-// La frontera EUROS ↔ CÉNTIMOS vive en el SDK (ADR-0123), no copiada en cada WC: tenerla copiada es
-// lo que hizo que el import CSV se olvidara del ×100 y guardara un café de 2,20 € como un producto
-// de 2 CÉNTIMOS. Su gemelo Rust es `guest_sdk::money::euros_to_cents`.
-import { createListController, dataTableLabels, eurosToCents, centsToEuros } from '@erplora/module-sdk';
+// The major ↔ minor boundary lives in ONE place (`lib/hub-currency`, on top of the SDK, ADR-0123):
+// having it copied is what made the CSV import forget the ×100 and store a 2,20 € coffee as 2
+// cents; having it hard-coded to two decimals stored a 480 ¥ tea as 48000 ¥ (inventory#101).
+import { createListController, dataTableLabels } from '@erplora/module-sdk';
 import type { ListController, ListClient, ListParams, ListPage } from '@erplora/module-sdk';
 // Catálogo i18n del módulo (ADR-0055): esbuild inlinea estos JSON en el `dist` del WC. Los textos
 // internos se resuelven con `erplora.t(CATALOG, 'ui.clave')` (idioma activo, fallback locale→en→clave).
@@ -236,6 +237,9 @@ const PREVIEW_ROWS = 5;
 export function parseMoneyText(text: string | undefined): number | null {
   const raw = (text ?? '').trim();
   if (raw === '') return 0;
+  // A currency with no decimals (JPY) has no decimal separator: «1,200» / «1.200» are thousands
+  // groups, not 1,2 ¥ (inventory#101).
+  if (hubDecimals() === 0 && /^-?\d{1,3}([.,]\d{3})+$/.test(raw)) return Number(raw.replace(/[.,]/g, ''));
   const lastComma = raw.lastIndexOf(',');
   const lastDot = raw.lastIndexOf('.');
   let normalized = raw;
@@ -556,8 +560,9 @@ export class ErpInventoryProducts extends LitElement {
       this.formError = erplora().t(CATALOG, 'ui.errQuantityGrid');
       return;
     }
-    // El coste se teclea en EUROS y se guarda en CÉNTIMOS (ADR-0007/0123).
-    const cost = this.receiveCost.trim() === '' ? null : Math.round(Number(this.receiveCost) * 100);
+    // The cost is typed in MAJOR units and stored in the hub currency's MINOR units (ADR-0007/0123,
+    // inventory#101): a fixed `× 100` stored a 480 ¥ cost as 48000 ¥.
+    const cost = this.receiveCost.trim() === '' ? null : majorToMinor(Number(this.receiveCost));
     try {
       await erplora().command('inventory.stock.receive', {
         items: [{ product_id: this.receiveTarget.id, qty, unit_cost: cost }],
@@ -610,9 +615,10 @@ export class ErpInventoryProducts extends LitElement {
         const full = (await erplora().query<Product[]>('inventory.products.get', { product_id: p.id }))?.[0] ?? p;
         this.newName = full.name ?? '';
         this.newSku = full.sku ?? '';
-        // La BD guarda CÉNTIMOS y el form edita EUROS (ADR-0123).
-        this.newPrice = centsToEuros(full.price);
-        this.newCost = centsToEuros((full as unknown as { cost?: number }).cost ?? 0);
+        // The DB stores the hub currency's MINOR units and the form edits MAJOR ones (ADR-0123,
+        // inventory#101: in a yen hub there is nothing to divide).
+        this.newPrice = minorToInput(full.price);
+        this.newCost = minorToInput((full as unknown as { cost?: number }).cost ?? 0);
         this.newThreshold = formatQuantity(
           (full as unknown as { low_stock_threshold?: number }).low_stock_threshold ?? 10_000_000,
         );
@@ -871,9 +877,9 @@ export class ErpInventoryProducts extends LitElement {
       payload: {
         name,
         sku,
-        price: eurosToCents(price),
+        price: majorToMinor(price),
         stock,
-        cost: eurosToCents(cost),
+        cost: majorToMinor(cost),
         low_stock_threshold: threshold,
         product_type: 'physical',
         ean13: r.ean13 || null,
@@ -1296,8 +1302,8 @@ export class ErpInventoryProducts extends LitElement {
         await erplora().command('inventory.products.update', {
           product_id: this.editingId,
           name: this.newName.trim(),
-          price: eurosToCents(this.newPrice),
-          cost: eurosToCents(this.newCost),
+          price: majorToMinor(this.newPrice),
+          cost: majorToMinor(this.newCost),
           low_stock_threshold: threshold,
           ean13: this.newEan.trim() || null,
           description: this.newDescription,
@@ -1330,13 +1336,13 @@ export class ErpInventoryProducts extends LitElement {
         if (!this.quantityMatchesUnit(stock, this.newUnitCode)) {
           throw new Error(t('ui.errQuantityGrid'));
         }
-        // ALTA. El input es EUROS (`step="0.01"`); la columna es INTEGER de céntimos
-        // (ADR-0007). Sin esta frontera, teclear «2,20» guardaba 2 céntimos.
+        // CREATE. The input is in MAJOR units of the hub currency; the column is INTEGER minor
+        // units (ADR-0007/0123). Without this boundary, typing «2,20» stored 2 cents.
         await erplora().command('inventory.products.create', {
           name: this.newName.trim(),
           sku: this.newSku.trim(),
-          price: eurosToCents(this.newPrice),
-          cost: eurosToCents(this.newCost),
+          price: majorToMinor(this.newPrice),
+          cost: majorToMinor(this.newCost),
           stock,
           low_stock_threshold: threshold,
           product_type: this.newType,
@@ -1465,7 +1471,7 @@ export class ErpInventoryProducts extends LitElement {
               label=${erplora().t(CATALOG, 'ui.price')}
               label-placement="floating"
               type="number"
-              step="0.01"
+              .step=${moneyStep()}
               .value=${this.newPrice}
               @ionInput=${(e: Event) => (this.newPrice = (e.target as HTMLInputElement).value)}
             ></ion-input>
@@ -1474,7 +1480,7 @@ export class ErpInventoryProducts extends LitElement {
               fill="outline"
               label=${`${erplora().t(CATALOG, 'ui.fieldCost')} (${erplora().currency})`}
               label-placement="floating"
-              type="number" step="0.01" min="0"
+              type="number" .step=${moneyStep()} min="0"
               .value=${this.newCost}
               @ionInput=${(e: Event) => (this.newCost = (e.target as HTMLInputElement).value)}
             ></ion-input>
@@ -1978,7 +1984,7 @@ export class ErpInventoryProducts extends LitElement {
             @ionInput=${(e: CustomEvent) => (this.receiveQty = String((e.detail as { value?: string }).value ?? ''))}
           ></ion-input>
           <ion-input mode="md" data-testid="inventory-products-receive-cost" class="ion-margin-top" fill="outline" label-placement="floating" label=${`${t('ui.receiveCost')} (${erplora().currency})`}
-            type="number" step="0.01" min="0" inputmode="decimal"
+            type="number" .step=${moneyStep()} min="0" inputmode="decimal"
             .value=${this.receiveCost}
             @ionInput=${(e: CustomEvent) => (this.receiveCost = String((e.detail as { value?: string }).value ?? ''))}
           ></ion-input>

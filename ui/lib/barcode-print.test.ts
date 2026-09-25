@@ -141,6 +141,35 @@ describe('printBarcodeLabel — the document the PRINTER gets (issue #44)', () =
     expect(data.price).toBe(2.2);
   });
 
+  // inventory#101 (from hub#2129): the minor unit is the HUB currency's, not always a cent. The
+  // renderer prints `price` with the hub scale, so a fixed `/ 100` printed a 480 ¥ tea as «5».
+  it.each([
+    { currency: 'JPY', decimals: 0, minor: 480, major: 480 },
+    { currency: 'KWD', decimals: 3, minor: 1234, major: 1.234 },
+    { currency: 'EUR', decimals: 2, minor: 220, major: 2.2 },
+  ])('converts with the hub currency scale ($currency, $decimals decimals)', async ({ decimals, minor, major }) => {
+    const print = fakeGate({ via: 'bridge', role: 'label' });
+    (globalThis as { erplora: Record<string, unknown> }).erplora.currencyDecimals = decimals;
+
+    await printBarcodeLabel({ sku: 'TEA-01', name: 'Té', priceCents: minor });
+
+    const data = (print.mock.calls[0][0] as Record<string, unknown>).data as Record<string, unknown>;
+    expect(data.price).toBe(major);
+  });
+
+  it.each([undefined, -1, 2.5, '0', Number.NaN])(
+    'an SDK without a valid scale (%s) is a two-decimal hub, like the rest of the modules',
+    async (bad) => {
+      const print = fakeGate({ via: 'bridge', role: 'label' });
+      (globalThis as { erplora: Record<string, unknown> }).erplora.currencyDecimals = bad;
+
+      await printBarcodeLabel({ sku: 'CAF-01', name: 'Café solo', priceCents: 220 });
+
+      const data = (print.mock.calls[0][0] as Record<string, unknown>).data as Record<string, unknown>;
+      expect(data.price).toBe(2.2);
+    },
+  );
+
   it('omits `price` when there is none (the renderer only prints it if present)', async () => {
     const print = fakeGate({ via: 'bridge', role: 'label' });
 

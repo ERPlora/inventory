@@ -278,6 +278,27 @@ describe('recepción y recuento desde la tabla (inventory#7)', () => {
     expect(item.qty, '2,5 unidades → 2.500.000 µ').toBe(2_500_000);
     expect(item.unit_cost, '1,80 € → 180 céntimos').toBe(180);
   });
+
+  // inventory#101: the minor unit is the hub currency's. A fixed `× 100` stored a 480 ¥ cost as
+  // 48000 ¥ and 1.234 KWD as 123 fils.
+  it.each([
+    { currency: 'JPY', decimals: 0, typed: '480', minor: 480 },
+    { currency: 'KWD', decimals: 3, typed: '1.234', minor: 1234 },
+  ])('receive cost uses the hub currency scale ($currency)', async ({ decimals, typed, minor }) => {
+    const el = await montar();
+    (globalThis as { erplora: Record<string, unknown> }).erplora.currencyDecimals = decimals;
+    const wc = el as unknown as {
+      receiveTarget: Record<string, unknown> | null; receiveQty: string; receiveCost: string;
+      submitReceive: () => Promise<void>;
+    };
+    wc.receiveTarget = { id: 'p1', name: 'Té', sku: 'TEA', stock: 10_000_000, unit_code: 'ud' };
+    wc.receiveQty = '1';
+    wc.receiveCost = typed;
+    await wc.submitReceive();
+    const rec = comandos.find((c) => c.name === 'inventory.stock.receive');
+    expect(rec, 'the receipt was not sent').toBeTruthy();
+    expect((rec!.payload.items as Record<string, unknown>[])[0].unit_cost).toBe(minor);
+  });
 });
 
 describe('cantidades de la UI en punto fijo 10⁶ (inventory#25)', () => {
@@ -1790,5 +1811,121 @@ describe('el filtro de estado que trae puesto se PINTA en la tabla (inventory#83
       [...(Tabla!.elementProperties?.keys() ?? [])],
       'la OutfitKit horneada es anterior a 0.1.57 (outfitkit#107): sin `filterValues` esto es un no-op',
     ).toContain('filterValues');
+  });
+});
+
+// inventory#101 — the product's price and cost cross the module in MINOR units of the HUB currency.
+// `eurosToCents`/`centsToEuros` hard-code two decimals: in a yen hub a 480 ¥ tea was stored as
+// 48000 ¥ and reopened as «4.80»; in a dinar hub 1.234 KWD became 123 fils.
+describe('product money uses the hub currency scale (inventory#101)', () => {
+  const SCALES = [
+    { currency: 'JPY', decimals: 0, typed: '480', minor: 480, step: '1' },
+    { currency: 'KWD', decimals: 3, typed: '1.234', minor: 1234, step: '0.001' },
+  ];
+
+  function setScale(decimals: number): void {
+    (globalThis as { erplora: Record<string, unknown> }).erplora.currencyDecimals = decimals;
+  }
+
+  it.each(SCALES)('create stores the typed price and cost in $currency minor units', async ({ decimals, typed, minor }) => {
+    const el = await montar();
+    setScale(decimals);
+    const wc = el as unknown as { newName: string; newSku: string; newPrice: string; newCost: string;
+                                  newTaxCategoryKey: string; createProduct: (ev: Event) => Promise<void> };
+    wc.newName = 'Té';
+    wc.newSku = 'TEA';
+    wc.newPrice = typed;
+    wc.newCost = typed;
+    wc.newTaxCategoryKey = 'standard';
+    await wc.createProduct(new Event('submit'));
+
+    const create = comandos.find((c) => c.name === 'inventory.products.create');
+    expect(create, 'the create was not sent').toBeTruthy();
+    expect(create!.payload.price).toBe(minor);
+    expect(create!.payload.cost).toBe(minor);
+  });
+
+  it.each(SCALES)('edit reopens the stored $currency amount as typed, and saves it unchanged', async ({ decimals, typed, minor }) => {
+    (globalThis as Record<string, unknown>).erplora = {
+      ...(globalThis as { erplora: object }).erplora,
+      query: async (name: string) =>
+        name === 'inventory.products.get'
+          ? [{ id: 'p1', name: 'Té', sku: 'TEA', price: minor, cost: minor, stock: 0, tax_category_key: 'standard',
+               is_active: 1, product_type: 'physical' }]
+          : [],
+    };
+    const el = await montar();
+    setScale(decimals);
+    const wc = el as unknown as { onRowAction: (ev: CustomEvent) => Promise<void>; newPrice: string; newCost: string;
+                                  createProduct: (ev: Event) => Promise<void> };
+    await wc.onRowAction(new CustomEvent('rowAction', {
+      detail: { actionId: 'edit', row: { id: 'p1', name: 'Té', sku: 'TEA', price: minor } },
+    }) as CustomEvent);
+
+    expect(Number(wc.newPrice), 'the field shows the amount a person reads').toBe(Number(typed));
+    expect(Number(wc.newCost)).toBe(Number(typed));
+
+    await wc.createProduct(new Event('submit'));
+    const upd = comandos.find((c) => c.name === 'inventory.products.update');
+    expect(upd, 'the update was not sent').toBeTruthy();
+    expect(upd!.payload.price, 'opening and saving must not rescale the price').toBe(minor);
+    expect(upd!.payload.cost).toBe(minor);
+  });
+
+  it.each(SCALES)('CSV import stores $currency prices in minor units', async ({ decimals, typed, minor }) => {
+    const el = await montar();
+    setScale(decimals);
+    const wc = el as unknown as { onCsvImport: (ev: CustomEvent) => Promise<void>; confirmPreview: () => Promise<void> };
+    await wc.onCsvImport(new CustomEvent('csv-import', {
+      detail: { rows: [{ name: 'Té', sku: 'TEA', price: typed, cost: typed, tax_category: 'standard' }] },
+    }));
+    await wc.confirmPreview();
+
+    const create = comandos.find((c) => c.name === 'inventory.products.create');
+    expect(create, 'the CSV row was not created').toBeTruthy();
+    expect(create!.payload.price).toBe(minor);
+    expect(create!.payload.cost).toBe(minor);
+  });
+
+  // A yen price list writes thousands with a separator («1,200» / «1.200»). The comma-is-decimal
+  // rule read it as 1,2 → 1 ¥: with no decimals in the currency, «sep + 3 digits» is a thousands group.
+  it.each(['1,200', '1.200', '1200'])('CSV import in a yen hub reads «%s» as 1200 ¥, not 1 ¥', async (typed) => {
+    const el = await montar();
+    setScale(0);
+    const wc = el as unknown as { onCsvImport: (ev: CustomEvent) => Promise<void>; confirmPreview: () => Promise<void> };
+    await wc.onCsvImport(new CustomEvent('csv-import', {
+      detail: { rows: [{ name: 'Té', sku: 'TEA', price: typed, tax_category: 'standard' }] },
+    }));
+    await wc.confirmPreview();
+
+    expect(comandos.find((c) => c.name === 'inventory.products.create')!.payload.price).toBe(1200);
+  });
+
+  it('CSV import keeps the decimal comma where the currency has decimals («1,20» € → 120)', async () => {
+    const el = await montar();
+    setScale(2);
+    const wc = el as unknown as { onCsvImport: (ev: CustomEvent) => Promise<void>; confirmPreview: () => Promise<void> };
+    await wc.onCsvImport(new CustomEvent('csv-import', {
+      detail: { rows: [{ name: 'Té', sku: 'TEA', price: '1,20', tax_category: 'standard' }] },
+    }));
+    await wc.confirmPreview();
+
+    expect(comandos.find((c) => c.name === 'inventory.products.create')!.payload.price).toBe(120);
+  });
+
+  it.each(SCALES)('the money inputs step by the $currency smallest unit', async ({ decimals, step }) => {
+    setScale(decimals);
+    const el = await montar();
+    const wc = el as unknown as { receiveTarget: Record<string, unknown> | null; requestUpdate: () => void;
+                                  updateComplete: Promise<unknown>; shadowRoot: ShadowRoot };
+    wc.receiveTarget = { id: 'p1', name: 'Té', sku: 'TEA', stock: 0, unit_code: 'ud' };
+    wc.requestUpdate();
+    await wc.updateComplete;
+
+    for (const id of ['inventory-products-price', 'inventory-products-cost', 'inventory-products-receive-cost']) {
+      const input = wc.shadowRoot.querySelector(`[data-testid="${id}"]`) as (HTMLElement & { step?: string }) | null;
+      expect(input, `${id} is rendered`).toBeTruthy();
+      expect(input!.step ?? input!.getAttribute('step'), id).toBe(step);
+    }
   });
 });

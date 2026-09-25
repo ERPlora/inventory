@@ -73,8 +73,9 @@ the first page and the rest of the catalogue would price as unknown.
 
 ## Where its numbers come from
 
-- **All money is integer cents** (ADR-0123). `price`, `cost`, `unit_cost` and
-  `total_inventory_value` are cents: `1250` is 12,50 €. There are no decimal amounts anywhere.
+- **All money is an integer in the smallest unit of the hub currency** (ADR-0123). `price`, `cost`,
+  `unit_cost` and `total_inventory_value` are cents in euros (`1250` is 12,50 €), yen in yen (`480`
+  is 480 ¥). There are no decimal amounts anywhere.
 - **All quantities are fixed-point integers with a scale of 1 000 000** (ADR-0147). `stock`, a
   movement `qty`, `stock_after` and the per-product low-stock threshold are stored multiplied by
   10⁶: `3000000` is 3 units. Only the UI converts, at the boundary with the human.
