@@ -4459,11 +4459,8 @@ function majorToMinor(amount, decimals) {
   const n6 = Number(amount);
   return Number.isFinite(n6) ? Math.round(n6 * 10 ** decimals) : 0;
 }
-function eurosToCents(euros) {
-  return majorToMinor(euros, 2);
-}
-function centsToEuros(cents) {
-  return cents == null ? "" : (cents / 100).toFixed(2);
+function minorToMajor(amount, decimals) {
+  return (amount ?? 0) / 10 ** decimals;
 }
 
 // ui/components/erp-inventory-categories/erp-inventory-categories.ts
@@ -5375,6 +5372,27 @@ function code128b(text, module = 2, height = 70) {
   return { width: x2, height, bars };
 }
 
+// ui/lib/hub-currency.ts
+function hubDecimals() {
+  const d3 = globalThis.erplora?.currencyDecimals;
+  return typeof d3 === "number" && Number.isInteger(d3) && d3 >= 0 ? d3 : 2;
+}
+function minorToMajor2(minor) {
+  return minorToMajor(minor, hubDecimals());
+}
+function majorToMinor2(major) {
+  return majorToMinor(major, hubDecimals());
+}
+function minorToInput(minor) {
+  if (minor == null) return "";
+  const d3 = hubDecimals();
+  return minorToMajor(minor, d3).toFixed(d3);
+}
+function moneyStep() {
+  const d3 = hubDecimals();
+  return d3 === 0 ? "1" : `0.${"0".repeat(d3 - 1)}1`;
+}
+
 // ui/lib/barcode-print.ts
 function esc(s5) {
   return s5.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -5412,7 +5430,7 @@ function printHtmlInIframe(html, doc = document) {
 function barcodeLabelData(label) {
   const data = { product_name: label.name, barcode: label.sku };
   if (label.priceCents != null && Number.isFinite(Number(label.priceCents))) {
-    data.price = Number(label.priceCents) / 100;
+    data.price = minorToMajor2(Number(label.priceCents));
   }
   return data;
 }
@@ -5541,6 +5559,7 @@ var PREVIEW_ROWS = 5;
 function parseMoneyText(text) {
   const raw = (text ?? "").trim();
   if (raw === "") return 0;
+  if (hubDecimals() === 0 && /^-?\d{1,3}([.,]\d{3})+$/.test(raw)) return Number(raw.replace(/[.,]/g, ""));
   const lastComma = raw.lastIndexOf(",");
   const lastDot = raw.lastIndexOf(".");
   let normalized = raw;
@@ -5802,7 +5821,7 @@ var ErpInventoryProducts = class extends i3 {
       this.formError = erplora4().t(CATALOG4, "ui.errQuantityGrid");
       return;
     }
-    const cost = this.receiveCost.trim() === "" ? null : Math.round(Number(this.receiveCost) * 100);
+    const cost = this.receiveCost.trim() === "" ? null : majorToMinor2(Number(this.receiveCost));
     try {
       await erplora4().command("inventory.stock.receive", {
         items: [{ product_id: this.receiveTarget.id, qty, unit_cost: cost }]
@@ -5845,8 +5864,8 @@ var ErpInventoryProducts = class extends i3 {
         const full = (await erplora4().query("inventory.products.get", { product_id: p4.id }))?.[0] ?? p4;
         this.newName = full.name ?? "";
         this.newSku = full.sku ?? "";
-        this.newPrice = centsToEuros(full.price);
-        this.newCost = centsToEuros(full.cost ?? 0);
+        this.newPrice = minorToInput(full.price);
+        this.newCost = minorToInput(full.cost ?? 0);
         this.newThreshold = formatQuantity2(
           full.low_stock_threshold ?? 1e7
         );
@@ -6064,9 +6083,9 @@ var ErpInventoryProducts = class extends i3 {
       payload: {
         name,
         sku,
-        price: eurosToCents(price),
+        price: majorToMinor2(price),
         stock,
-        cost: eurosToCents(cost),
+        cost: majorToMinor2(cost),
         low_stock_threshold: threshold,
         product_type: "physical",
         ean13: r6.ean13 || null,
@@ -6409,8 +6428,8 @@ var ErpInventoryProducts = class extends i3 {
         await erplora4().command("inventory.products.update", {
           product_id: this.editingId,
           name: this.newName.trim(),
-          price: eurosToCents(this.newPrice),
-          cost: eurosToCents(this.newCost),
+          price: majorToMinor2(this.newPrice),
+          cost: majorToMinor2(this.newCost),
           low_stock_threshold: threshold,
           ean13: this.newEan.trim() || null,
           description: this.newDescription,
@@ -6447,8 +6466,8 @@ var ErpInventoryProducts = class extends i3 {
         await erplora4().command("inventory.products.create", {
           name: this.newName.trim(),
           sku: this.newSku.trim(),
-          price: eurosToCents(this.newPrice),
-          cost: eurosToCents(this.newCost),
+          price: majorToMinor2(this.newPrice),
+          cost: majorToMinor2(this.newCost),
           stock,
           low_stock_threshold: threshold,
           product_type: this.newType,
@@ -6566,7 +6585,7 @@ var ErpInventoryProducts = class extends i3 {
               label=${erplora4().t(CATALOG4, "ui.price")}
               label-placement="floating"
               type="number"
-              step="0.01"
+              .step=${moneyStep()}
               .value=${this.newPrice}
               @ionInput=${(e5) => this.newPrice = e5.target.value}
             ></ion-input>
@@ -6575,7 +6594,7 @@ var ErpInventoryProducts = class extends i3 {
               fill="outline"
               label=${`${erplora4().t(CATALOG4, "ui.fieldCost")} (${erplora4().currency})`}
               label-placement="floating"
-              type="number" step="0.01" min="0"
+              type="number" .step=${moneyStep()} min="0"
               .value=${this.newCost}
               @ionInput=${(e5) => this.newCost = e5.target.value}
             ></ion-input>
@@ -7045,7 +7064,7 @@ var ErpInventoryProducts = class extends i3 {
             @ionInput=${(e5) => this.receiveQty = String(e5.detail.value ?? "")}
           ></ion-input>
           <ion-input mode="md" data-testid="inventory-products-receive-cost" class="ion-margin-top" fill="outline" label-placement="floating" label=${`${t5("ui.receiveCost")} (${erplora4().currency})`}
-            type="number" step="0.01" min="0" inputmode="decimal"
+            type="number" .step=${moneyStep()} min="0" inputmode="decimal"
             .value=${this.receiveCost}
             @ionInput=${(e5) => this.receiveCost = String(e5.detail.value ?? "")}
           ></ion-input>
