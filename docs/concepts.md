@@ -77,9 +77,12 @@ once before deciding whether it crossed its low-stock threshold.
 
 ## Every amount of money is an integer number of cents
 
-`price`, `cost`, `unit_cost` and `total_inventory_value` are **cents** (ADR-0123). `1250` means
-12,50 €. There are no floats and no decimal amounts anywhere in the module. The UI multiplies when
-you type and divides when it paints; nothing else does.
+`price`, `cost`, `unit_cost` and `total_inventory_value` are integers in the **smallest unit of the
+hub currency** (ADR-0123): cents in euros (`1250` means 12,50 €), yen in yen (`480` means 480 ¥, the
+yen has no decimals), fils in Kuwaiti dinars (`1234` means 1,234 KWD). There are no floats and no
+decimal amounts anywhere in the module. The UI converts with the hub currency's scale when you type,
+when it paints, when it imports a CSV and when it prints a price label; nothing else does. In a
+currency without decimals, a CSV price like `1,200` or `1.200` is read as one thousand two hundred.
 
 ## Every quantity is a fixed-point integer scaled by 1 000 000
 
