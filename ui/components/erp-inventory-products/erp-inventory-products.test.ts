@@ -1929,3 +1929,129 @@ describe('product money uses the hub currency scale (inventory#101)', () => {
     }
   });
 });
+
+// pm#450 (outfitkit#150): editing opened the panel with open('create'), so its header said «New»
+// while the body said «Editing product». The table knows an «edit» mode and takes the whole title:
+// the screen asks for it and drops the repeated line from the body.
+describe('editing titles the panel header, not its body (pm#450)', () => {
+  type Table = HTMLElement & {
+    open: (panel?: unknown, opts?: { title?: string }) => void;
+    panel: string;
+    shadowRoot: ShadowRoot;
+  };
+  type Screen = HTMLElement & {
+    onRowAction: (ev: CustomEvent) => Promise<void>;
+    cancelEdit: () => void;
+    editingId: string | null;
+    newName: string;
+    updateComplete: Promise<unknown>;
+  };
+  const table = (el: HTMLElement) => el.shadowRoot!.querySelector('ok-data-table') as unknown as Table;
+  const settle = async (el: Screen) => {
+    await new Promise((r) => setTimeout(r, 0));
+    await el.updateComplete;
+  };
+  const edit = (el: Screen) =>
+    el.onRowAction(new CustomEvent('rowAction', {
+      detail: { actionId: 'edit', row: { id: 'p1', name: 'Café solo', sku: 'CAF', price: 220 } },
+    }) as CustomEvent);
+  const mount = async () => (await montar()) as Screen;
+
+  it("opens the panel with open('edit', { title }) — «Editing product — <name>» in the header", async () => {
+    const el = await mount();
+    const calls: unknown[][] = [];
+    table(el).open = (...args: unknown[]) => void calls.push(args);
+    await edit(el);
+    await settle(el);
+    expect(calls).toEqual([['edit', { title: 'ui.editingTitle — Café solo' }]]);
+  });
+
+  // The header only carries the title with OutfitKit ≥ 0.1.94 (outfitkit#150); an older shell
+  // (hub:stable 1.1.29 ships 0.1.73) ignores it and keeps «New». The body line only goes away when
+  // the table REALLY painted the title — its dialog is labelled with it — never on faith.
+  const shellTable = (el: HTMLElement, honoursTitle: boolean) => {
+    const t = table(el);
+    const dialog = document.createElement('aside');
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-label', 'Form');
+    const root = document.createElement('div');
+    root.appendChild(dialog);
+    Object.defineProperty(t, 'shadowRoot', { value: root, configurable: true });
+    // Like the real Lit table, open() only schedules the render: the dialog is labelled on the
+    // next microtask and `updateComplete` resolves once it is. Reading the label before awaiting
+    // it sees the old «Form» and keeps the line even when the header carries the title.
+    let rendered: Promise<void> = Promise.resolve();
+    Object.defineProperty(t, 'updateComplete', { get: () => rendered, configurable: true });
+    t.open = (_panel?: unknown, opts?: { title?: string }) => {
+      rendered = Promise.resolve().then(() => {
+        if (honoursTitle && opts?.title) dialog.setAttribute('aria-label', opts.title);
+      });
+    };
+  };
+  const form = (el: HTMLElement) => el.shadowRoot!.querySelector('form[slot="create"]') as HTMLElement;
+
+  it('the form body no longer repeats the editing title once the header carries it', async () => {
+    const el = await mount();
+    shellTable(el, true);
+    await edit(el);
+    await settle(el);
+    expect(form(el).querySelector('[data-testid="inventory-products-editing"]')).toBeNull();
+    expect(form(el).textContent).not.toContain('ui.editingTitle');
+    expect(
+      form(el).querySelector('[data-testid="inventory-products-edit-cancel"]'),
+      'only the title moved to the header: «Cancel editing» stays in the form',
+    ).toBeTruthy();
+  });
+
+  it('with a shell whose table ignores the title (OutfitKit < 0.1.94), the body keeps the editing line', async () => {
+    const el = await mount();
+    shellTable(el, false);
+    await edit(el);
+    await settle(el);
+    const line = form(el).querySelector('[data-testid="inventory-products-editing"]') as HTMLElement | null;
+    expect(line, 'the header says «New»: without this line nothing says it is an edit').toBeTruthy();
+    expect(line!.textContent).toContain('ui.editingTitle');
+    expect(line!.textContent).toContain('Café solo');
+  });
+
+  it('cancelling the edit hides the fallback line again', async () => {
+    const el = await mount();
+    shellTable(el, false);
+    await edit(el);
+    await settle(el);
+    el.cancelEdit();
+    await settle(el);
+    expect(form(el).querySelector('[data-testid="inventory-products-editing"]')).toBeNull();
+  });
+
+  it('«Add» after an edit opens a CLEAN create form, and leaves the panel open', async () => {
+    const el = await mount();
+    await edit(el);
+    await settle(el);
+    const add = table(el).shadowRoot.querySelector('[data-testid="inventory-products-table-add"]') as HTMLElement;
+    expect(add, 'the table paints its «Add» button').toBeTruthy();
+    add.click();
+    await settle(el);
+    expect(el.editingId, 'a submit here would UPDATE the edited product under a «New» header').toBeNull();
+    expect(el.newName).toBe('');
+    expect(table(el).panel, '«Add» opened the create panel: resetting the form must not close it').toBe('create');
+  });
+
+  it('a click INSIDE the edit form (a field, a row) does not drop the edit — only «Add» does', async () => {
+    const el = await mount();
+    await edit(el);
+    await settle(el);
+    (el.shadowRoot!.querySelector('[data-testid="inventory-products-name"]') as HTMLElement).click();
+    table(el).click();
+    await settle(el);
+    expect(el.editingId, 'the table host hears every click of the projected form').toBe('p1');
+  });
+
+  it('«Add» with no edit in progress keeps what was typed', async () => {
+    const el = await mount();
+    el.newName = 'Cortado';
+    (table(el).shadowRoot.querySelector('[data-testid="inventory-products-table-add"]') as HTMLElement).click();
+    await settle(el);
+    expect(el.newName).toBe('Cortado');
+  });
+});

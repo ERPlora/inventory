@@ -578,7 +578,7 @@ var ElementShim = class Element extends NodeShim {
     return value ?? null;
   }
 };
-var HTMLElementShim = class HTMLElement extends ElementShim {
+var HTMLElementShim = class HTMLElement2 extends ElementShim {
 };
 var HTMLElementShimWithRealType = HTMLElementShim;
 var ShadowRootShim = class ShadowRoot extends NodeShim {
@@ -1534,6 +1534,7 @@ var es_default = {
     importLine: "L\xEDnea",
     importCopy: "Copiar informe",
     editingTitle: "Editando producto",
+    editingCategoryTitle: "Editando categor\xEDa",
     editingCancel: "Cancelar edici\xF3n",
     skuIdentity: "El SKU es la identidad del producto: no se edita",
     fieldCost: "Coste",
@@ -1741,6 +1742,7 @@ var en_default = {
     importLine: "Line",
     importCopy: "Copy report",
     editingTitle: "Editing product",
+    editingCategoryTitle: "Editing category",
     editingCancel: "Cancel editing",
     skuIdentity: "SKU is the product identity: not editable",
     fieldCost: "Cost",
@@ -4485,6 +4487,7 @@ var ErpInventoryCategories = class extends i3 {
     this.saving = false;
     this.formError = "";
     this.editingId = null;
+    this.editTitleInHeader = false;
     // Fila completa en edición: preserva los campos que el form no expone (icon/color/order).
     this.editRow = null;
     this.deleteTarget = null;
@@ -4520,7 +4523,15 @@ var ErpInventoryCategories = class extends i3 {
     super.connectedCallback();
     window.addEventListener("erplora:locale-changed", this.onLocaleChange);
   }
+  /** pm#450: the table's «Add» emits no event and keeps our form state; after an edit it would
+   *  show the edited record under a «New» header, and the submit would UPDATE it. */
+  onTableClick(e5) {
+    if (!this.editingId) return;
+    const addId = "inventory-categories-table-add";
+    if (e5.composedPath().some((n6) => n6 instanceof HTMLElement && n6.dataset.testid === addId)) this.cancelEdit();
+  }
   async firstUpdated() {
+    this.renderRoot.querySelector("ok-data-table")?.addEventListener("click", (e5) => this.onTableClick(e5));
     this.ctrl = createListController(erplora(), "inventory.categories.list", () => this.requestUpdate(), {
       pageSize: 25,
       sort: "name",
@@ -4571,7 +4582,11 @@ var ErpInventoryCategories = class extends i3 {
       this.newName = c5.name;
       this.newSlug = c5.slug;
       this.newTaxRateId = c5.tax_category_key ?? "";
-      this.dataTable()?.open("create");
+      const title = `${erplora().t(CATALOG, "ui.editingCategoryTitle")} \u2014 ${this.newName}`;
+      const table = this.dataTable();
+      table?.open("edit", { title });
+      await table?.updateComplete;
+      this.editTitleInHeader = table?.shadowRoot?.querySelector('[role="dialog"]')?.getAttribute("aria-label") === title;
     } else if (actionId === "delete" && can("inventory.delete_category")) {
       this.deleteImpact = Number(row.product_count ?? 0);
       this.deleteTarget = c5;
@@ -4725,6 +4740,7 @@ var ErpInventoryCategories = class extends i3 {
           @filterChange=${(e5) => this.ctrl.setFilter(e5.detail.col, e5.detail.value)}
         >
           <form slot="create" class="form" data-testid="inventory-categories-form" @submit=${(e5) => this.create(e5)}>
+            ${this.editingId && !this.editTitleInHeader ? b2`<b data-testid="inventory-categories-editing">${erplora().t(CATALOG, "ui.editingCategoryTitle")} — ${this.newName}</b>` : A}
             <ion-input mode="md"
               data-testid="inventory-categories-name"
               fill="outline"
@@ -4813,6 +4829,9 @@ __decorateClass([
 __decorateClass([
   r5()
 ], ErpInventoryCategories.prototype, "editingId", 2);
+__decorateClass([
+  r5()
+], ErpInventoryCategories.prototype, "editTitleInHeader", 2);
 __decorateClass([
   r5()
 ], ErpInventoryCategories.prototype, "deleteTarget", 2);
@@ -5599,6 +5618,7 @@ var ErpInventoryProducts = class extends i3 {
     this.newUnitCode = "ud";
     this.units = [];
     this.editingId = null;
+    this.editTitleInHeader = false;
     this.selectedCategoryIds = /* @__PURE__ */ new Set();
     this.initialCategoryIds = /* @__PURE__ */ new Set();
     this.productCategories = [];
@@ -5885,7 +5905,11 @@ var ErpInventoryProducts = class extends i3 {
         this.initialCategoryIds = /* @__PURE__ */ new Set();
         this.selectedCategoryIds = /* @__PURE__ */ new Set();
       }
-      this.dataTable()?.open("create");
+      const title = `${erplora4().t(CATALOG4, "ui.editingTitle")} \u2014 ${this.newName}`;
+      const table = this.dataTable();
+      table?.open("edit", { title });
+      await table?.updateComplete;
+      this.editTitleInHeader = table?.shadowRoot?.querySelector('[role="dialog"]')?.getAttribute("aria-label") === title;
     } else if (actionId === "delete" && can2("inventory.delete_product")) {
       this.deleteTarget = p4;
     }
@@ -6244,6 +6268,7 @@ var ErpInventoryProducts = class extends i3 {
     window.addEventListener("erplora:locale-changed", this.onLocaleChange);
   }
   async firstUpdated() {
+    this.renderRoot.querySelector("ok-data-table")?.addEventListener("click", (e5) => this.onTableClick(e5));
     const status = statusFilterFromSearch(window.location.search);
     const filters = {};
     if (status === STATUS_UNCONFIGURED) filters.needs_tax_setup = "1";
@@ -6383,10 +6408,10 @@ var ErpInventoryProducts = class extends i3 {
       this.productCategories = [];
     }
   }
-  /** Vuelve al modo ALTA limpio (inventory#8): tras editar, el siguiente «+» no hereda datos.
-   *  También CIERRA el panel lateral (QA 07-16: quedaba abierto con el form vacío). */
-  cancelEdit() {
-    this.dataTable()?.close();
+  /** Resets every form field to its clean ALTA state (inventory#8): shared by `cancelEdit()` and
+   *  the table's «Add» (pm#450), which must reset the form WITHOUT closing the panel it just
+   *  opened. */
+  resetForm() {
     this.editingId = null;
     this.newName = "";
     this.newSku = "";
@@ -6404,6 +6429,20 @@ var ErpInventoryProducts = class extends i3 {
     this.initialCategoryIds = /* @__PURE__ */ new Set();
     this.selectedCategoryIds = /* @__PURE__ */ new Set();
     this.formError = "";
+  }
+  /** Back to a clean CREATE form (inventory#8): after an edit, the next «+» inherits nothing.
+   *  Also CLOSES the side panel (QA 07-16: it stayed open with an empty form). */
+  cancelEdit() {
+    this.dataTable()?.close();
+    this.resetForm();
+  }
+  /** pm#450: the table's «Add» emits no event and keeps our form state; after an edit it would
+   *  show the edited record under a «New» header, and the submit would UPDATE it. Resets the form
+   *  without closing: «Add» itself just opened the create panel. */
+  onTableClick(e5) {
+    if (!this.editingId) return;
+    const addId = "inventory-products-table-add";
+    if (e5.composedPath().some((n6) => n6 instanceof HTMLElement && n6.dataset.testid === addId)) this.resetForm();
   }
   // Submit del form (alta O edición — decide `editingId`, inventory#8). El nombre se
   // conserva por compatibilidad con el template/tests históricos.
@@ -6556,7 +6595,7 @@ var ErpInventoryProducts = class extends i3 {
           <!-- Formulario de alta: el botón "+" del data-table despliega este acordeón. -->
           <form slot="create" class="form" data-testid="inventory-products-form" @submit=${(e5) => this.createProduct(e5)}>
             ${this.editingId ? b2`<div class="drow" style="align-items:center;">
-                  <b>${erplora4().t(CATALOG4, "ui.editingTitle")}</b>
+                  ${this.editTitleInHeader ? A : b2`<b data-testid="inventory-products-editing">${erplora4().t(CATALOG4, "ui.editingTitle")} — ${this.newName}</b>`}
                   <ion-button data-testid="inventory-products-edit-cancel" size="small" fill="clear" @click=${() => this.cancelEdit()}>
                     ${erplora4().t(CATALOG4, "ui.editingCancel")}
                   </ion-button>
@@ -7125,6 +7164,9 @@ __decorateClass([
 __decorateClass([
   r5()
 ], ErpInventoryProducts.prototype, "editingId", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "editTitleInHeader", 2);
 __decorateClass([
   r5()
 ], ErpInventoryProducts.prototype, "selectedCategoryIds", 2);
