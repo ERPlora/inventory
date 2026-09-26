@@ -1498,8 +1498,8 @@ var es_default = {
     statsError: "No se pudieron cargar las m\xE9tricas del inventario.",
     lowStockTitle: "Productos con stock bajo",
     lowStockEmpty: "Sin productos en stock bajo.",
-    actionReceive: "Recibir",
-    actionCount: "Recontar",
+    actionReceive: "Recibir stock",
+    actionCount: "Contar stock",
     countTitle: "Recuento",
     countCurrent: "Stock actual",
     countNew: "Stock contado",
@@ -1516,7 +1516,7 @@ var es_default = {
     mvStockAfter: "Saldo",
     mvReason: "Motivo",
     mvReference: "Referencia",
-    mvEmpty: "Sin movimientos.",
+    mvEmpty: "Todav\xEDa no hay movimientos. Aparecen al usar Recibir stock o Contar stock en un producto de Productos, y con cada venta.",
     mvInitial: "Inicial",
     mvReception: "Recepci\xF3n",
     mvSale: "Venta",
@@ -1706,8 +1706,8 @@ var en_default = {
     statsError: "Inventory metrics could not be loaded.",
     lowStockTitle: "Low stock products",
     lowStockEmpty: "No products in low stock.",
-    actionReceive: "Receive",
-    actionCount: "Count",
+    actionReceive: "Receive stock",
+    actionCount: "Count stock",
     countTitle: "Stock count",
     countCurrent: "Current stock",
     countNew: "Counted stock",
@@ -1724,7 +1724,7 @@ var en_default = {
     mvStockAfter: "Balance",
     mvReason: "Reason",
     mvReference: "Reference",
-    mvEmpty: "No movements.",
+    mvEmpty: "No movements yet. They appear when you use Receive stock or Count stock on a product in Products, and with every sale.",
     mvInitial: "Initial",
     mvReception: "Reception",
     mvSale: "Sale",
@@ -5874,17 +5874,28 @@ var ErpInventoryProducts = class extends i3 {
       ...can2("inventory.delete_product") ? [{ id: "delete", label: t5("ui.actionDelete"), icon: "trash-outline", color: "danger" }] : []
     ];
   }
+  // Receive / count open the same form from the row and from the product sheet (inventory#108).
+  openReceive(p4) {
+    if (!can2("inventory.adjust_stock")) return;
+    this.detail = null;
+    this.receiveTarget = p4;
+  }
+  openCount(p4) {
+    if (!can2("inventory.adjust_stock")) return;
+    this.detail = null;
+    this.countTarget = p4;
+    this.countValue = "";
+    this.countReason = "";
+  }
   async onRowAction(ev) {
     const { actionId, row } = ev.detail;
     const p4 = row;
     if (actionId === "detail") {
       this.detail = p4;
-    } else if (actionId === "receive" && can2("inventory.adjust_stock")) {
-      this.receiveTarget = p4;
-    } else if (actionId === "count" && can2("inventory.adjust_stock")) {
-      this.countTarget = p4;
-      this.countValue = "";
-      this.countReason = "";
+    } else if (actionId === "receive") {
+      this.openReceive(p4);
+    } else if (actionId === "count") {
+      this.openCount(p4);
     } else if (actionId === "edit" && can2("inventory.change_product")) {
       const seq = ++this.editSeq;
       let full = p4;
@@ -6853,6 +6864,15 @@ var ErpInventoryProducts = class extends i3 {
                   <ion-button data-testid="inventory-products-print-barcode" expand="block" @click=${() => this.detail && void this.printBarcode(this.detail)}>
                     <ion-icon name="print-outline" slot="start"></ion-icon> ${t5("ui.printBarcode")}
                   </ion-button>
+                  <!-- inventory#108: the stock actions are also here, with text, not only as row icons. -->
+                  ${can2("inventory.adjust_stock") ? b2`
+                        <ion-button data-testid="inventory-products-detail-receive" expand="block" fill="outline" @click=${() => this.detail && this.openReceive(this.detail)}>
+                          <ion-icon name="download-outline" slot="start"></ion-icon> ${t5("ui.actionReceive")}
+                        </ion-button>
+                        <ion-button data-testid="inventory-products-detail-count" expand="block" fill="outline" @click=${() => this.detail && this.openCount(this.detail)}>
+                          <ion-icon name="calculator-outline" slot="start"></ion-icon> ${t5("ui.actionCount")}
+                        </ion-button>
+                      ` : A}
                 ` : A}
           </ion-content>
         </ion-modal>
