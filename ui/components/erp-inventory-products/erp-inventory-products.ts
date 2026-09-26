@@ -308,6 +308,10 @@ export class ErpInventoryProducts extends LitElement {
   // Edición REAL (inventory#8): id en edición (null = alta). Estado técnico Y visible
   // (el form cambia de título/botón). El submit decide create vs update por esto.
   @state() editingId: string | null = null;
+  /** pm#459: each edit opening takes a number; cancel/reset/«Add» bumps it. An opening that is no
+   *  longer the LAST one stops right after each await, so a stale reply never overwrites a newer
+   *  edit's form, id or header. */
+  private editSeq = 0;
   /** pm#450: whether the table's panel HEADER already carries the editing title (OutfitKit
    *  ≥ 0.1.94, outfitkit#150). Set only after checking the rendered dialog — never assumed — so
    *  an older shell (hub:stable ships 0.1.73, which ignores the `title` and keeps «New») still
@@ -613,40 +617,57 @@ export class ErpInventoryProducts extends LitElement {
       this.countValue = '';
       this.countReason = '';
     } else if (actionId === 'edit' && can('inventory.change_product')) {
-      // Edición REAL (inventory#8): carga la ficha COMPLETA desde products.get (la fila de la
-      // lista no proyecta description/ean13) + las categorías M2M actuales, y fija editingId.
-      this.editingId = p.id;
+      // REAL edit (inventory#8): loads the FULL product from products.get (the list row does not
+      // project description/ean13) + its current M2M categories, and sets editingId.
+      //
+      // pm#459: two «edit» taps in a row race their own awaits (products.get, product_categories,
+      // the table render), and they can settle in either order. Each opening claims a `seq` and
+      // loads into LOCALS first; only once it is confirmed to still be the LAST opening does it
+      // touch `this.*` — so a stale reply stops instead of overwriting the newer edit.
+      const seq = ++this.editSeq;
+      let full: Product = p;
       try {
-        const full = (await erplora().query<Product[]>('inventory.products.get', { product_id: p.id }))?.[0] ?? p;
-        this.newName = full.name ?? '';
-        this.newSku = full.sku ?? '';
-        // The DB stores the hub currency's MINOR units and the form edits MAJOR ones (ADR-0123,
-        // inventory#101: in a yen hub there is nothing to divide).
-        this.newPrice = minorToInput(full.price);
-        this.newCost = minorToInput((full as unknown as { cost?: number }).cost ?? 0);
-        this.newThreshold = formatQuantity(
-          (full as unknown as { low_stock_threshold?: number }).low_stock_threshold ?? 10_000_000,
-        );
-        this.newEan = String((full as unknown as { ean13?: string | null }).ean13 ?? '');
-        this.newDescription = String((full as unknown as { description?: string }).description ?? '');
-        this.newType = ((full as unknown as { product_type?: string }).product_type === 'service' ? 'service' : 'physical');
-        this.newActive = Number((full as unknown as { is_active?: number }).is_active ?? 1) === 1;
-        const rawTrack = (full as unknown as { track_stock?: number | string | null }).track_stock;
-        this.newTrackStock = rawTrack == null || rawTrack === '' ? null : Number(rawTrack) !== 0 ? 1 : 0;
-        this.newUnitCode = String((full as unknown as { unit_code?: string }).unit_code || 'ud');
-        this.newTaxCategoryKey = full.tax_category_key ?? '';
-        const links = await erplora().query<{ product_id: string; category_id: string }[]>('inventory.product_categories');
-        const mine = (Array.isArray(links) ? links : []).filter((l) => l.product_id === p.id).map((l) => l.category_id);
-        this.initialCategoryIds = new Set(mine);
-        this.selectedCategoryIds = new Set(mine);
+        full = (await erplora().query<Product[]>('inventory.products.get', { product_id: p.id }))?.[0] ?? p;
       } catch {
-        this.initialCategoryIds = new Set();
-        this.selectedCategoryIds = new Set();
+        // The list row is enough to pre-fill: description/ean13 just stay blank.
       }
+      let mine: string[] = [];
+      try {
+        const links = await erplora().query<{ product_id: string; category_id: string }[]>('inventory.product_categories');
+        mine = (Array.isArray(links) ? links : []).filter((l) => l.product_id === p.id).map((l) => l.category_id);
+      } catch {
+        mine = [];
+      }
+      // A newer opening (another row's edit, or a cancel/reset/«Add») already moved the sequence
+      // on: this reply belongs to a form nobody is looking at anymore.
+      if (seq !== this.editSeq) return;
+      this.editingId = p.id;
+      this.newName = full.name ?? '';
+      this.newSku = full.sku ?? '';
+      // The DB stores the hub currency's MINOR units and the form edits MAJOR ones (ADR-0123,
+      // inventory#101: in a yen hub there is nothing to divide).
+      this.newPrice = minorToInput(full.price);
+      this.newCost = minorToInput((full as unknown as { cost?: number }).cost ?? 0);
+      this.newThreshold = formatQuantity(
+        (full as unknown as { low_stock_threshold?: number }).low_stock_threshold ?? 10_000_000,
+      );
+      this.newEan = String((full as unknown as { ean13?: string | null }).ean13 ?? '');
+      this.newDescription = String((full as unknown as { description?: string }).description ?? '');
+      this.newType = ((full as unknown as { product_type?: string }).product_type === 'service' ? 'service' : 'physical');
+      this.newActive = Number((full as unknown as { is_active?: number }).is_active ?? 1) === 1;
+      const rawTrack = (full as unknown as { track_stock?: number | string | null }).track_stock;
+      this.newTrackStock = rawTrack == null || rawTrack === '' ? null : Number(rawTrack) !== 0 ? 1 : 0;
+      this.newUnitCode = String((full as unknown as { unit_code?: string }).unit_code || 'ud');
+      this.newTaxCategoryKey = full.tax_category_key ?? '';
+      this.initialCategoryIds = new Set(mine);
+      this.selectedCategoryIds = new Set(mine);
       const title = `${erplora().t(CATALOG, 'ui.editingTitle')} — ${this.newName}`;
       const table = this.dataTable();
       table?.open('edit', { title });
       await table?.updateComplete;
+      // A newer opening may have taken over WHILE the table rendered: its own render already
+      // titled the header and this reply must not repaint the stale line back on top of it.
+      if (seq !== this.editSeq) return;
       // OutfitKit < 0.1.94 ignores the title and keeps «New»: only drop the in-form line when the
       // header REALLY carries it (the dialog is labelled with it).
       this.editTitleInHeader = table?.shadowRoot?.querySelector('[role="dialog"]')?.getAttribute('aria-label') === title;
@@ -1273,8 +1294,10 @@ export class ErpInventoryProducts extends LitElement {
 
   /** Resets every form field to its clean ALTA state (inventory#8): shared by `cancelEdit()` and
    *  the table's «Add» (pm#450), which must reset the form WITHOUT closing the panel it just
-   *  opened. */
+   *  opened. Bumping `editSeq` first also discards any edit opening still loading (pm#459): its
+   *  reply will find itself no longer the last one and stop instead of overwriting this reset. */
   private resetForm(): void {
+    this.editSeq++;
     this.editingId = null;
     this.newName = '';
     this.newSku = '';
@@ -1303,11 +1326,16 @@ export class ErpInventoryProducts extends LitElement {
 
   /** pm#450: the table's «Add» emits no event and keeps our form state; after an edit it would
    *  show the edited record under a «New» header, and the submit would UPDATE it. Resets the form
-   *  without closing: «Add» itself just opened the create panel. */
+   *  without closing: «Add» itself just opened the create panel.
+   *
+   *  pm#459: «Add» while an edit is still LOADING (`editingId` still null) only discards that
+   *  pending opening; a draft typed in the create form survives. */
   private onTableClick(e: Event): void {
-    if (!this.editingId) return;
     const addId = 'inventory-products-table-add';
-    if (e.composedPath().some((n) => n instanceof HTMLElement && n.dataset.testid === addId)) this.resetForm();
+    const isAdd = e.composedPath().some((n) => n instanceof HTMLElement && n.dataset.testid === addId);
+    if (!isAdd) return;
+    if (this.editingId) this.resetForm();
+    else this.editSeq++;
   }
 
   // Submit del form (alta O edición — decide `editingId`, inventory#8). El nombre se

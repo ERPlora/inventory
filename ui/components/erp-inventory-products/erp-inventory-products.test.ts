@@ -2055,3 +2055,142 @@ describe('editing titles the panel header, not its body (pm#450)', () => {
     expect(el.newName).toBe('Cortado');
   });
 });
+
+// pm#459: two «edit» taps in a row. Each opening awaits the full product (inventory.products.get),
+// its categories (inventory.product_categories) and then the table render (updateComplete); the
+// waits can resolve in the opposite order. The LAST opening wins: form, id, categories and header
+// belong to the second row, never to a stale first reply.
+describe('two «edit» in a row: the last opening wins (pm#459)', () => {
+  type Table = HTMLElement & {
+    open: (panel?: unknown, opts?: { title?: string }) => void;
+    panel: string;
+    shadowRoot: ShadowRoot;
+  };
+  type Screen = HTMLElement & {
+    onRowAction: (ev: CustomEvent) => Promise<void>;
+    cancelEdit: () => void;
+    editingId: string | null;
+    newName: string;
+    newPrice: string;
+    selectedCategoryIds: Set<string>;
+    updateComplete: Promise<unknown>;
+  };
+  const table = (el: HTMLElement) => el.shadowRoot!.querySelector('ok-data-table') as unknown as Table;
+  const settle = async (el: Screen) => {
+    await new Promise((r) => setTimeout(r, 0));
+    await el.updateComplete;
+  };
+  const ROW_A = { id: 'p1', name: 'Café solo', sku: 'CAF', price: 220 };
+  const ROW_B = { id: 'p2', name: 'Cortado', sku: 'COR', price: 250 };
+  const FULL: Record<string, Record<string, unknown>> = {
+    p1: { ...ROW_A, tax_category_key: 'standard', is_active: 1 },
+    p2: { ...ROW_B, tax_category_key: 'standard', is_active: 1 },
+  };
+  const LINKS = [
+    { product_id: 'p1', category_id: 'c1' },
+    { product_id: 'p2', category_id: 'c2' },
+  ];
+  const editRow = (el: Screen, row: Record<string, unknown>) =>
+    el.onRowAction(new CustomEvent('rowAction', { detail: { actionId: 'edit', row } }) as CustomEvent);
+  /** The product reads answer at once, except the FIRST row's, which waits for `held`. */
+  const hubHoldingFirst = (held: Promise<void>) => {
+    const sdk = (globalThis as unknown as { erplora: Record<string, unknown> }).erplora;
+    sdk.query = async (name: string, params?: Record<string, unknown>) => {
+      if (name === 'inventory.product_categories') return LINKS;
+      if (name !== 'inventory.products.get') return [];
+      if (params?.product_id === 'p1') await held;
+      return [FULL[String(params?.product_id)]];
+    };
+  };
+  const mount = async () => (await montar()) as Screen;
+
+  it('a slow reply for the FIRST row does not overwrite the form of the second', async () => {
+    let releaseFirst: () => void = () => {};
+    hubHoldingFirst(new Promise<void>((r) => (releaseFirst = r)));
+    const el = await mount();
+    const titles: (string | undefined)[] = [];
+    table(el).open = (_panel?: unknown, opts?: { title?: string }) => void titles.push(opts?.title);
+    const first = editRow(el, ROW_A);
+    const second = editRow(el, ROW_B);
+    await second;
+    releaseFirst();
+    await first;
+    await settle(el);
+    expect(el.editingId, 'a submit here would UPDATE the second product').toBe('p2');
+    expect(el.newName, 'a submit here would write the FIRST product over the second').toBe('Cortado');
+    expect(el.newPrice).toBe('2.50');
+    expect([...el.selectedCategoryIds]).toEqual(['c2']);
+    expect(titles.at(-1), 'the header names the row last tapped').toBe('ui.editingTitle — Cortado');
+  });
+
+  it('cancelling while an edit is still loading keeps the clean create form', async () => {
+    let releaseFirst: () => void = () => {};
+    hubHoldingFirst(new Promise<void>((r) => (releaseFirst = r)));
+    const el = await mount();
+    const panels: unknown[] = [];
+    table(el).open = (panel?: unknown) => void panels.push(panel);
+    const first = editRow(el, ROW_A);
+    el.cancelEdit();
+    releaseFirst();
+    await first;
+    await settle(el);
+    expect(el.editingId, 'a late reply must not turn the cancelled form into an edit').toBeNull();
+    expect(el.newName).toBe('');
+    expect(panels, 'a cancelled opening does not reopen the panel').toEqual([]);
+  });
+
+  it('«Add» while an edit is still loading keeps the clean create form, panel open', async () => {
+    let releaseFirst: () => void = () => {};
+    hubHoldingFirst(new Promise<void>((r) => (releaseFirst = r)));
+    const el = await mount();
+    const first = editRow(el, ROW_A);
+    (table(el).shadowRoot.querySelector('[data-testid="inventory-products-table-add"]') as HTMLElement).click();
+    releaseFirst();
+    await first;
+    await settle(el);
+    expect(el.editingId, 'the header says «New»: a late reply must not turn it into an edit').toBeNull();
+    expect(el.newName, 'a submit here would CREATE a copy of the first product').toBe('');
+    expect(table(el).panel, '«Add» opened the create panel and it stays so').toBe('create');
+  });
+
+  it('when the FIRST render settles last, the body does not bring the editing line back', async () => {
+    hubHoldingFirst(Promise.resolve());
+    const el = await mount();
+    const t = table(el);
+    const dialog = document.createElement('aside');
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-label', 'Form');
+    const root = document.createElement('div');
+    root.appendChild(dialog);
+    Object.defineProperty(t, 'shadowRoot', { value: root, configurable: true });
+    // The shell titles the header (OutfitKit ≥ 0.1.94); the first open's render is held and
+    // resolves AFTER the second one.
+    let releaseFirst: () => void = () => {};
+    const firstHeld = new Promise<void>((r) => (releaseFirst = r));
+    let opens = 0;
+    let rendered: Promise<void> = Promise.resolve();
+    Object.defineProperty(t, 'updateComplete', { get: () => rendered, configurable: true });
+    t.open = (_panel: unknown, opts?: { title?: string }) => {
+      const n = ++opens;
+      const label = Promise.resolve().then(() => {
+        if (opts?.title) dialog.setAttribute('aria-label', opts.title);
+      });
+      rendered = n === 1 ? label.then(() => firstHeld) : label;
+    };
+    // The first opening reaches its render (header «Café solo», held) before the second tap.
+    const first = editRow(el, ROW_A);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(opens).toBe(1);
+    const second = editRow(el, ROW_B);
+    await second;
+    releaseFirst();
+    await first;
+    await settle(el);
+    expect(dialog.getAttribute('aria-label')).toBe('ui.editingTitle — Cortado');
+    expect(el.editingId).toBe('p2');
+    expect(
+      el.shadowRoot!.querySelector('form[slot="create"] [data-testid="inventory-products-editing"]'),
+      'the header carries «Cortado»: a stale check against «Café solo» must not repaint the line',
+    ).toBeNull();
+  });
+});
