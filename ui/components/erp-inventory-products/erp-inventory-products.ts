@@ -671,6 +671,7 @@ export class ErpInventoryProducts extends LitElement {
       // OutfitKit < 0.1.94 ignores the title and keeps «New»: only drop the in-form line when the
       // header REALLY carries it (the dialog is labelled with it).
       this.editTitleInHeader = table?.shadowRoot?.querySelector('[role="dialog"]')?.getAttribute('aria-label') === title;
+      this.syncSheetBottom(); // inventory#105 — the mobile sheet may cover Save with the tabbar
     } else if (actionId === 'delete' && can('inventory.delete_product')) {
       // Nunca borra directo (P1 QA #6): confirmación, como el borrado de categorías.
       this.deleteTarget = p;
@@ -732,6 +733,33 @@ export class ErpInventoryProducts extends LitElement {
           shadowRoot: ShadowRoot | null;
         }
       | null;
+  }
+
+  /** inventory#105 — on a phone/tablet the table's mobile sheet runs to the bottom of the SCREEN,
+   *  but the shell paints its tabbar (an ion-footer outside `ion-content`) over the sheet's last
+   *  ~66px, so Save could never scroll clear of it. Reserves that overlap at the end of the form;
+   *  it measures the real drawer, so it becomes 0 by itself on desktop or if OutfitKit ever ends
+   *  the sheet above the tabbar. */
+  private syncSheetBottom(): void {
+    const form = this.renderRoot.querySelector('form[slot="create"]') as HTMLElement | null;
+    if (!form) return;
+    // The «create» slot only exists in the table's shadow root while its panel is open on
+    // «create»/«edit» (it is absent on «filters» and on «none») — checking the form is really
+    // among its assigned elements is what tells the sheet is the one carrying THIS form.
+    const createSlot = this.dataTable()?.shadowRoot?.querySelector('slot[name="create"]') as HTMLSlotElement | null;
+    const drawer = createSlot?.assignedElements().includes(form) ? createSlot.closest('.drawer') : null;
+    // Same walk `ok-data-table` uses to find the closest `ion-content`, crossing shadow hosts.
+    let node: Node | null = this;
+    let content: Element | null = null;
+    while (node && !content) {
+      const parent: Node | null = node.parentNode ?? ((node.getRootNode?.() as ShadowRoot | undefined)?.host ?? null);
+      if (parent && parent.nodeType === Node.ELEMENT_NODE && (parent as Element).tagName === 'ION-CONTENT') content = parent as Element;
+      node = parent === node ? null : parent;
+    }
+    const overlap = drawer && content
+      ? Math.max(0, Math.round(drawer.getBoundingClientRect().bottom - content.getBoundingClientRect().bottom))
+      : 0;
+    form.style.paddingBottom = overlap > 0 ? `${overlap}px` : '';
   }
 
   // Importa productos desde CSV (cabeceras = name, sku, price, stock…). Crea uno por fila.
@@ -1109,9 +1137,13 @@ export class ErpInventoryProducts extends LitElement {
   // Re-render al cambiar el idioma del shell (ADR-0055): los getters `columns`/`actions` y el
   // texto del template se re-evalúan con el nuevo `erplora.locale`.
   private readonly onLocaleChange = (): void => this.requestUpdate();
+  // inventory#105 — a rotation changes both the screen height and the tabbar height: re-measure
+  // the open mobile sheet against the shell's tabbar so Save keeps clearing it.
+  private readonly onViewportResize = (): void => this.syncSheetBottom();
   connectedCallback(): void {
     super.connectedCallback();
     window.addEventListener('erplora:locale-changed', this.onLocaleChange);
+    window.addEventListener('resize', this.onViewportResize);
   }
 
   async firstUpdated(): Promise<void> {
@@ -1156,6 +1188,7 @@ export class ErpInventoryProducts extends LitElement {
 
   disconnectedCallback(): void {
     window.removeEventListener('erplora:locale-changed', this.onLocaleChange);
+    window.removeEventListener('resize', this.onViewportResize);
     super.disconnectedCallback();
     this.unsub?.();
   }
@@ -1336,6 +1369,9 @@ export class ErpInventoryProducts extends LitElement {
     if (!isAdd) return;
     if (this.editingId) this.resetForm();
     else this.editSeq++;
+    // inventory#105 — the table has already opened its own panel on this same click; wait for its
+    // re-render before measuring the mobile sheet, so Save can scroll clear of the shell's tabbar.
+    void this.dataTable()?.updateComplete?.then(() => this.syncSheetBottom());
   }
 
   // Submit del form (alta O edición — decide `editingId`, inventory#8). El nombre se
