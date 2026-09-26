@@ -5618,6 +5618,10 @@ var ErpInventoryProducts = class extends i3 {
     this.newUnitCode = "ud";
     this.units = [];
     this.editingId = null;
+    /** pm#459: each edit opening takes a number; cancel/reset/«Add» bumps it. An opening that is no
+     *  longer the LAST one stops right after each await, so a stale reply never overwrites a newer
+     *  edit's form, id or header. */
+    this.editSeq = 0;
     this.editTitleInHeader = false;
     this.selectedCategoryIds = /* @__PURE__ */ new Set();
     this.initialCategoryIds = /* @__PURE__ */ new Set();
@@ -5879,36 +5883,43 @@ var ErpInventoryProducts = class extends i3 {
       this.countValue = "";
       this.countReason = "";
     } else if (actionId === "edit" && can2("inventory.change_product")) {
-      this.editingId = p4.id;
+      const seq = ++this.editSeq;
+      let full = p4;
       try {
-        const full = (await erplora4().query("inventory.products.get", { product_id: p4.id }))?.[0] ?? p4;
-        this.newName = full.name ?? "";
-        this.newSku = full.sku ?? "";
-        this.newPrice = minorToInput(full.price);
-        this.newCost = minorToInput(full.cost ?? 0);
-        this.newThreshold = formatQuantity2(
-          full.low_stock_threshold ?? 1e7
-        );
-        this.newEan = String(full.ean13 ?? "");
-        this.newDescription = String(full.description ?? "");
-        this.newType = full.product_type === "service" ? "service" : "physical";
-        this.newActive = Number(full.is_active ?? 1) === 1;
-        const rawTrack = full.track_stock;
-        this.newTrackStock = rawTrack == null || rawTrack === "" ? null : Number(rawTrack) !== 0 ? 1 : 0;
-        this.newUnitCode = String(full.unit_code || "ud");
-        this.newTaxCategoryKey = full.tax_category_key ?? "";
-        const links = await erplora4().query("inventory.product_categories");
-        const mine = (Array.isArray(links) ? links : []).filter((l3) => l3.product_id === p4.id).map((l3) => l3.category_id);
-        this.initialCategoryIds = new Set(mine);
-        this.selectedCategoryIds = new Set(mine);
+        full = (await erplora4().query("inventory.products.get", { product_id: p4.id }))?.[0] ?? p4;
       } catch {
-        this.initialCategoryIds = /* @__PURE__ */ new Set();
-        this.selectedCategoryIds = /* @__PURE__ */ new Set();
       }
+      let mine = [];
+      try {
+        const links = await erplora4().query("inventory.product_categories");
+        mine = (Array.isArray(links) ? links : []).filter((l3) => l3.product_id === p4.id).map((l3) => l3.category_id);
+      } catch {
+        mine = [];
+      }
+      if (seq !== this.editSeq) return;
+      this.editingId = p4.id;
+      this.newName = full.name ?? "";
+      this.newSku = full.sku ?? "";
+      this.newPrice = minorToInput(full.price);
+      this.newCost = minorToInput(full.cost ?? 0);
+      this.newThreshold = formatQuantity2(
+        full.low_stock_threshold ?? 1e7
+      );
+      this.newEan = String(full.ean13 ?? "");
+      this.newDescription = String(full.description ?? "");
+      this.newType = full.product_type === "service" ? "service" : "physical";
+      this.newActive = Number(full.is_active ?? 1) === 1;
+      const rawTrack = full.track_stock;
+      this.newTrackStock = rawTrack == null || rawTrack === "" ? null : Number(rawTrack) !== 0 ? 1 : 0;
+      this.newUnitCode = String(full.unit_code || "ud");
+      this.newTaxCategoryKey = full.tax_category_key ?? "";
+      this.initialCategoryIds = new Set(mine);
+      this.selectedCategoryIds = new Set(mine);
       const title = `${erplora4().t(CATALOG4, "ui.editingTitle")} \u2014 ${this.newName}`;
       const table = this.dataTable();
       table?.open("edit", { title });
       await table?.updateComplete;
+      if (seq !== this.editSeq) return;
       this.editTitleInHeader = table?.shadowRoot?.querySelector('[role="dialog"]')?.getAttribute("aria-label") === title;
     } else if (actionId === "delete" && can2("inventory.delete_product")) {
       this.deleteTarget = p4;
@@ -6410,8 +6421,10 @@ var ErpInventoryProducts = class extends i3 {
   }
   /** Resets every form field to its clean ALTA state (inventory#8): shared by `cancelEdit()` and
    *  the table's «Add» (pm#450), which must reset the form WITHOUT closing the panel it just
-   *  opened. */
+   *  opened. Bumping `editSeq` first also discards any edit opening still loading (pm#459): its
+   *  reply will find itself no longer the last one and stop instead of overwriting this reset. */
   resetForm() {
+    this.editSeq++;
     this.editingId = null;
     this.newName = "";
     this.newSku = "";
@@ -6438,11 +6451,16 @@ var ErpInventoryProducts = class extends i3 {
   }
   /** pm#450: the table's «Add» emits no event and keeps our form state; after an edit it would
    *  show the edited record under a «New» header, and the submit would UPDATE it. Resets the form
-   *  without closing: «Add» itself just opened the create panel. */
+   *  without closing: «Add» itself just opened the create panel.
+   *
+   *  pm#459: «Add» while an edit is still LOADING (`editingId` still null) only discards that
+   *  pending opening; a draft typed in the create form survives. */
   onTableClick(e5) {
-    if (!this.editingId) return;
     const addId = "inventory-products-table-add";
-    if (e5.composedPath().some((n6) => n6 instanceof HTMLElement && n6.dataset.testid === addId)) this.resetForm();
+    const isAdd = e5.composedPath().some((n6) => n6 instanceof HTMLElement && n6.dataset.testid === addId);
+    if (!isAdd) return;
+    if (this.editingId) this.resetForm();
+    else this.editSeq++;
   }
   // Submit del form (alta O edición — decide `editingId`, inventory#8). El nombre se
   // conserva por compatibilidad con el template/tests históricos.

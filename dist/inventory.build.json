@@ -1,7 +1,7 @@
 {
   "file": "dist/inventory.esm.js",
-  "sources_sha256": "8a57b5a1f7e77ad20c6486ba413de33be1c2bd50e53bfe7aeed100c0f716a2a0",
+  "sources_sha256": "7a3f3933cd778a7dd2b04ec4e442f682cdde53773f097005f51ffa69b9da597e",
   "locales_sha256": "7630292de168ab7b69b9caca9935b79e1babd8c668f7095f1e0fa683a97aafca",
-  "bundle_sha256": "d9e667d5d18d5c27ad923e567ecc32f60f0475bcf737d23cbec386e5ab50d411",
-  "built_at": "2026-09-26T08:28:31.501Z"
+  "bundle_sha256": "424ec8a657aa8f62abe07d724a3815e5f6bbad6ef2ff09e5cfa5dd69ddf929bd",
+  "built_at": "2026-09-26T09:45:02.552Z"
 }
