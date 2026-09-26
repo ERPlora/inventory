@@ -5661,6 +5661,9 @@ var ErpInventoryProducts = class extends i3 {
     // Re-render al cambiar el idioma del shell (ADR-0055): los getters `columns`/`actions` y el
     // texto del template se re-evalúan con el nuevo `erplora.locale`.
     this.onLocaleChange = () => this.requestUpdate();
+    // inventory#105 — a rotation changes both the screen height and the tabbar height: re-measure
+    // the open mobile sheet against the shell's tabbar so Save keeps clearing it.
+    this.onViewportResize = () => this.syncSheetBottom();
   }
   static {
     this.styles = i`
@@ -5921,6 +5924,7 @@ var ErpInventoryProducts = class extends i3 {
       await table?.updateComplete;
       if (seq !== this.editSeq) return;
       this.editTitleInHeader = table?.shadowRoot?.querySelector('[role="dialog"]')?.getAttribute("aria-label") === title;
+      this.syncSheetBottom();
     } else if (actionId === "delete" && can2("inventory.delete_product")) {
       this.deleteTarget = p4;
     }
@@ -5963,6 +5967,26 @@ var ErpInventoryProducts = class extends i3 {
   // Referencia al ok-data-table para abrir/cerrar su panel lateral (drawer).
   dataTable() {
     return this.renderRoot.querySelector("ok-data-table");
+  }
+  /** inventory#105 — on a phone/tablet the table's mobile sheet runs to the bottom of the SCREEN,
+   *  but the shell paints its tabbar (an ion-footer outside `ion-content`) over the sheet's last
+   *  ~66px, so Save could never scroll clear of it. Reserves that overlap at the end of the form;
+   *  it measures the real drawer, so it becomes 0 by itself on desktop or if OutfitKit ever ends
+   *  the sheet above the tabbar. */
+  syncSheetBottom() {
+    const form = this.renderRoot.querySelector('form[slot="create"]');
+    if (!form) return;
+    const createSlot = this.dataTable()?.shadowRoot?.querySelector('slot[name="create"]');
+    const drawer = createSlot?.assignedElements().includes(form) ? createSlot.closest(".drawer") : null;
+    let node = this;
+    let content = null;
+    while (node && !content) {
+      const parent = node.parentNode ?? (node.getRootNode?.()?.host ?? null);
+      if (parent && parent.nodeType === Node.ELEMENT_NODE && parent.tagName === "ION-CONTENT") content = parent;
+      node = parent === node ? null : parent;
+    }
+    const overlap = drawer && content ? Math.max(0, Math.round(drawer.getBoundingClientRect().bottom - content.getBoundingClientRect().bottom)) : 0;
+    form.style.paddingBottom = overlap > 0 ? `${overlap}px` : "";
   }
   // Importa productos desde CSV (cabeceras = name, sku, price, stock…). Crea uno por fila.
   // Cada fila resuelve su tipo de IVA por referencia (ADR-0066): la columna fiscal (tax/iva/vat/…)
@@ -6277,6 +6301,7 @@ var ErpInventoryProducts = class extends i3 {
   connectedCallback() {
     super.connectedCallback();
     window.addEventListener("erplora:locale-changed", this.onLocaleChange);
+    window.addEventListener("resize", this.onViewportResize);
   }
   async firstUpdated() {
     this.renderRoot.querySelector("ok-data-table")?.addEventListener("click", (e5) => this.onTableClick(e5));
@@ -6309,6 +6334,7 @@ var ErpInventoryProducts = class extends i3 {
   }
   disconnectedCallback() {
     window.removeEventListener("erplora:locale-changed", this.onLocaleChange);
+    window.removeEventListener("resize", this.onViewportResize);
     super.disconnectedCallback();
     this.unsub?.();
   }
@@ -6461,6 +6487,7 @@ var ErpInventoryProducts = class extends i3 {
     if (!isAdd) return;
     if (this.editingId) this.resetForm();
     else this.editSeq++;
+    void this.dataTable()?.updateComplete?.then(() => this.syncSheetBottom());
   }
   // Submit del form (alta O edición — decide `editingId`, inventory#8). El nombre se
   // conserva por compatibilidad con el template/tests históricos.

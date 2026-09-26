@@ -12,7 +12,7 @@
 // y el error pasaría desapercibido. Por eso los dos lados se fijan aquí juntos.
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 /** Comandos que el WC manda al dispatcher, para poder afirmar QUÉ se guarda. */
 const comandos: { name: string; payload: Record<string, unknown> }[] = [];
@@ -2247,5 +2247,88 @@ describe('the commercial categories ticked on a NEW product are saved with it (i
     const schema = jsonDelModulo('schemas/product_create.json');
     expect(schema.properties.category_ids?.type).toBe('array');
     expect(schema.properties.category_ids?.items?.type).toBe('string');
+  });
+});
+
+// inventory#105: on a phone (and a tablet) the table's panel is a full-height sheet that runs from
+// the top of the shell's content area down to the bottom of the SCREEN, while the shell paints the
+// module tabbar (an ion-footer outside the content) over its last ~66 px. The form's last control is
+// Save: scrolled to the end, it still sat under the tabbar, and tapping it opened «Movements».
+// Measured on the real shell at 390×844: sheet bottom 844, content bottom 778 (tabbar top).
+// The form must leave that overlap free at its end so Save can scroll above the tabbar.
+describe('Save stays above the shell tabbar in the mobile sheet (inventory#105)', () => {
+  type Table = HTMLElement & { open: (panel?: unknown, opts?: { title?: string }) => void; shadowRoot: ShadowRoot };
+  type Screen = HTMLElement & { onRowAction: (ev: CustomEvent) => Promise<void>; updateComplete: Promise<unknown> };
+  const original = Element.prototype.getBoundingClientRect;
+  const rect = (top: number, bottom: number) =>
+    ({ top, bottom, left: 0, right: 390, width: 390, height: bottom - top, x: 0, y: top, toJSON: () => ({}) }) as DOMRect;
+  /** Geometry of the shell: content area [193, contentBottom], sheet [193, sheetBottom]. */
+  const layout = (contentBottom: number, sheetBottom: number) => {
+    Element.prototype.getBoundingClientRect = function (this: Element) {
+      if (this.tagName === 'ION-CONTENT') return rect(193, contentBottom);
+      if (this.classList.contains('drawer')) return rect(193, sheetBottom);
+      return original.call(this);
+    };
+  };
+  afterEach(() => {
+    Element.prototype.getBoundingClientRect = original;
+    document.body.innerHTML = '';
+  });
+  const settle = async (el: Screen) => {
+    for (let i = 0; i < 3; i++) {
+      await new Promise((r) => setTimeout(r, 0));
+      await el.updateComplete;
+    }
+  };
+  /** Mounts the screen the way the shell does: inside an ion-content. */
+  const mountInContent = async () => {
+    await import('./erp-inventory-products');
+    const content = document.createElement('ion-content');
+    const el = document.createElement('erp-inventory-products') as unknown as Screen;
+    content.appendChild(el);
+    document.body.appendChild(content);
+    await settle(el);
+    return el;
+  };
+  const table = (el: HTMLElement) => el.shadowRoot!.querySelector('ok-data-table') as unknown as Table;
+  const form = (el: HTMLElement) => el.shadowRoot!.querySelector('form[slot="create"]') as HTMLElement;
+  const clickAdd = (el: HTMLElement) =>
+    (table(el).shadowRoot.querySelector('[data-testid="inventory-products-table-add"]') as HTMLElement).click();
+
+  it('«Add» on a phone: the form ends with the 66 px the tabbar covers, so Save scrolls clear of it', async () => {
+    layout(778, 844);
+    const el = await mountInContent();
+    clickAdd(el);
+    await settle(el);
+    expect(form(el).style.paddingBottom, 'Save would stay under the tabbar').toBe('66px');
+  });
+
+  it('editing a product on a phone reserves the same space', async () => {
+    layout(778, 844);
+    const el = await mountInContent();
+    await el.onRowAction(new CustomEvent('rowAction', {
+      detail: { actionId: 'edit', row: { id: 'p1', name: 'Café solo', sku: 'CAF', price: 220 } },
+    }) as CustomEvent);
+    await settle(el);
+    expect(form(el).style.paddingBottom).toBe('66px');
+  });
+
+  it('on desktop the panel already ends above the tabbar: nothing is added', async () => {
+    layout(734, 718);
+    const el = await mountInContent();
+    clickAdd(el);
+    await settle(el);
+    expect(form(el).style.paddingBottom).toBe('');
+  });
+
+  it('rotating the phone re-measures the open sheet', async () => {
+    layout(778, 844);
+    const el = await mountInContent();
+    clickAdd(el);
+    await settle(el);
+    layout(318, 390); // landscape: shorter screen, 72 px md tabbar
+    window.dispatchEvent(new Event('resize'));
+    await settle(el);
+    expect(form(el).style.paddingBottom).toBe('72px');
   });
 });
