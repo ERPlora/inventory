@@ -157,6 +157,24 @@ describe('the product sheet opens the same receive / count forms as the row (inv
     expect((el[target] as { id: string } | null)?.id, `the ${id} form opens for the product`).toBe('p1');
   });
 
+  // The row path now goes through openReceive/openCount too: each row action opens ITS form, and a
+  // count starts empty instead of carrying the figure typed for the previous product.
+  it.each([
+    ['receive', 'receiveTarget', 'countTarget'],
+    ['count', 'countTarget', 'receiveTarget'],
+  ])('with permission a «%s» row action opens its own form, and a count starts empty', async (id, target, other) => {
+    installSdk('en');
+    const el = await mount('erp-inventory-products');
+    Object.assign(el, { countValue: '9', countReason: 'previous product' });
+    el.shadowRoot.querySelector('ok-data-table')!.dispatchEvent(
+      new CustomEvent('rowAction', { detail: { actionId: id, row: PRODUCT }, bubbles: true, composed: true }),
+    );
+    await el.updateComplete;
+    expect((el[target] as { id: string } | null)?.id, `the ${id} form opens for the product`).toBe('p1');
+    expect(el[other], `a ${id} does not open the other form`).toBeNull();
+    if (id === 'count') expect([el.countValue, el.countReason], 'the count form starts empty').toEqual(['', '']);
+  });
+
   it.each([
     ['receive', 'receiveTarget'],
     ['count', 'countTarget'],
