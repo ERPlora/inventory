@@ -119,6 +119,8 @@ const COVERED: Record<
       'inventory-products-delete-submit',
       'inventory-products-description',
       'inventory-products-detail-close',
+      'inventory-products-detail-count',
+      'inventory-products-detail-receive',
       'inventory-products-ean13',
       'inventory-products-edit-cancel',
       'inventory-products-editing',

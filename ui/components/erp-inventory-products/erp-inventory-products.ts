@@ -605,17 +605,30 @@ export class ErpInventoryProducts extends LitElement {
     ];
   }
 
+  // Receive / count open the same form from the row and from the product sheet (inventory#108).
+  private openReceive(p: Product): void {
+    if (!can('inventory.adjust_stock')) return;
+    this.detail = null;
+    this.receiveTarget = p;
+  }
+
+  private openCount(p: Product): void {
+    if (!can('inventory.adjust_stock')) return;
+    this.detail = null;
+    this.countTarget = p;
+    this.countValue = '';
+    this.countReason = '';
+  }
+
   private async onRowAction(ev: CustomEvent<{ actionId: string; row: Record<string, unknown> }>): Promise<void> {
     const { actionId, row } = ev.detail;
     const p = row as unknown as Product;
     if (actionId === 'detail') {
       this.detail = p; // abre el modal de detalle (con código de barras)
-    } else if (actionId === 'receive' && can('inventory.adjust_stock')) {
-      this.receiveTarget = p;
-    } else if (actionId === 'count' && can('inventory.adjust_stock')) {
-      this.countTarget = p;
-      this.countValue = '';
-      this.countReason = '';
+    } else if (actionId === 'receive') {
+      this.openReceive(p);
+    } else if (actionId === 'count') {
+      this.openCount(p);
     } else if (actionId === 'edit' && can('inventory.change_product')) {
       // REAL edit (inventory#8): loads the FULL product from products.get (the list row does not
       // project description/ean13) + its current M2M categories, and sets editingId.
@@ -1781,6 +1794,17 @@ export class ErpInventoryProducts extends LitElement {
                   <ion-button data-testid="inventory-products-print-barcode" expand="block" @click=${() => this.detail && void this.printBarcode(this.detail)}>
                     <ion-icon name="print-outline" slot="start"></ion-icon> ${t('ui.printBarcode')}
                   </ion-button>
+                  <!-- inventory#108: the stock actions are also here, with text, not only as row icons. -->
+                  ${can('inventory.adjust_stock')
+                    ? html`
+                        <ion-button data-testid="inventory-products-detail-receive" expand="block" fill="outline" @click=${() => this.detail && this.openReceive(this.detail)}>
+                          <ion-icon name="download-outline" slot="start"></ion-icon> ${t('ui.actionReceive')}
+                        </ion-button>
+                        <ion-button data-testid="inventory-products-detail-count" expand="block" fill="outline" @click=${() => this.detail && this.openCount(this.detail)}>
+                          <ion-icon name="calculator-outline" slot="start"></ion-icon> ${t('ui.actionCount')}
+                        </ion-button>
+                      `
+                    : nothing}
                 `
               : nothing}
           </ion-content>
