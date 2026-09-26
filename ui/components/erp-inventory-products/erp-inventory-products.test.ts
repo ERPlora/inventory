@@ -2123,6 +2123,34 @@ describe('two «edit» in a row: the last opening wins (pm#459)', () => {
     expect(titles.at(-1), 'the header names the row last tapped').toBe('ui.editingTitle — Cortado');
   });
 
+  it('a slow CATEGORIES reply for the FIRST row does not overwrite the form of the second', async () => {
+    // The product reads answer at once; only the FIRST opening's categories read is held, so the
+    // second tap lands while the first is parked on its SECOND await.
+    let releaseFirst: () => void = () => {};
+    const held = new Promise<void>((r) => (releaseFirst = r));
+    let categoryReads = 0;
+    const sdk = (globalThis as unknown as { erplora: Record<string, unknown> }).erplora;
+    sdk.query = async (name: string, params?: Record<string, unknown>) => {
+      if (name === 'inventory.products.get') return [FULL[String(params?.product_id)]];
+      if (name !== 'inventory.product_categories') return [];
+      if (++categoryReads === 1) await held;
+      return LINKS;
+    };
+    const el = await mount();
+    table(el).open = () => {};
+    const first = editRow(el, ROW_A);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(categoryReads, 'the first opening is parked on its categories read').toBe(1);
+    const second = editRow(el, ROW_B);
+    await second;
+    releaseFirst();
+    await first;
+    await settle(el);
+    expect(el.editingId, 'a submit here would UPDATE the second product').toBe('p2');
+    expect(el.newName, 'a submit here would write the FIRST product over the second').toBe('Cortado');
+    expect([...el.selectedCategoryIds]).toEqual(['c2']);
+  });
+
   it('cancelling while an edit is still loading keeps the clean create form', async () => {
     let releaseFirst: () => void = () => {};
     hubHoldingFirst(new Promise<void>((r) => (releaseFirst = r)));
