@@ -2222,3 +2222,30 @@ describe('two «edit» in a row: the last opening wins (pm#459)', () => {
     ).toBeNull();
   });
 });
+
+describe('the commercial categories ticked on a NEW product are saved with it (inventory#106)', () => {
+  it('the create sends the ticked categories in the same command, atomically', async () => {
+    const el = await montar();
+    const wc = el as unknown as {
+      newName: string; newSku: string; newPrice: string; newTaxCategoryKey: string;
+      selectedCategoryIds: Set<string>;
+      createProduct: (ev: Event) => Promise<void>;
+    };
+    wc.newName = 'Tinte rubio 7';
+    wc.newSku = 'TIN7';
+    wc.newPrice = '12.00';
+    wc.newTaxCategoryKey = 'standard';
+    wc.selectedCategoryIds = new Set(['cat-dyes', 'cat-retail']);
+    await wc.createProduct(new Event('submit'));
+
+    const create = comandos.find((c) => c.name === 'inventory.products.create');
+    expect(create, 'the create was not sent').toBeTruthy();
+    expect([...(create!.payload.category_ids as string[])].sort()).toEqual(['cat-dyes', 'cat-retail']);
+  });
+
+  it('the create schema accepts `category_ids` (additionalProperties is false)', () => {
+    const schema = jsonDelModulo('schemas/product_create.json');
+    expect(schema.properties.category_ids?.type).toBe('array');
+    expect(schema.properties.category_ids?.items?.type).toBe('string');
+  });
+});

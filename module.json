@@ -367,7 +367,8 @@
       "schema": "schemas/product_create.json",
       "transaction": true,
       "sql": [
-        "commands/product_create.sql"
+        "commands/product_create.sql",
+        "commands/product_create_link_categories.sql"
       ],
       "emit": [
         "inventory.product.created"

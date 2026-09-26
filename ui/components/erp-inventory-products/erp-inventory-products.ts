@@ -1421,6 +1421,7 @@ export class ErpInventoryProducts extends LitElement {
           image: '',
           // inventory#48: null = follows the hub setting; 1/0 only when the user decided.
           track_stock: this.newTrackStock,
+          category_ids: [...this.selectedCategoryIds], // inventory#106: linked atomically with the product
         });
       }
       this.cancelEdit();
