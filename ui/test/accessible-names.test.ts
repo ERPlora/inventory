@@ -157,6 +157,19 @@ describe('the product sheet opens the same receive / count forms as the row (inv
     expect((el[target] as { id: string } | null)?.id, `the ${id} form opens for the product`).toBe('p1');
   });
 
+  it.each([
+    ['receive', 'receiveTarget'],
+    ['count', 'countTarget'],
+  ])('without permission to adjust stock a «%s» row action opens nothing', async (id, target) => {
+    installSdk('en', 'read');
+    const el = await mount('erp-inventory-products');
+    el.shadowRoot.querySelector('ok-data-table')!.dispatchEvent(
+      new CustomEvent('rowAction', { detail: { actionId: id, row: PRODUCT }, bubbles: true, composed: true }),
+    );
+    await el.updateComplete;
+    expect(el[target], `the ${id} form stays closed`).toBeNull();
+  });
+
   it('without permission to adjust stock the sheet offers neither', async () => {
     installSdk('en', 'read');
     const el = await mount('erp-inventory-products');
