@@ -1149,7 +1149,12 @@ export class ErpInventoryProducts extends LitElement {
   async firstUpdated(): Promise<void> {
     // Wired natively, not with a Lit `@click` on the tag: `<ok-data-table>` carries `testid`, not
     // `data-testid` (outfitkit#143), and a template binding would read as an action element.
-    this.renderRoot.querySelector('ok-data-table')?.addEventListener('click', (e) => this.onTableClick(e));
+    const table = this.renderRoot.querySelector('ok-data-table');
+    table?.addEventListener('click', (e) => this.onTableClick(e));
+    // inventory#109 — closing the panel (X, backdrop, Escape) while an «edit» still loads retires
+    // that opening, so its late reply neither reopens the panel nor fills the form. ok-data-table
+    // ≥ 0.1.97 emits it only on open→closed (outfitkit#195); older shells never do: same as today.
+    table?.addEventListener('panelClose', () => this.editSeq++);
     // inventory#72 — the POS links here from its «N articles cannot be sold» warning, and it links
     // to the list ALREADY narrowed. The filter is seeded into the controller instead of applied
     // after the first load on purpose: applying it later would fetch the 280 rows first and let

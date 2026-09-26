@@ -6304,7 +6304,9 @@ var ErpInventoryProducts = class extends i3 {
     window.addEventListener("resize", this.onViewportResize);
   }
   async firstUpdated() {
-    this.renderRoot.querySelector("ok-data-table")?.addEventListener("click", (e5) => this.onTableClick(e5));
+    const table = this.renderRoot.querySelector("ok-data-table");
+    table?.addEventListener("click", (e5) => this.onTableClick(e5));
+    table?.addEventListener("panelClose", () => this.editSeq++);
     const status = statusFilterFromSearch(window.location.search);
     const filters = {};
     if (status === STATUS_UNCONFIGURED) filters.needs_tax_setup = "1";
