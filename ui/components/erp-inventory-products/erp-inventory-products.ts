@@ -308,6 +308,11 @@ export class ErpInventoryProducts extends LitElement {
   // Edición REAL (inventory#8): id en edición (null = alta). Estado técnico Y visible
   // (el form cambia de título/botón). El submit decide create vs update por esto.
   @state() editingId: string | null = null;
+  /** pm#450: whether the table's panel HEADER already carries the editing title (OutfitKit
+   *  ≥ 0.1.94, outfitkit#150). Set only after checking the rendered dialog — never assumed — so
+   *  an older shell (hub:stable ships 0.1.73, which ignores the `title` and keeps «New») still
+   *  gets the fallback line in the form body. */
+  @state() editTitleInHeader = false;
   // Categorías del producto (M2M): marcadas en el form; initial = las de BD al abrir la
   // edición, para sincronizar solo las diferencias (add/remove).
   @state() selectedCategoryIds: Set<string> = new Set();
@@ -638,7 +643,13 @@ export class ErpInventoryProducts extends LitElement {
         this.initialCategoryIds = new Set();
         this.selectedCategoryIds = new Set();
       }
-      this.dataTable()?.open('create'); // abre el panel lateral con la ficha pre-rellenada
+      const title = `${erplora().t(CATALOG, 'ui.editingTitle')} — ${this.newName}`;
+      const table = this.dataTable();
+      table?.open('edit', { title });
+      await table?.updateComplete;
+      // OutfitKit < 0.1.94 ignores the title and keeps «New»: only drop the in-form line when the
+      // header REALLY carries it (the dialog is labelled with it).
+      this.editTitleInHeader = table?.shadowRoot?.querySelector('[role="dialog"]')?.getAttribute('aria-label') === title;
     } else if (actionId === 'delete' && can('inventory.delete_product')) {
       // Nunca borra directo (P1 QA #6): confirmación, como el borrado de categorías.
       this.deleteTarget = p;
@@ -686,9 +697,19 @@ export class ErpInventoryProducts extends LitElement {
   }
 
   // Referencia al ok-data-table para abrir/cerrar su panel lateral (drawer).
-  private dataTable(): { open(p?: 'filters' | 'create'): void; close(): void } | null {
+  private dataTable(): {
+    open(p?: 'filters' | 'create' | 'edit', opts?: { title?: string }): void;
+    close(): void;
+    updateComplete?: Promise<unknown>;
+    shadowRoot: ShadowRoot | null;
+  } | null {
     return this.renderRoot.querySelector('ok-data-table') as
-      | { open(p?: 'filters' | 'create'): void; close(): void }
+      | {
+          open(p?: 'filters' | 'create' | 'edit', opts?: { title?: string }): void;
+          close(): void;
+          updateComplete?: Promise<unknown>;
+          shadowRoot: ShadowRoot | null;
+        }
       | null;
   }
 
@@ -1073,6 +1094,9 @@ export class ErpInventoryProducts extends LitElement {
   }
 
   async firstUpdated(): Promise<void> {
+    // Wired natively, not with a Lit `@click` on the tag: `<ok-data-table>` carries `testid`, not
+    // `data-testid` (outfitkit#143), and a template binding would read as an action element.
+    this.renderRoot.querySelector('ok-data-table')?.addEventListener('click', (e) => this.onTableClick(e));
     // inventory#72 — the POS links here from its «N articles cannot be sold» warning, and it links
     // to the list ALREADY narrowed. The filter is seeded into the controller instead of applied
     // after the first load on purpose: applying it later would fetch the 280 rows first and let
@@ -1247,10 +1271,10 @@ export class ErpInventoryProducts extends LitElement {
     }
   }
 
-  /** Vuelve al modo ALTA limpio (inventory#8): tras editar, el siguiente «+» no hereda datos.
-   *  También CIERRA el panel lateral (QA 07-16: quedaba abierto con el form vacío). */
-  cancelEdit(): void {
-    this.dataTable()?.close();
+  /** Resets every form field to its clean ALTA state (inventory#8): shared by `cancelEdit()` and
+   *  the table's «Add» (pm#450), which must reset the form WITHOUT closing the panel it just
+   *  opened. */
+  private resetForm(): void {
     this.editingId = null;
     this.newName = '';
     this.newSku = '';
@@ -1268,6 +1292,22 @@ export class ErpInventoryProducts extends LitElement {
     this.initialCategoryIds = new Set();
     this.selectedCategoryIds = new Set();
     this.formError = '';
+  }
+
+  /** Back to a clean CREATE form (inventory#8): after an edit, the next «+» inherits nothing.
+   *  Also CLOSES the side panel (QA 07-16: it stayed open with an empty form). */
+  cancelEdit(): void {
+    this.dataTable()?.close();
+    this.resetForm();
+  }
+
+  /** pm#450: the table's «Add» emits no event and keeps our form state; after an edit it would
+   *  show the edited record under a «New» header, and the submit would UPDATE it. Resets the form
+   *  without closing: «Add» itself just opened the create panel. */
+  private onTableClick(e: Event): void {
+    if (!this.editingId) return;
+    const addId = 'inventory-products-table-add';
+    if (e.composedPath().some((n) => n instanceof HTMLElement && n.dataset.testid === addId)) this.resetForm();
   }
 
   // Submit del form (alta O edición — decide `editingId`, inventory#8). El nombre se
@@ -1441,7 +1481,9 @@ export class ErpInventoryProducts extends LitElement {
           <form slot="create" class="form" data-testid="inventory-products-form" @submit=${(e: Event) => this.createProduct(e)}>
             ${this.editingId
               ? html`<div class="drow" style="align-items:center;">
-                  <b>${erplora().t(CATALOG, 'ui.editingTitle')}</b>
+                  ${this.editTitleInHeader
+                    ? nothing
+                    : html`<b data-testid="inventory-products-editing">${erplora().t(CATALOG, 'ui.editingTitle')} — ${this.newName}</b>`}
                   <ion-button data-testid="inventory-products-edit-cancel" size="small" fill="clear" @click=${() => this.cancelEdit()}>
                     ${erplora().t(CATALOG, 'ui.editingCancel')}
                   </ion-button>

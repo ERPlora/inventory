@@ -124,6 +124,7 @@
     "importLine": "Línea",
     "importCopy": "Copiar informe",
     "editingTitle": "Editando producto",
+    "editingCategoryTitle": "Editando categoría",
     "editingCancel": "Cancelar edición",
     "skuIdentity": "El SKU es la identidad del producto: no se edita",
     "fieldCost": "Coste",

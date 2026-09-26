@@ -86,6 +86,11 @@ export class ErpInventoryCategories extends LitElement {
   @state() private formError = '';
   // Edición REAL (inventory#8): id en edición (null = alta); el submit decide create/update.
   @state() editingId: string | null = null;
+  /** pm#450: whether the table's panel HEADER already carries the editing title (OutfitKit
+   *  ≥ 0.1.94, outfitkit#150). Set only after checking the rendered dialog — never assumed — so
+   *  an older shell (hub:stable ships 0.1.73, which ignores the `title` and keeps «New») still
+   *  gets the fallback line in the form body. */
+  @state() editTitleInHeader = false;
   // Fila completa en edición: preserva los campos que el form no expone (icon/color/order).
   private editRow: Record<string, unknown> | null = null;
   // Borrado con impacto (inventory#8): la confirmación enseña cuántos productos quedan
@@ -123,7 +128,18 @@ export class ErpInventoryCategories extends LitElement {
     window.addEventListener('erplora:locale-changed', this.onLocaleChange);
   }
 
+  /** pm#450: the table's «Add» emits no event and keeps our form state; after an edit it would
+   *  show the edited record under a «New» header, and the submit would UPDATE it. */
+  private onTableClick(e: Event): void {
+    if (!this.editingId) return;
+    const addId = 'inventory-categories-table-add';
+    if (e.composedPath().some((n) => n instanceof HTMLElement && n.dataset.testid === addId)) this.cancelEdit();
+  }
+
   async firstUpdated(): Promise<void> {
+    // Wired natively, not with a Lit `@click` on the tag: `<ok-data-table>` carries `testid`, not
+    // `data-testid` (outfitkit#143), and a template binding would read as an action element.
+    this.renderRoot.querySelector('ok-data-table')?.addEventListener('click', (e) => this.onTableClick(e));
     this.ctrl = createListController<Category>(erplora(), 'inventory.categories.list', () => this.requestUpdate(), {
       pageSize: 25,
       sort: 'name',
@@ -178,15 +194,21 @@ export class ErpInventoryCategories extends LitElement {
     const { actionId, row } = ev.detail;
     const c = row as unknown as Category;
     if (actionId === 'edit' && can('inventory.change_category')) {
-      this.editingId = c.id; // edición REAL (inventory#8): el submit hará update
-      // Guarda la fila completa: el update envía el conjunto entero y los campos que el
-      // form no edita (icon/color/order/description) se REENVÍAN tal cual — si se omiten,
-      // los defaults del schema los machacarían (icon volvería a 'cube-outline').
+      this.editingId = c.id; // real edit (inventory#8): submit will call update
+      // Keep the whole row: the update sends the full set, and fields the form does not edit
+      // (icon/color/order/description) are RESENT as-is — omitting them would let the schema's
+      // defaults overwrite them (icon would revert to 'cube-outline').
       this.editRow = row;
       this.newName = c.name;
       this.newSlug = c.slug;
-      this.newTaxRateId = c.tax_category_key ?? ''; // pre-selecciona el tipo de IVA actual
-      this.dataTable()?.open('create');
+      this.newTaxRateId = c.tax_category_key ?? ''; // pre-select the current tax rate
+      const title = `${erplora().t(CATALOG, 'ui.editingCategoryTitle')} — ${this.newName}`;
+      const table = this.dataTable();
+      table?.open('edit', { title });
+      await table?.updateComplete;
+      // OutfitKit < 0.1.94 ignores the title and keeps «New»: only say it is an edit in the form
+      // body when the header does NOT (the dialog is labelled with the title).
+      this.editTitleInHeader = table?.shadowRoot?.querySelector('[role="dialog"]')?.getAttribute('aria-label') === title;
     } else if (actionId === 'delete' && can('inventory.delete_category')) {
       // Nunca borra directo (inventory#8): confirma enseñando el IMPACTO (productos
       // vinculados que quedarán sin esta categoría).
@@ -225,9 +247,19 @@ export class ErpInventoryCategories extends LitElement {
     this.formError = '';
   }
 
-  private dataTable(): { open(p?: 'filters' | 'create'): void; close(): void } | null {
+  private dataTable(): {
+    open(p?: 'filters' | 'create' | 'edit', opts?: { title?: string }): void;
+    close(): void;
+    updateComplete?: Promise<unknown>;
+    shadowRoot: ShadowRoot | null;
+  } | null {
     return this.renderRoot.querySelector('ok-data-table') as
-      | { open(p?: 'filters' | 'create'): void; close(): void }
+      | {
+          open(p?: 'filters' | 'create' | 'edit', opts?: { title?: string }): void;
+          close(): void;
+          updateComplete?: Promise<unknown>;
+          shadowRoot: ShadowRoot | null;
+        }
       | null;
   }
 
@@ -366,6 +398,9 @@ export class ErpInventoryCategories extends LitElement {
             this.ctrl.setFilter(e.detail.col, e.detail.value)}
         >
           <form slot="create" class="form" data-testid="inventory-categories-form" @submit=${(e: Event) => this.create(e)}>
+            ${this.editingId && !this.editTitleInHeader
+              ? html`<b data-testid="inventory-categories-editing">${erplora().t(CATALOG, 'ui.editingCategoryTitle')} — ${this.newName}</b>`
+              : nothing}
             <ion-input mode="md"
               data-testid="inventory-categories-name"
               fill="outline"

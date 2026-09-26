@@ -317,3 +317,131 @@ describe('el selector fiscal usa el MISMO formato que el alta: nombre · % (inve
     expect(opciones(el)).toContain(esperado);
   });
 });
+
+// pm#450 (outfitkit#150): editing opened the panel with open('create'), so its header said «New»
+// over a pre-filled category — nothing on screen said it was an edit. The table knows an «edit»
+// mode and takes the whole title: the screen asks for «Editing category — <name>».
+describe('editing titles the panel header, not its body (pm#450)', () => {
+  type Table = HTMLElement & { open: (panel?: unknown, opts?: { title?: string }) => void; shadowRoot: ShadowRoot };
+  type Screen = HTMLElement & {
+    onRowAction: (ev: CustomEvent) => Promise<void>;
+    cancelEdit: () => void;
+    editingId: string | null;
+    newName: string;
+    updateComplete: Promise<unknown>;
+  };
+  const table = (el: HTMLElement) => el.shadowRoot!.querySelector('ok-data-table') as Table;
+  const settle = async (el: Screen) => {
+    await new Promise((r) => setTimeout(r, 0));
+    await el.updateComplete;
+  };
+  const edit = (el: Screen) =>
+    el.onRowAction(new CustomEvent('rowAction', {
+      detail: { actionId: 'edit', row: { id: 'c1', name: 'Bebidas', slug: 'bebidas', tax_category_key: null } },
+    }) as CustomEvent);
+  const mount = async () => (await montar()) as Screen;
+  const form = (el: HTMLElement) => el.shadowRoot!.querySelector('form[slot="create"]') as HTMLElement;
+
+  it("opens the panel with open('edit', { title }) — «Editing category — <name>» in the header", async () => {
+    const el = await mount();
+    const calls: unknown[][] = [];
+    table(el).open = (...args: unknown[]) => void calls.push(args);
+    await edit(el);
+    await settle(el);
+    expect(calls).toEqual([['edit', { title: 'ui.editingCategoryTitle — Bebidas' }]]);
+  });
+
+  // The header only carries the title with OutfitKit ≥ 0.1.94 (outfitkit#150); an older shell
+  // (hub:stable 1.1.29 ships 0.1.73) ignores it and keeps «New». The body line only goes away when
+  // the table REALLY painted the title — its dialog is labelled with it — never on faith.
+  const shellTable = (el: HTMLElement, honoursTitle: boolean) => {
+    const t = table(el);
+    const dialog = document.createElement('aside');
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-label', 'Form');
+    const root = document.createElement('div');
+    root.appendChild(dialog);
+    Object.defineProperty(t, 'shadowRoot', { value: root, configurable: true });
+    // Like the real Lit table, open() only schedules the render: the dialog is labelled on the
+    // next microtask and `updateComplete` resolves once it is.
+    let rendered: Promise<void> = Promise.resolve();
+    Object.defineProperty(t, 'updateComplete', { get: () => rendered, configurable: true });
+    t.open = (_panel?: unknown, opts?: { title?: string }) => {
+      rendered = Promise.resolve().then(() => {
+        if (honoursTitle && opts?.title) dialog.setAttribute('aria-label', opts.title);
+      });
+    };
+  };
+
+  it('the form body does not repeat the editing title once the header carries it', async () => {
+    const el = await mount();
+    shellTable(el, true);
+    await edit(el);
+    await settle(el);
+    expect(form(el).querySelector('[data-testid="inventory-categories-editing"]')).toBeNull();
+    expect(form(el).textContent).not.toContain('ui.editingCategoryTitle');
+  });
+
+  it('with a shell whose table ignores the title (OutfitKit < 0.1.94), the body says it is an edit', async () => {
+    const el = await mount();
+    shellTable(el, false);
+    await edit(el);
+    await settle(el);
+    const line = form(el).querySelector('[data-testid="inventory-categories-editing"]') as HTMLElement | null;
+    expect(line, 'the header says «New»: without this line nothing says it is an edit').toBeTruthy();
+    expect(line!.textContent).toContain('ui.editingCategoryTitle');
+    expect(line!.textContent).toContain('Bebidas');
+  });
+
+  it('cancelling the edit hides the fallback line again', async () => {
+    const el = await mount();
+    shellTable(el, false);
+    await edit(el);
+    await settle(el);
+    el.cancelEdit();
+    await settle(el);
+    expect(form(el).querySelector('[data-testid="inventory-categories-editing"]')).toBeNull();
+  });
+
+  it('«Add» after an edit opens a CLEAN create form', async () => {
+    const el = await mount();
+    await edit(el);
+    await settle(el);
+    const add = table(el).shadowRoot.querySelector('[data-testid="inventory-categories-table-add"]') as HTMLElement;
+    expect(add, 'the table paints its «Add» button').toBeTruthy();
+    add.click();
+    await settle(el);
+    expect(el.editingId, 'a submit here would UPDATE the edited category under a «New» header').toBeNull();
+    expect(el.newName).toBe('');
+  });
+
+  it('a click INSIDE the edit form (a field, a row) does not drop the edit — only «Add» does', async () => {
+    const el = await mount();
+    await edit(el);
+    await settle(el);
+    (el.shadowRoot!.querySelector('[data-testid="inventory-categories-name"]') as HTMLElement).click();
+    table(el).click();
+    await settle(el);
+    expect(el.editingId, 'the table host hears every click of the projected form').toBe('c1');
+  });
+
+  it('«Add» with no edit in progress keeps what was typed', async () => {
+    const el = await mount();
+    el.newName = 'Postres';
+    (table(el).shadowRoot.querySelector('[data-testid="inventory-categories-table-add"]') as HTMLElement).click();
+    await settle(el);
+    expect(el.newName).toBe('Postres');
+  });
+
+  it('the new header title has its en AND es string', async () => {
+    // Relative to THIS file: a cwd-based lookup would read the base checkout, not the module under test.
+    const locales = {
+      en: (await import('../../../locales/en.json')).default,
+      es: (await import('../../../locales/es.json')).default,
+    };
+    for (const [lang, catalog] of Object.entries(locales)) {
+      const ui = (catalog as { ui: Record<string, string> }).ui;
+      expect(ui.editingCategoryTitle, `locales/${lang}.json`).toBeTruthy();
+    }
+  });
+});

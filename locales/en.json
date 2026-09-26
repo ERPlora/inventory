@@ -123,6 +123,7 @@
     "importLine": "Line",
     "importCopy": "Copy report",
     "editingTitle": "Editing product",
+    "editingCategoryTitle": "Editing category",
     "editingCancel": "Cancel editing",
     "skuIdentity": "SKU is the product identity: not editable",
     "fieldCost": "Cost",
