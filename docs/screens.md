@@ -92,11 +92,13 @@ that caused it. Movement types: `initial`, `reception`, `sale`, `void`, `count`,
 - **Filter** by product, movement type, reference or date range.
 
 This screen is **read-only by design**. You cannot edit or delete a movement — see
-[concepts.md](concepts.md).
+[concepts.md](concepts.md). While it is empty it says where the first movements come from:
+**Receive stock** and **Count stock** on a product, and sales.
 
 ### Count stock (correct a balance)
 
-1. Open **Movements** or the product and start a stock count.
+1. In **Products**, tap **Count stock** — the calculator icon on the product's row, or the button
+   with that name on the product sheet (the eye icon, **Details**).
 2. Enter the **counted absolute value** — not the difference. If you counted 7 bottles, you type 7.
 3. Enter a **reason**; it is mandatory and must be at least 3 characters.
 4. Save. The ledger records the difference as a `count` movement and the balance becomes what you
@@ -106,12 +108,14 @@ Requires `inventory.adjust_stock`.
 
 ### Receive goods
 
-1. Start a reception and add one line per product, with the quantity received and optionally the
-   unit cost (in cents).
-2. Save. Each line adds a `reception` movement and increases that product's stock.
+1. In **Products**, tap **Receive stock** — the download icon on the product's row, or the button
+   with that name on the product sheet.
+2. Enter the quantity received and, optionally, the unit cost in the hub currency.
+3. Save. The reception adds a `reception` movement and increases that product's stock.
 
-Lines with a quantity of zero or less, or without a product, are skipped. A reception accepts at
-most **200 lines**. Requires `inventory.adjust_stock`.
+Through the command (`inventory.stock.receive`) one reception can carry up to **200 lines**, one
+per product; lines with a quantity of zero or less, or without a product, are skipped. Requires
+`inventory.adjust_stock`.
 
 ## Categories
 
