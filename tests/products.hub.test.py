@@ -299,6 +299,34 @@ def test_the_per_article_track_stock_flag_survives_a_null_bind_before_it(hub: Hu
     )
 
 
+def test_categories_chosen_at_creation_are_saved_and_counted_inventory_106(hub: Hub) -> None:
+    print(
+        "\n6 · inventory#106: the categories ticked on a NEW product are saved with it and counted"
+    )
+    cat_name = unique("Tintes")
+    hub.run("inventory.categories.create", {"name": cat_name})
+    cat_id = next(
+        c["id"] for c in hub.query("inventory.categories.list") if c["name"] == cat_name
+    )
+    # The REAL kernel binds the array as its JSON text and reuses the injected `new_id` in the
+    # second sheet of the command — the two facts the Postgres battery can only imitate.
+    pid = create_product(hub, name=unique("Tinte rubio 7"), category_ids=[cat_id])
+    linked = [
+        m["category_id"]
+        for m in hub.query("inventory.product_categories")
+        if m["product_id"] == pid
+    ]
+    hub.check("the product is born linked to its category", linked, [cat_id])
+    cats = [c for c in hub.query("inventory.categories.list") if c["id"] == cat_id]
+    hub.check("the category counter counts it", cats[0]["product_count"], 1)
+
+    bare = create_product(hub, name=unique("Sin categoria"))
+    hub.check_true(
+        "a create without category_ids links nothing",
+        not [m for m in hub.query("inventory.product_categories") if m["product_id"] == bare],
+    )
+
+
 def main() -> int:
     hub = Hub("products.hub")
     print(
@@ -310,6 +338,7 @@ def main() -> int:
     test_category_crud(hub)
     test_product_category_link_is_scalar_and_idempotent(hub)
     test_the_per_article_track_stock_flag_survives_a_null_bind_before_it(hub)
+    test_categories_chosen_at_creation_are_saved_and_counted_inventory_106(hub)
     return hub.finish(
         "the catalogue keeps every promise the hub's e2e used to assert, against the real kernel"
     )

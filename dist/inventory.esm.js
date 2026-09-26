@@ -6561,7 +6561,9 @@ var ErpInventoryProducts = class extends i3 {
           unit_code: this.newUnitCode,
           image: "",
           // inventory#48: null = follows the hub setting; 1/0 only when the user decided.
-          track_stock: this.newTrackStock
+          track_stock: this.newTrackStock,
+          category_ids: [...this.selectedCategoryIds]
+          // inventory#106: linked atomically with the product
         });
       }
       this.cancelEdit();
