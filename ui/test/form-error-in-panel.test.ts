@@ -295,6 +295,23 @@ describe('pm#478 · products: stock count and goods receipt say their refusal in
     return modal?.querySelector(`[data-testid="${testid}"]`) ?? null;
   };
 
+  /** A unit counted in whole units: 2.5 is off its grid. */
+  const UNIT = { code: 'ud', increment_value: 1_000_000, name: 'Unit', name_es: 'Unidad' };
+
+  /** Holds the next command in flight until `release()`, so the screen can be looked at meanwhile. */
+  function holdNextCommand(): { release: () => void } {
+    let release = (): void => {};
+    const gate = new Promise<void>((r) => { release = r; });
+    const client = (globalThis as Record<string, any>).erplora;
+    const original = client.command;
+    client.command = async () => {
+      client.command = original;
+      await gate;
+      return {};
+    };
+    return { release };
+  }
+
   async function refusedCount(el: Wc): Promise<void> {
     await el.onRowAction(rowAction('count', PRODUCT));
     el.countValue = '3';
@@ -321,8 +338,19 @@ describe('pm#478 · products: stock count and goods receipt say their refusal in
     expect(inForm(el, 'inventory-products-form-error')).toBeNull();
   });
 
-  it('a count that is not a quantity of the unit is said in the count modal too', async () => {
+  it('a count that is not a number is said in the count modal too', async () => {
     const el = await mount('erp-inventory-products', PRODUCTS);
+    await el.onRowAction(rowAction('count', PRODUCT));
+    el.countValue = 'abc';
+    el.countReason = 'broken';
+    await el.submitCount();
+    await settle(el);
+    expect(inModalOf(el, 'inventory-products-count-qty', 'inventory-products-count-error')?.textContent?.trim()).toBe('ui.errQuantity');
+  });
+
+  it('a count off the grid of the unit is said in the count modal too', async () => {
+    const el = await mount('erp-inventory-products', PRODUCTS);
+    el.units = [UNIT];
     await el.onRowAction(rowAction('count', PRODUCT));
     el.countValue = '2.5';
     el.countReason = 'broken';
@@ -347,6 +375,38 @@ describe('pm#478 · products: stock count and goods receipt say their refusal in
     await el.submitReceive();
     await settle(el);
     expect(inModalOf(el, 'inventory-products-receive-qty', 'inventory-products-receive-error')?.textContent?.trim()).toBe('ui.errQuantity');
+  });
+
+  it('a receipt off the grid of the unit is said in the receipt modal too', async () => {
+    const el = await mount('erp-inventory-products', PRODUCTS);
+    el.units = [UNIT];
+    await el.onRowAction(rowAction('receive', PRODUCT));
+    el.receiveQty = '2.5';
+    await el.submitReceive();
+    await settle(el);
+    expect(inModalOf(el, 'inventory-products-receive-qty', 'inventory-products-receive-error')?.textContent?.trim()).toBe('ui.errQuantityGrid');
+  });
+
+  it('a new count attempt hides the previous refusal while it is being sent', async () => {
+    const el = await mount('erp-inventory-products', PRODUCTS);
+    await refusedCount(el);
+    const sent = holdNextCommand();
+    const attempt = el.submitCount();
+    await settle(el);
+    expect(inModalOf(el, 'inventory-products-count-qty', 'inventory-products-count-error'), 'an old «no» next to a new try reads as the answer to it').toBeNull();
+    sent.release();
+    await attempt;
+  });
+
+  it('a new receipt attempt hides the previous refusal while it is being sent', async () => {
+    const el = await mount('erp-inventory-products', PRODUCTS);
+    await refusedReceive(el);
+    const sent = holdNextCommand();
+    const attempt = el.submitReceive();
+    await settle(el);
+    expect(inModalOf(el, 'inventory-products-receive-qty', 'inventory-products-receive-error')).toBeNull();
+    sent.release();
+    await attempt;
   });
 
   it('a refused count does not follow the person into the receipt modal of another product', async () => {
