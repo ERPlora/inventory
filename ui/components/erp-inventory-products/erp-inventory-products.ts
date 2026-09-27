@@ -20,7 +20,7 @@ import type { DataTableColumn, DataTableAction } from '@erplora/outfitkit';
 // The major ↔ minor boundary lives in ONE place (`lib/hub-currency`, on top of the SDK, ADR-0123):
 // having it copied is what made the CSV import forget the ×100 and store a 2,20 € coffee as 2
 // cents; having it hard-coded to two decimals stored a 480 ¥ tea as 48000 ¥ (inventory#101).
-import { createListController, dataTableLabels, majorToMinor as sdkMajorToMinor } from '@erplora/module-sdk';
+import { createListController, dataTableLabels } from '@erplora/module-sdk';
 import type { ListController, ListClient, ListParams, ListPage } from '@erplora/module-sdk';
 // Catálogo i18n del módulo (ADR-0055): esbuild inlinea estos JSON en el `dist` del WC. Los textos
 // internos se resuelven con `erplora.t(CATALOG, 'ui.clave')` (idioma activo, fallback locale→en→clave).
@@ -33,33 +33,6 @@ const CATALOG: Record<string, unknown> = { es: esLocale, en: enLocale };
 //
 // 90% de la lógica vive en Rust: este componente NO toca la BD; llama al SDK
 // (erplora.query/queryPage/command/on). El cliente se obtiene de `globalThis.erplora`.
-
-/**
- * Columns whose `range` filter is money (inventory#115, pm#498). The column paints the INTEGER in
- * the minor unit as money of the hub («2,20 €»), so the person types the major unit («12»); the
- * dispatcher compares against the integer, so each edge is scaled before the list is asked for.
- */
-const MONEY_RANGE_FILTERS = new Set(['price']);
-
-/**
- * One typed edge of a money range → minor units, with the hub's currency decimals. The table emits
- * a Number from the panel and text from the inline control («12,5» included). Empty or not a
- * number → `''`, which the list controller drops: a stray keystroke never becomes «from 0».
- */
-function moneyEdgeToMinor(edge: unknown, decimals: number): number | '' {
-  const text = typeof edge === 'string' ? edge.trim().replace(',', '.') : edge;
-  if (text === '' || text === null || text === undefined) return '';
-  const n = Number(text);
-  return Number.isFinite(n) ? sdkMajorToMinor(n, decimals) : '';
-}
-
-/** The `{ from?, to? }` a money range emits, scaled edge by edge; any other shape travels as is. */
-function moneyRangeToMinor(value: unknown, decimals: number): unknown {
-  if (value === null || typeof value !== 'object') return value;
-  return Object.fromEntries(
-    Object.entries(value as Record<string, unknown>).map(([edge, v]) => [edge, moneyEdgeToMinor(v, decimals)]),
-  );
-}
 
 interface ErploraClientLike extends ListClient {
   query<T = unknown>(name: string, params?: Record<string, unknown>): Promise<T>;
@@ -1225,7 +1198,17 @@ export class ErpInventoryProducts extends LitElement {
       erplora(),
       'inventory.products.list',
       () => this.requestUpdate(),
-      { pageSize: 50, sort: 'name', dir: 'asc', filters },
+      {
+        pageSize: 50,
+        sort: 'name',
+        dir: 'asc',
+        filters,
+        // The person types «12» € and «2» units; the SDK scales each edge to the stored integer
+        // (minor unit of the hub currency / 10⁶, negatives included) and keeps what was typed
+        // (hub#2271, pm#501).
+        moneyFilters: ['price'],
+        quantityFilters: ['stock'],
+      },
     );
     await this.ctrl.load();
     void this.loadTaxCategories();
@@ -1347,17 +1330,6 @@ export class ErpInventoryProducts extends LitElement {
   private quantityStep(unitCode: string | undefined): string {
     const increment = this.unitIncrement(unitCode);
     return increment > 0 ? formatQuantity(increment) : '0.000001';
-  }
-
-  /** Los filtros de la tabla también son entrada humana; el servidor espera los extremos en µ. */
-  private stockFilterValue(value: unknown): unknown {
-    if (typeof value !== 'object' || value === null) return value;
-    const scaled: Record<string, unknown> = {};
-    for (const [edge, logical] of Object.entries(value as Record<string, unknown>)) {
-      if (logical === '' || logical == null) scaled[edge] = logical;
-      else scaled[edge] = parseQuantity(String(logical)) ?? logical;
-    }
-    return scaled;
   }
 
   /** Etiqueta del selector: «Kilogramo (kg)» / «Kilogram (kg)» según locale (ADR-0055). */
@@ -1610,18 +1582,10 @@ export class ErpInventoryProducts extends LitElement {
             // La columna de estado tiene TRES valores repartidos en DOS columnas del servidor
             // (inventory#38): su filtro no es un `setFilter` directo.
             if (e.detail.col === 'is_active') return this.applyStatusFilter(e.detail.value);
-            // El valor VISIBLE se anota tal cual llega (inventory#83); al servidor va traducido —
-            // `stock` viaja como rango en la unidad del artículo, no como lo teclea el usuario.
+            // The VISIBLE value is kept as it arrives (inventory#83); `price` and `stock` are scaled
+            // by the list controller (`moneyFilters` / `quantityFilters`), never here.
             this.setTableFilter(e.detail.col, e.detail.value);
-            // `price` travels in the minor unit of the hub currency (inventory#115, pm#498).
-            this.ctrl.setFilter(
-              e.detail.col,
-              e.detail.col === 'stock'
-                ? this.stockFilterValue(e.detail.value)
-                : MONEY_RANGE_FILTERS.has(e.detail.col)
-                  ? moneyRangeToMinor(e.detail.value, hubDecimals())
-                  : e.detail.value,
-            );
+            this.ctrl.setFilter(e.detail.col, e.detail.value);
           }}
         >
           <!-- Formulario de alta: el botón "+" del data-table despliega este acordeón. -->

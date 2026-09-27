@@ -4265,6 +4265,12 @@ __decorateClass3([
 var OkDataTable = _OkDataTable;
 define("ok-data-table", OkDataTable);
 
+// @erplora/module-sdk/src/quantity.ts
+var QUANTITY_SCALE = 1e6;
+function toMicro(quantity) {
+  return Math.round(quantity * QUANTITY_SCALE);
+}
+
 // @erplora/module-sdk/src/index.ts
 var DATA_TABLE_LABELS_ES = {
   search: "Buscar\u2026",
@@ -4365,6 +4371,29 @@ var ListController = class {
       filters: { ...opts.filters ?? {} },
       context: { ...opts.context ?? {} }
     };
+    this.moneyFilters = new Set(opts.moneyFilters ?? []);
+    this.quantityFilters = new Set(opts.quantityFilters ?? []);
+    if (this.moneyFilters.size > 0 && typeof client.currencyDecimals !== "number") {
+      throw new ErploraError(
+        "list_money_filters_need_currency_decimals",
+        "moneyFilters needs a list client that exposes currencyDecimals"
+      );
+    }
+  }
+  /**
+   * The filters as the runtime compares them: money and quantity columns scaled from what the
+   * person typed to the stored integer. `state.filters` stays as typed, so a table that echoes it
+   * back keeps showing «12», not «1200».
+   */
+  wireFilters() {
+    if (this.moneyFilters.size === 0 && this.quantityFilters.size === 0) return this.state.filters;
+    const decimals = this.client.currencyDecimals ?? 0;
+    const out = {};
+    for (const [col, value] of Object.entries(this.state.filters)) {
+      const scale = this.moneyFilters.has(col) ? (n6) => majorToMinor(n6, decimals) : this.quantityFilters.has(col) ? toMicro : null;
+      out[col] = scale ? scaleFilterValue(value, scale) : value;
+    }
+    return out;
   }
   /** Nº de páginas según el total del servidor (mínimo 1). */
   get pageCount() {
@@ -4384,7 +4413,7 @@ var ListController = class {
         search: s5.search,
         sort: s5.sort,
         dir: s5.dir,
-        filters: s5.filters,
+        filters: this.wireFilters(),
         params: s5.context
       });
       if (mySeq !== this.seq) return;
@@ -4453,10 +4482,33 @@ var ListController = class {
     void this.load();
   }
 };
+function scaleFilterEdge(edge, scale) {
+  const text = typeof edge === "string" ? edge.trim().replace(",", ".") : edge;
+  if (text === "" || text === null || text === void 0) return "";
+  const n6 = Number(text);
+  return Number.isFinite(n6) ? scale(n6) : "";
+}
+function scaleFilterValue(value, scale) {
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([edge, v3]) => [edge, scaleFilterEdge(v3, scale)])
+    );
+  }
+  return scaleFilterEdge(value, scale);
+}
 function createListController(client, queryName, onChange = () => {
 }, opts = {}) {
   return new ListController(client, queryName, onChange, opts);
 }
+var ErploraError = class extends Error {
+  constructor(code, message, permission, fields) {
+    super(message);
+    this.code = code;
+    this.permission = permission;
+    this.fields = fields;
+    this.name = "ErploraError";
+  }
+};
 function majorToMinor(amount, decimals) {
   const n6 = Number(amount);
   return Number.isFinite(n6) ? Math.round(n6 * 10 ** decimals) : 0;
@@ -5515,19 +5567,6 @@ async function printBarcodeLabel(label, deps = {}) {
 
 // ui/components/erp-inventory-products/erp-inventory-products.ts
 var CATALOG4 = { es: es_default, en: en_default };
-var MONEY_RANGE_FILTERS = /* @__PURE__ */ new Set(["price"]);
-function moneyEdgeToMinor(edge, decimals) {
-  const text = typeof edge === "string" ? edge.trim().replace(",", ".") : edge;
-  if (text === "" || text === null || text === void 0) return "";
-  const n6 = Number(text);
-  return Number.isFinite(n6) ? majorToMinor(n6, decimals) : "";
-}
-function moneyRangeToMinor(value, decimals) {
-  if (value === null || typeof value !== "object") return value;
-  return Object.fromEntries(
-    Object.entries(value).map(([edge, v3]) => [edge, moneyEdgeToMinor(v3, decimals)])
-  );
-}
 var STATUS_UNCONFIGURED = "unconfigured";
 var STATUS_FROM_QUERY = {
   [STATUS_UNCONFIGURED]: STATUS_UNCONFIGURED,
@@ -6371,7 +6410,17 @@ var ErpInventoryProducts = class extends i3 {
       erplora4(),
       "inventory.products.list",
       () => this.requestUpdate(),
-      { pageSize: 50, sort: "name", dir: "asc", filters }
+      {
+        pageSize: 50,
+        sort: "name",
+        dir: "asc",
+        filters,
+        // The person types «12» € and «2» units; the SDK scales each edge to the stored integer
+        // (minor unit of the hub currency / 10⁶, negatives included) and keeps what was typed
+        // (hub#2271, pm#501).
+        moneyFilters: ["price"],
+        quantityFilters: ["stock"]
+      }
     );
     await this.ctrl.load();
     void this.loadTaxCategories();
@@ -6471,16 +6520,6 @@ var ErpInventoryProducts = class extends i3 {
   quantityStep(unitCode) {
     const increment = this.unitIncrement(unitCode);
     return increment > 0 ? formatQuantity2(increment) : "0.000001";
-  }
-  /** Los filtros de la tabla también son entrada humana; el servidor espera los extremos en µ. */
-  stockFilterValue(value) {
-    if (typeof value !== "object" || value === null) return value;
-    const scaled = {};
-    for (const [edge, logical] of Object.entries(value)) {
-      if (logical === "" || logical == null) scaled[edge] = logical;
-      else scaled[edge] = parseQuantity2(String(logical)) ?? logical;
-    }
-    return scaled;
   }
   /** Etiqueta del selector: «Kilogramo (kg)» / «Kilogram (kg)» según locale (ADR-0055). */
   unitLabel(u5) {
@@ -6703,10 +6742,7 @@ var ErpInventoryProducts = class extends i3 {
           @filterChange=${(e5) => {
       if (e5.detail.col === "is_active") return this.applyStatusFilter(e5.detail.value);
       this.setTableFilter(e5.detail.col, e5.detail.value);
-      this.ctrl.setFilter(
-        e5.detail.col,
-        e5.detail.col === "stock" ? this.stockFilterValue(e5.detail.value) : MONEY_RANGE_FILTERS.has(e5.detail.col) ? moneyRangeToMinor(e5.detail.value, hubDecimals()) : e5.detail.value
-      );
+      this.ctrl.setFilter(e5.detail.col, e5.detail.value);
     }}
         >
           <!-- Formulario de alta: el botón "+" del data-table despliega este acordeón. -->
