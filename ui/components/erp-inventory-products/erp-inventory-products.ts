@@ -1,4 +1,5 @@
 import { LitElement, html, css, nothing, svg } from 'lit';
+import type { PropertyValues } from 'lit';
 import { ionTone } from '../../lib/ion-tone';
 import { state } from 'lit/decorators.js';
 import { code128b } from '../../lib/code128';
@@ -355,6 +356,10 @@ export class ErpInventoryProducts extends LitElement {
   @state() private taxRates: Map<string, TaxRate> = new Map();
   @state() private saving = false;
   @state() private formError = '';
+  /** What went wrong in a ROW action (delete confirmed on the page, the «active» switch): no panel
+   *  is open then, so it is painted on the page. `formError` is only what the panel's form was
+   *  refused (pm#478). */
+  @state() private pageError = '';
 
   // ── Importador CSV: resolución interactiva de categorías no reconocidas (ADR-0085) ──
   // Cuando el CSV trae un texto de categoría que no resuelve por alias/categoría, en vez de dejar
@@ -550,6 +555,9 @@ export class ErpInventoryProducts extends LitElement {
   @state() receiveTarget: Product | null = null;
   @state() receiveQty = '';
   @state() receiveCost = '';
+  /** Why the open count or receipt was refused. Painted INSIDE that modal (pm#478): the modal
+   *  covers the page at every width, so a banner on the page was never seen. */
+  @state() private stockError = '';
 
   /** Diferencia del recuento (nuevo − actual), o null si aún no hay valor tecleado. */
   get countDifference(): number | null {
@@ -561,13 +569,14 @@ export class ErpInventoryProducts extends LitElement {
 
   async submitCount(): Promise<void> {
     if (!can('inventory.adjust_stock') || !this.countTarget || this.countValue.trim() === '' || this.countReason.trim() === '') return;
+    this.stockError = '';
     const raw = parseQuantity(this.countValue);
     if (raw === null) {
-      this.formError = erplora().t(CATALOG, 'ui.errQuantity');
+      this.stockError = erplora().t(CATALOG, 'ui.errQuantity');
       return;
     }
     if (!this.quantityMatchesUnit(raw, this.countTarget.unit_code)) {
-      this.formError = erplora().t(CATALOG, 'ui.errQuantityGrid');
+      this.stockError = erplora().t(CATALOG, 'ui.errQuantityGrid');
       return;
     }
     try {
@@ -581,19 +590,20 @@ export class ErpInventoryProducts extends LitElement {
       this.countReason = '';
       await this.ctrl.load();
     } catch (e) {
-      this.formError = e instanceof Error ? e.message : erplora().t(CATALOG, 'ui.errCount');
+      this.stockError = e instanceof Error ? e.message : erplora().t(CATALOG, 'ui.errCount');
     }
   }
 
   async submitReceive(): Promise<void> {
     if (!can('inventory.adjust_stock') || !this.receiveTarget || this.receiveQty.trim() === '') return;
+    this.stockError = '';
     const qty = parseQuantity(this.receiveQty);
     if (qty === null || qty <= 0) {
-      this.formError = erplora().t(CATALOG, 'ui.errQuantity');
+      this.stockError = erplora().t(CATALOG, 'ui.errQuantity');
       return;
     }
     if (!this.quantityMatchesUnit(qty, this.receiveTarget.unit_code)) {
-      this.formError = erplora().t(CATALOG, 'ui.errQuantityGrid');
+      this.stockError = erplora().t(CATALOG, 'ui.errQuantityGrid');
       return;
     }
     // The cost is typed in MAJOR units and stored in the hub currency's MINOR units (ADR-0007/0123,
@@ -608,7 +618,7 @@ export class ErpInventoryProducts extends LitElement {
       this.receiveCost = '';
       await this.ctrl.load();
     } catch (e) {
-      this.formError = e instanceof Error ? e.message : erplora().t(CATALOG, 'ui.errReceive');
+      this.stockError = e instanceof Error ? e.message : erplora().t(CATALOG, 'ui.errReceive');
     }
   }
 
@@ -636,12 +646,14 @@ export class ErpInventoryProducts extends LitElement {
   private openReceive(p: Product): void {
     if (!can('inventory.adjust_stock')) return;
     this.detail = null;
+    this.stockError = '';
     this.receiveTarget = p;
   }
 
   private openCount(p: Product): void {
     if (!can('inventory.adjust_stock')) return;
     this.detail = null;
+    this.stockError = '';
     this.countTarget = p;
     this.countValue = '';
     this.countReason = '';
@@ -682,6 +694,7 @@ export class ErpInventoryProducts extends LitElement {
       // on: this reply belongs to a form nobody is looking at anymore.
       if (seq !== this.editSeq) return;
       this.editingId = p.id;
+      this.formError = ''; // a refusal of another row's form does not belong to this one
       this.newName = full.name ?? '';
       this.newSku = full.sku ?? '';
       // The DB stores the hub currency's MINOR units and the form edits MAJOR ones (ADR-0123,
@@ -715,6 +728,7 @@ export class ErpInventoryProducts extends LitElement {
     } else if (actionId === 'delete' && can('inventory.delete_product')) {
       // Nunca borra directo (P1 QA #6): confirmación, como el borrado de categorías.
       this.deleteTarget = p;
+      this.pageError = '';
     }
   }
 
@@ -726,7 +740,7 @@ export class ErpInventoryProducts extends LitElement {
       this.deleteTarget = null;
       await this.ctrl.load();
     } catch (e) {
-      this.formError = e instanceof Error ? e.message : erplora().t(CATALOG, 'ui.errDeleteProduct');
+      this.pageError = e instanceof Error ? e.message : erplora().t(CATALOG, 'ui.errDeleteProduct');
       this.deleteTarget = null;
     }
   }
@@ -734,6 +748,7 @@ export class ErpInventoryProducts extends LitElement {
   private async toggleActive(p: Product, ev: Event): Promise<void> {
     if (!can('inventory.change_product')) return;
     const checked = (ev.target as HTMLInputElement).checked;
+    this.pageError = '';
     try {
       // El command exige el conjunto COMPLETO de campos editables (schemas/product_update.json,
       // inventory#8): la fila de la lista no proyecta description/ean13, así que se lee la
@@ -754,7 +769,7 @@ export class ErpInventoryProducts extends LitElement {
       });
       await this.ctrl.load();
     } catch (e) {
-      this.formError = e instanceof Error ? e.message : erplora().t(CATALOG, 'ui.errUpdateProduct');
+      this.pageError = e instanceof Error ? e.message : erplora().t(CATALOG, 'ui.errUpdateProduct');
     }
   }
 
@@ -1437,6 +1452,7 @@ export class ErpInventoryProducts extends LitElement {
     }
     this.saving = true;
     this.formError = '';
+    this.pageError = ''; // a save is the next thing the person did: an older row refusal is stale
     try {
       const threshold = this.newThreshold.trim() === ''
         ? 10_000_000
@@ -1523,11 +1539,27 @@ export class ErpInventoryProducts extends LitElement {
     }
   }
 
+  /** pm#478: the refusal appears ABOVE the button that was pressed, at the foot of a long form — on
+   *  a phone that leaves it off the sheet. Bring it into view once it has painted itself: scrolled
+   *  before, the banner still measures 0 px and ends up under the tab bar. */
+  updated(changed: PropertyValues): void {
+    super.updated(changed);
+    if (changed.has('formError') && this.formError) void this.revealFormError();
+  }
+
+  private async revealFormError(): Promise<void> {
+    const banner = this.renderRoot.querySelector('[data-testid="inventory-products-form-error"]') as
+      | (HTMLElement & { updateComplete?: Promise<unknown> })
+      | null;
+    await banner?.updateComplete;
+    banner?.scrollIntoView?.({ block: 'center' });
+  }
+
   render() {
     const t = (k: string): string => erplora().t(CATALOG, k);
     return html`
       <div class="page">
-        ${this.formError ? html`<ok-inline-feedback data-testid="inventory-products-form-error" tone="danger" icon="alert-circle-outline">${this.formError}</ok-inline-feedback>` : nothing}
+        ${this.pageError ? html`<ok-inline-feedback data-testid="inventory-products-page-error" tone="danger" icon="alert-circle-outline">${this.pageError}</ok-inline-feedback>` : nothing}
         ${this.ctrl?.error ? html`<ok-inline-feedback data-testid="inventory-products-load-error" tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : nothing}
         <!-- Importación en marcha (inventory#13): por dónde va y una salida. Con 280 filas, lo
              único que había era una pantalla quieta durante minutos. -->
@@ -1759,6 +1791,9 @@ export class ErpInventoryProducts extends LitElement {
                   )}
                 </ion-select>`
               : nothing}
+            <!-- pm#478: the refusal travels WITH the form — on a phone the panel is a full-screen
+                 sheet and a banner on the page underneath it is never seen. -->
+            ${this.formError ? html`<ok-inline-feedback data-testid="inventory-products-form-error" tone="danger" icon="alert-circle-outline">${this.formError}</ok-inline-feedback>` : nothing}
             <ion-button data-testid="inventory-products-submit" type="submit" ?disabled=${this.saving || !this.newName || !this.newSku || !this.newTaxCategoryKey}>
               ${this.saving
                 ? erplora().t(CATALOG, 'ui.saving')
@@ -2107,6 +2142,7 @@ export class ErpInventoryProducts extends LitElement {
             .value=${this.countReason} required
             @ionInput=${(e: CustomEvent) => (this.countReason = String((e.detail as { value?: string }).value ?? ''))}
           ></ion-input>
+          ${this.stockError ? html`<ok-inline-feedback data-testid="inventory-products-count-error" class="ion-margin-top" tone="danger" icon="alert-circle-outline">${this.stockError}</ok-inline-feedback>` : nothing}
           <ion-button data-testid="inventory-products-count-submit" class="ion-margin-top" expand="block" .disabled=${diff === null || this.countReason.trim() === ''}
             @click=${() => this.submitCount()}>
             ${t('ui.countApply')}
@@ -2156,6 +2192,7 @@ export class ErpInventoryProducts extends LitElement {
             .value=${this.receiveCost}
             @ionInput=${(e: CustomEvent) => (this.receiveCost = String((e.detail as { value?: string }).value ?? ''))}
           ></ion-input>
+          ${this.stockError ? html`<ok-inline-feedback data-testid="inventory-products-receive-error" class="ion-margin-top" tone="danger" icon="alert-circle-outline">${this.stockError}</ok-inline-feedback>` : nothing}
           <ion-button data-testid="inventory-products-receive-submit" class="ion-margin-top" expand="block" .disabled=${this.receiveQty.trim() === ''}
             @click=${() => this.submitReceive()}>
             ${t('ui.receiveApply')}

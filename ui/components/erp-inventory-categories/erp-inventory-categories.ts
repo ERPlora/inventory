@@ -1,4 +1,5 @@
 import { LitElement, html, css, nothing } from 'lit';
+import type { PropertyValues } from 'lit';
 import { ionTone } from '../../lib/ion-tone';
 import { state } from 'lit/decorators.js';
 import { resolveTaxCategories, pickTaxValue, normalizeAlias } from '../../lib/tax-resolve';
@@ -84,6 +85,9 @@ export class ErpInventoryCategories extends LitElement {
   @state() private taxRates: Map<string, TaxRate> = new Map();
   @state() private saving = false;
   @state() private formError = '';
+  /** What went wrong in a ROW action (delete, confirmed on the page): no panel is open then, so it
+   *  is painted on the page. `formError` is only what the panel's form was refused (pm#478). */
+  @state() private pageError = '';
   // Edición REAL (inventory#8): id en edición (null = alta); el submit decide create/update.
   @state() editingId: string | null = null;
   /** pm#450: whether the table's panel HEADER already carries the editing title (OutfitKit
@@ -195,6 +199,7 @@ export class ErpInventoryCategories extends LitElement {
     const c = row as unknown as Category;
     if (actionId === 'edit' && can('inventory.change_category')) {
       this.editingId = c.id; // real edit (inventory#8): submit will call update
+      this.formError = ''; // a refusal of another row's form does not belong to this one
       // Keep the whole row: the update sends the full set, and fields the form does not edit
       // (icon/color/order/description) are RESENT as-is — omitting them would let the schema's
       // defaults overwrite them (icon would revert to 'cube-outline').
@@ -220,6 +225,7 @@ export class ErpInventoryCategories extends LitElement {
       // de todo el catálogo, para pintar un número que ya estaba en pantalla.
       this.deleteImpact = Number(row.product_count ?? 0);
       this.deleteTarget = c;
+      this.pageError = '';
     }
   }
 
@@ -232,7 +238,7 @@ export class ErpInventoryCategories extends LitElement {
       this.deleteImpact = 0;
       await this.ctrl.load();
     } catch (e) {
-      this.formError = e instanceof Error ? e.message : erplora().t(CATALOG, 'ui.errDeleteCategory');
+      this.pageError = e instanceof Error ? e.message : erplora().t(CATALOG, 'ui.errDeleteCategory');
       this.deleteTarget = null;
     }
   }
@@ -320,6 +326,7 @@ export class ErpInventoryCategories extends LitElement {
     if (!can(requiredPermission) || !this.newName.trim()) return;
     this.saving = true;
     this.formError = '';
+    this.pageError = ''; // a save is the next thing the person did: an older row refusal is stale
     try {
       const slug = this.newSlug.trim() || this.newName.trim().toLowerCase().replace(/\s+/g, '-');
       if (this.editingId) {
@@ -354,10 +361,26 @@ export class ErpInventoryCategories extends LitElement {
     }
   }
 
+  /** pm#478: the refusal appears ABOVE the button that was pressed, at the foot of the form — on a
+   *  phone that can leave it off the sheet. Bring it into view once it has painted itself: scrolled
+   *  before, the banner still measures 0 px and ends up under the tab bar. */
+  updated(changed: PropertyValues): void {
+    super.updated(changed);
+    if (changed.has('formError') && this.formError) void this.revealFormError();
+  }
+
+  private async revealFormError(): Promise<void> {
+    const banner = this.renderRoot.querySelector('[data-testid="inventory-categories-form-error"]') as
+      | (HTMLElement & { updateComplete?: Promise<unknown> })
+      | null;
+    await banner?.updateComplete;
+    banner?.scrollIntoView?.({ block: 'center' });
+  }
+
   render() {
     return html`
       <div class="page">
-        ${this.formError ? html`<ok-inline-feedback data-testid="inventory-categories-form-error" tone="danger" icon="alert-circle-outline">${this.formError}</ok-inline-feedback>` : nothing}
+        ${this.pageError ? html`<ok-inline-feedback data-testid="inventory-categories-page-error" tone="danger" icon="alert-circle-outline">${this.pageError}</ok-inline-feedback>` : nothing}
         ${this.ctrl?.error ? html`<ok-inline-feedback data-testid="inventory-categories-load-error" tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : nothing}
 
         <!-- The «Edit» button is not the only door: rowClickable makes the whole row open the
@@ -432,6 +455,9 @@ export class ErpInventoryCategories extends LitElement {
                   ${erplora().t(CATALOG, 'ui.editingCancel')}
                 </ion-button>`
               : nothing}
+            <!-- pm#478: the refusal travels WITH the form — on a phone the panel is a full-screen
+                 sheet and a banner on the page underneath it is never seen. -->
+            ${this.formError ? html`<ok-inline-feedback data-testid="inventory-categories-form-error" tone="danger" icon="alert-circle-outline">${this.formError}</ok-inline-feedback>` : nothing}
             <ion-button data-testid="inventory-categories-submit" type="submit" ?disabled=${this.saving || !this.newName}>
               ${this.saving
                 ? erplora().t(CATALOG, 'ui.saving')
