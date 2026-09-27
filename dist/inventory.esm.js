@@ -4486,6 +4486,7 @@ var ErpInventoryCategories = class extends i3 {
     this.taxRates = /* @__PURE__ */ new Map();
     this.saving = false;
     this.formError = "";
+    this.pageError = "";
     this.editingId = null;
     this.editTitleInHeader = false;
     // Fila completa en edición: preserva los campos que el form no expone (icon/color/order).
@@ -4578,6 +4579,7 @@ var ErpInventoryCategories = class extends i3 {
     const c5 = row;
     if (actionId === "edit" && can("inventory.change_category")) {
       this.editingId = c5.id;
+      this.formError = "";
       this.editRow = row;
       this.newName = c5.name;
       this.newSlug = c5.slug;
@@ -4590,6 +4592,7 @@ var ErpInventoryCategories = class extends i3 {
     } else if (actionId === "delete" && can("inventory.delete_category")) {
       this.deleteImpact = Number(row.product_count ?? 0);
       this.deleteTarget = c5;
+      this.pageError = "";
     }
   }
   /** Ejecuta el borrado confirmado (política definida: DESVINCULAR; los productos siguen). */
@@ -4601,7 +4604,7 @@ var ErpInventoryCategories = class extends i3 {
       this.deleteImpact = 0;
       await this.ctrl.load();
     } catch (e5) {
-      this.formError = e5 instanceof Error ? e5.message : erplora().t(CATALOG, "ui.errDeleteCategory");
+      this.pageError = e5 instanceof Error ? e5.message : erplora().t(CATALOG, "ui.errDeleteCategory");
       this.deleteTarget = null;
     }
   }
@@ -4665,6 +4668,7 @@ var ErpInventoryCategories = class extends i3 {
     if (!can(requiredPermission) || !this.newName.trim()) return;
     this.saving = true;
     this.formError = "";
+    this.pageError = "";
     try {
       const slug = this.newSlug.trim() || this.newName.trim().toLowerCase().replace(/\s+/g, "-");
       if (this.editingId) {
@@ -4698,10 +4702,22 @@ var ErpInventoryCategories = class extends i3 {
       this.saving = false;
     }
   }
+  /** pm#478: the refusal appears ABOVE the button that was pressed, at the foot of the form — on a
+   *  phone that can leave it off the sheet. Bring it into view once it has painted itself: scrolled
+   *  before, the banner still measures 0 px and ends up under the tab bar. */
+  updated(changed) {
+    super.updated(changed);
+    if (changed.has("formError") && this.formError) void this.revealFormError();
+  }
+  async revealFormError() {
+    const banner = this.renderRoot.querySelector('[data-testid="inventory-categories-form-error"]');
+    await banner?.updateComplete;
+    banner?.scrollIntoView?.({ block: "center" });
+  }
   render() {
     return b2`
       <div class="page">
-        ${this.formError ? b2`<ok-inline-feedback data-testid="inventory-categories-form-error" tone="danger" icon="alert-circle-outline">${this.formError}</ok-inline-feedback>` : A}
+        ${this.pageError ? b2`<ok-inline-feedback data-testid="inventory-categories-page-error" tone="danger" icon="alert-circle-outline">${this.pageError}</ok-inline-feedback>` : A}
         ${this.ctrl?.error ? b2`<ok-inline-feedback data-testid="inventory-categories-load-error" tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : A}
 
         <!-- The «Edit» button is not the only door: rowClickable makes the whole row open the
@@ -4770,6 +4786,9 @@ var ErpInventoryCategories = class extends i3 {
             ${this.editingId ? b2`<ion-button data-testid="inventory-categories-edit-cancel" size="small" fill="clear" @click=${() => this.cancelEdit()}>
                   ${erplora().t(CATALOG, "ui.editingCancel")}
                 </ion-button>` : A}
+            <!-- pm#478: the refusal travels WITH the form — on a phone the panel is a full-screen
+                 sheet and a banner on the page underneath it is never seen. -->
+            ${this.formError ? b2`<ok-inline-feedback data-testid="inventory-categories-form-error" tone="danger" icon="alert-circle-outline">${this.formError}</ok-inline-feedback>` : A}
             <ion-button data-testid="inventory-categories-submit" type="submit" ?disabled=${this.saving || !this.newName}>
               ${this.saving ? erplora().t(CATALOG, "ui.saving") : this.editingId ? erplora().t(CATALOG, "ui.saveChanges") : erplora().t(CATALOG, "ui.save")}
             </ion-button>
@@ -4826,6 +4845,9 @@ __decorateClass([
 __decorateClass([
   r5()
 ], ErpInventoryCategories.prototype, "formError", 2);
+__decorateClass([
+  r5()
+], ErpInventoryCategories.prototype, "pageError", 2);
 __decorateClass([
   r5()
 ], ErpInventoryCategories.prototype, "editingId", 2);
@@ -5643,6 +5665,7 @@ var ErpInventoryProducts = class extends i3 {
     this.taxRates = /* @__PURE__ */ new Map();
     this.saving = false;
     this.formError = "";
+    this.pageError = "";
     this.importOpen = false;
     this.importRows = [];
     this.importMap = /* @__PURE__ */ new Map();
@@ -5668,6 +5691,7 @@ var ErpInventoryProducts = class extends i3 {
     this.receiveTarget = null;
     this.receiveQty = "";
     this.receiveCost = "";
+    this.stockError = "";
     // Init una sola vez tras el primer render (equivalente a `componentWillLoad` de Stencil: el shell
     // crea una instancia nueva del WC en cada montaje de la vista). El re-render lo dispara el
     // controlador vía `requestUpdate()` (sustituye al antiguo `this.tick++`), no un @state.
@@ -5827,13 +5851,14 @@ var ErpInventoryProducts = class extends i3 {
   }
   async submitCount() {
     if (!can2("inventory.adjust_stock") || !this.countTarget || this.countValue.trim() === "" || this.countReason.trim() === "") return;
+    this.stockError = "";
     const raw = parseQuantity2(this.countValue);
     if (raw === null) {
-      this.formError = erplora4().t(CATALOG4, "ui.errQuantity");
+      this.stockError = erplora4().t(CATALOG4, "ui.errQuantity");
       return;
     }
     if (!this.quantityMatchesUnit(raw, this.countTarget.unit_code)) {
-      this.formError = erplora4().t(CATALOG4, "ui.errQuantityGrid");
+      this.stockError = erplora4().t(CATALOG4, "ui.errQuantityGrid");
       return;
     }
     try {
@@ -5847,18 +5872,19 @@ var ErpInventoryProducts = class extends i3 {
       this.countReason = "";
       await this.ctrl.load();
     } catch (e5) {
-      this.formError = e5 instanceof Error ? e5.message : erplora4().t(CATALOG4, "ui.errCount");
+      this.stockError = e5 instanceof Error ? e5.message : erplora4().t(CATALOG4, "ui.errCount");
     }
   }
   async submitReceive() {
     if (!can2("inventory.adjust_stock") || !this.receiveTarget || this.receiveQty.trim() === "") return;
+    this.stockError = "";
     const qty = parseQuantity2(this.receiveQty);
     if (qty === null || qty <= 0) {
-      this.formError = erplora4().t(CATALOG4, "ui.errQuantity");
+      this.stockError = erplora4().t(CATALOG4, "ui.errQuantity");
       return;
     }
     if (!this.quantityMatchesUnit(qty, this.receiveTarget.unit_code)) {
-      this.formError = erplora4().t(CATALOG4, "ui.errQuantityGrid");
+      this.stockError = erplora4().t(CATALOG4, "ui.errQuantityGrid");
       return;
     }
     const cost = this.receiveCost.trim() === "" ? null : majorToMinor2(Number(this.receiveCost));
@@ -5871,7 +5897,7 @@ var ErpInventoryProducts = class extends i3 {
       this.receiveCost = "";
       await this.ctrl.load();
     } catch (e5) {
-      this.formError = e5 instanceof Error ? e5.message : erplora4().t(CATALOG4, "ui.errReceive");
+      this.stockError = e5 instanceof Error ? e5.message : erplora4().t(CATALOG4, "ui.errReceive");
     }
   }
   // Acciones por fila (botones) → la tabla emite `rowAction` con { actionId, row }. Getter (i18n).
@@ -5891,11 +5917,13 @@ var ErpInventoryProducts = class extends i3 {
   openReceive(p4) {
     if (!can2("inventory.adjust_stock")) return;
     this.detail = null;
+    this.stockError = "";
     this.receiveTarget = p4;
   }
   openCount(p4) {
     if (!can2("inventory.adjust_stock")) return;
     this.detail = null;
+    this.stockError = "";
     this.countTarget = p4;
     this.countValue = "";
     this.countReason = "";
@@ -5925,6 +5953,7 @@ var ErpInventoryProducts = class extends i3 {
       }
       if (seq !== this.editSeq) return;
       this.editingId = p4.id;
+      this.formError = "";
       this.newName = full.name ?? "";
       this.newSku = full.sku ?? "";
       this.newPrice = minorToInput(full.price);
@@ -5951,6 +5980,7 @@ var ErpInventoryProducts = class extends i3 {
       this.syncSheetBottom();
     } else if (actionId === "delete" && can2("inventory.delete_product")) {
       this.deleteTarget = p4;
+      this.pageError = "";
     }
   }
   /** Ejecuta el borrado confirmado. */
@@ -5961,13 +5991,14 @@ var ErpInventoryProducts = class extends i3 {
       this.deleteTarget = null;
       await this.ctrl.load();
     } catch (e5) {
-      this.formError = e5 instanceof Error ? e5.message : erplora4().t(CATALOG4, "ui.errDeleteProduct");
+      this.pageError = e5 instanceof Error ? e5.message : erplora4().t(CATALOG4, "ui.errDeleteProduct");
       this.deleteTarget = null;
     }
   }
   async toggleActive(p4, ev) {
     if (!can2("inventory.change_product")) return;
     const checked = ev.target.checked;
+    this.pageError = "";
     try {
       const full = (await erplora4().query("inventory.products.get", { product_id: p4.id }))?.[0] ?? {};
       await erplora4().command("inventory.products.update", {
@@ -5985,7 +6016,7 @@ var ErpInventoryProducts = class extends i3 {
       });
       await this.ctrl.load();
     } catch (e5) {
-      this.formError = e5 instanceof Error ? e5.message : erplora4().t(CATALOG4, "ui.errUpdateProduct");
+      this.pageError = e5 instanceof Error ? e5.message : erplora4().t(CATALOG4, "ui.errUpdateProduct");
     }
   }
   // Referencia al ok-data-table para abrir/cerrar su panel lateral (drawer).
@@ -6528,6 +6559,7 @@ var ErpInventoryProducts = class extends i3 {
     }
     this.saving = true;
     this.formError = "";
+    this.pageError = "";
     try {
       const threshold = this.newThreshold.trim() === "" ? 1e7 : parseQuantity2(this.newThreshold);
       if (threshold === null) throw new Error(t5("ui.errQuantity"));
@@ -6608,11 +6640,23 @@ var ErpInventoryProducts = class extends i3 {
       this.saving = false;
     }
   }
+  /** pm#478: the refusal appears ABOVE the button that was pressed, at the foot of a long form — on
+   *  a phone that leaves it off the sheet. Bring it into view once it has painted itself: scrolled
+   *  before, the banner still measures 0 px and ends up under the tab bar. */
+  updated(changed) {
+    super.updated(changed);
+    if (changed.has("formError") && this.formError) void this.revealFormError();
+  }
+  async revealFormError() {
+    const banner = this.renderRoot.querySelector('[data-testid="inventory-products-form-error"]');
+    await banner?.updateComplete;
+    banner?.scrollIntoView?.({ block: "center" });
+  }
   render() {
     const t5 = (k2) => erplora4().t(CATALOG4, k2);
     return b2`
       <div class="page">
-        ${this.formError ? b2`<ok-inline-feedback data-testid="inventory-products-form-error" tone="danger" icon="alert-circle-outline">${this.formError}</ok-inline-feedback>` : A}
+        ${this.pageError ? b2`<ok-inline-feedback data-testid="inventory-products-page-error" tone="danger" icon="alert-circle-outline">${this.pageError}</ok-inline-feedback>` : A}
         ${this.ctrl?.error ? b2`<ok-inline-feedback data-testid="inventory-products-load-error" tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : A}
         <!-- Importación en marcha (inventory#13): por dónde va y una salida. Con 280 filas, lo
              único que había era una pantalla quieta durante minutos. -->
@@ -6814,6 +6858,9 @@ var ErpInventoryProducts = class extends i3 {
       (c5) => b2`<ion-select-option .value=${c5.id}>${c5.name}</ion-select-option>`
     )}
                 </ion-select>` : A}
+            <!-- pm#478: the refusal travels WITH the form — on a phone the panel is a full-screen
+                 sheet and a banner on the page underneath it is never seen. -->
+            ${this.formError ? b2`<ok-inline-feedback data-testid="inventory-products-form-error" tone="danger" icon="alert-circle-outline">${this.formError}</ok-inline-feedback>` : A}
             <ion-button data-testid="inventory-products-submit" type="submit" ?disabled=${this.saving || !this.newName || !this.newSku || !this.newTaxCategoryKey}>
               ${this.saving ? erplora4().t(CATALOG4, "ui.saving") : this.editingId ? erplora4().t(CATALOG4, "ui.saveChanges") : erplora4().t(CATALOG4, "ui.save")}
             </ion-button>
@@ -7143,6 +7190,7 @@ var ErpInventoryProducts = class extends i3 {
             .value=${this.countReason} required
             @ionInput=${(e5) => this.countReason = String(e5.detail.value ?? "")}
           ></ion-input>
+          ${this.stockError ? b2`<ok-inline-feedback data-testid="inventory-products-count-error" class="ion-margin-top" tone="danger" icon="alert-circle-outline">${this.stockError}</ok-inline-feedback>` : A}
           <ion-button data-testid="inventory-products-count-submit" class="ion-margin-top" expand="block" .disabled=${diff === null || this.countReason.trim() === ""}
             @click=${() => this.submitCount()}>
             ${t5("ui.countApply")}
@@ -7189,6 +7237,7 @@ var ErpInventoryProducts = class extends i3 {
             .value=${this.receiveCost}
             @ionInput=${(e5) => this.receiveCost = String(e5.detail.value ?? "")}
           ></ion-input>
+          ${this.stockError ? b2`<ok-inline-feedback data-testid="inventory-products-receive-error" class="ion-margin-top" tone="danger" icon="alert-circle-outline">${this.stockError}</ok-inline-feedback>` : A}
           <ion-button data-testid="inventory-products-receive-submit" class="ion-margin-top" expand="block" .disabled=${this.receiveQty.trim() === ""}
             @click=${() => this.submitReceive()}>
             ${t5("ui.receiveApply")}
@@ -7269,6 +7318,9 @@ __decorateClass([
 ], ErpInventoryProducts.prototype, "formError", 2);
 __decorateClass([
   r5()
+], ErpInventoryProducts.prototype, "pageError", 2);
+__decorateClass([
+  r5()
 ], ErpInventoryProducts.prototype, "importOpen", 2);
 __decorateClass([
   r5()
@@ -7327,4 +7379,7 @@ __decorateClass([
 __decorateClass([
   r5()
 ], ErpInventoryProducts.prototype, "receiveCost", 2);
+__decorateClass([
+  r5()
+], ErpInventoryProducts.prototype, "stockError", 2);
 define("erp-inventory-products", ErpInventoryProducts);

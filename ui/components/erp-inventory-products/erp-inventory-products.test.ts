@@ -337,7 +337,7 @@ describe('cantidades de la UI en punto fijo 10⁶ (inventory#25)', () => {
     const el = await montar();
     const wc = el as unknown as {
       receiveTarget: Record<string, unknown> | null; receiveQty: string; receiveCost: string;
-      units: Record<string, unknown>[]; formError: string;
+      units: Record<string, unknown>[]; stockError: string;
       submitReceive: () => Promise<void>;
     };
     wc.units = [{ code: 'kg', increment_value: 250_000, name: 'Kilogram', name_es: 'Kilogramo' }];
@@ -346,12 +346,12 @@ describe('cantidades de la UI en punto fijo 10⁶ (inventory#25)', () => {
     wc.receiveQty = '0.1234567';
     await wc.submitReceive();
     expect(comandos.find((command) => command.name === 'inventory.stock.receive')).toBeFalsy();
-    expect(wc.formError).toBe('ui.errQuantity');
+    expect(wc.stockError).toBe('ui.errQuantity');
 
     wc.receiveQty = '0.2';
     await wc.submitReceive();
     expect(comandos.find((command) => command.name === 'inventory.stock.receive')).toBeFalsy();
-    expect(wc.formError).toBe('ui.errQuantityGrid');
+    expect(wc.stockError).toBe('ui.errQuantityGrid');
   });
 });
 
