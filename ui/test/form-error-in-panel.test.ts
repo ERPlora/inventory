@@ -156,6 +156,7 @@ describe.each(SCREENS)('pm#478 · $surface: save refusal in the form, row refusa
     expect(banner, 'on a phone the panel covers the page: the refusal has to travel with the form').not.toBeNull();
     expect(inFormAndRevealed(el, formError), 'and it is scrolled into view').not.toBeNull();
     expect(banner?.textContent?.trim()).toBe('rejected');
+    expect(banner?.nextElementSibling?.getAttribute('data-testid'), 'right above the button that was pressed').toBe(`${s.surface}-submit`);
     expect(onPage(el, pageError), 'the page under the sheet shows nothing').toBeNull();
     expect(onPage(el, formError), 'the old page banner is gone').toBeNull();
   });
@@ -295,6 +296,13 @@ describe('pm#478 · products: stock count and goods receipt say their refusal in
     return modal?.querySelector(`[data-testid="${testid}"]`) ?? null;
   };
 
+  /** Right above the modal's button, spaced like the fields around it. The modal is reparented to
+   *  <body> and loses the component's CSS, so the spacing has to come from Ionic's own class. */
+  const expectAboveButton = (banner: Element | null, submit: string): void => {
+    expect(banner?.nextElementSibling?.getAttribute('data-testid')).toBe(submit);
+    expect(banner?.classList.contains('ion-margin-top'), 'not glued to the field above').toBe(true);
+  };
+
   /** A unit counted in whole units: 2.5 is off its grid. */
   const UNIT = { code: 'ud', increment_value: 1_000_000, name: 'Unit', name_es: 'Unidad' };
 
@@ -333,7 +341,9 @@ describe('pm#478 · products: stock count and goods receipt say their refusal in
     const el = await mount('erp-inventory-products', PRODUCTS);
     await refusedCount(el);
     expect(el.countTarget, 'the modal stays open with what was typed').not.toBeNull();
-    expect(inModalOf(el, 'inventory-products-count-qty', 'inventory-products-count-error')?.textContent?.trim()).toBe('count refused');
+    const banner = inModalOf(el, 'inventory-products-count-qty', 'inventory-products-count-error');
+    expect(banner?.textContent?.trim()).toBe('count refused');
+    expectAboveButton(banner, 'inventory-products-count-submit');
     expect(onPage(el, 'inventory-products-page-error')).toBeNull();
     expect(inForm(el, 'inventory-products-form-error')).toBeNull();
   });
@@ -363,7 +373,9 @@ describe('pm#478 · products: stock count and goods receipt say their refusal in
     const el = await mount('erp-inventory-products', PRODUCTS);
     await refusedReceive(el);
     expect(el.receiveTarget, 'the modal stays open with what was typed').not.toBeNull();
-    expect(inModalOf(el, 'inventory-products-receive-qty', 'inventory-products-receive-error')?.textContent?.trim()).toBe('receipt refused');
+    const banner = inModalOf(el, 'inventory-products-receive-qty', 'inventory-products-receive-error');
+    expect(banner?.textContent?.trim()).toBe('receipt refused');
+    expectAboveButton(banner, 'inventory-products-receive-submit');
     expect(onPage(el, 'inventory-products-page-error')).toBeNull();
     expect(inForm(el, 'inventory-products-form-error')).toBeNull();
   });
