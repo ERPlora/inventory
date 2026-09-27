@@ -84,6 +84,18 @@ const NOT_DISPLAY: Record<string, string> = {
     'the hub scale.',
 };
 
+/** The hits no exception covers. Each exception covers ONE occurrence: the key is file + exact
+ *  line, so a copy of the allowed line in a new display function of the same file would otherwise
+ *  ride on it. */
+export function unexpectedHits(found: string[], allowed: Record<string, string>): string[] {
+  const left = new Map(Object.keys(allowed).map((k) => [k, 1]));
+  return found.filter((k) => {
+    const n = left.get(k) ?? 0;
+    left.set(k, n - 1);
+    return n <= 0;
+  });
+}
+
 describe('money display goes through the shared formatter (pm#289)', () => {
   it('no hand-formatted amount in ui/ outside the triaged non-display cases', () => {
     const uiRoot = join(moduleRoot(), 'ui');
@@ -101,7 +113,7 @@ describe('money display goes through the shared formatter (pm#289)', () => {
       const rel = f.slice(uiRoot.length + 1);
       for (const h of handFormattedMoney(readFileSync(f, 'utf8'))) found.push(`${rel}: ${h}`);
     }
-    const unexpected = found.filter((k) => !(k in NOT_DISPLAY));
+    const unexpected = unexpectedHits(found, NOT_DISPLAY);
     expect(
       unexpected,
       'amount formatted by hand: use erplora().formatMoney(minor) or <ok-money>/formatMinor',
@@ -131,6 +143,13 @@ describe('money display goes through the shared formatter (pm#289)', () => {
     expect(handFormattedMoney("const s = (total / 100).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });")).toHaveLength(1);
     expect(handFormattedMoney("const s = (total / 100).toLocaleString(locale, {\n  style: 'currency',\n  currency,\n});")).toHaveLength(1);
     expect(handFormattedMoney("const s = new Date(x).toLocaleString(locale, { hour: '2-digit' });")).toHaveLength(0);
+  });
+
+  it('an exception covers one occurrence of its line, not every copy in the file', () => {
+    const allowed = { 'lib/a.ts: x.toFixed(d);': 'input value' };
+    expect(unexpectedHits(['lib/a.ts: x.toFixed(d);'], allowed)).toEqual([]);
+    expect(unexpectedHits(['lib/a.ts: x.toFixed(d);', 'lib/a.ts: x.toFixed(d);'], allowed)).toEqual(['lib/a.ts: x.toFixed(d);']);
+    expect(unexpectedHits(['lib/b.ts: x.toFixed(d);'], allowed)).toEqual(['lib/b.ts: x.toFixed(d);']);
   });
 });
 
