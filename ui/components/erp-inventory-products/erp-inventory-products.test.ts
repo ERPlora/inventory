@@ -67,6 +67,9 @@ beforeEach(() => {
     },
     hasPermission: () => true,
     currency: 'EUR',
+    // The real client always exposes it (module-sdk getter); the list controller needs it for
+    // `moneyFilters` (pm#501).
+    currencyDecimals: 2,
     // Contrato REAL del SDK: formatMoney recibe CÉNTIMOS y divide; formatAmount recibe EUROS.
     formatMoney: (cents: number) => `${((cents || 0) / 100).toFixed(2)} €`,
     formatAmount: (units: number) => `${(units || 0).toFixed(2)} €`,

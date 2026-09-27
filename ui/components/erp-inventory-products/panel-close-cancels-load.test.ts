@@ -43,6 +43,9 @@ beforeEach(() => {
     hasPermission: () => true,
     locale: 'es',
     currency: 'EUR',
+    // The real client always exposes it (module-sdk getter); the list controller needs it for
+    // `moneyFilters` (pm#501).
+    currencyDecimals: 2,
     formatMoney: (cents: number) => `${((cents || 0) / 100).toFixed(2)} €`,
     formatAmount: (units: number) => `${(units || 0).toFixed(2)} €`,
     t: (_catalog: unknown, key: string) => key,
