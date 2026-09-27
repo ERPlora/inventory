@@ -19,7 +19,7 @@ import type { DataTableColumn, DataTableAction } from '@erplora/outfitkit';
 // The major ↔ minor boundary lives in ONE place (`lib/hub-currency`, on top of the SDK, ADR-0123):
 // having it copied is what made the CSV import forget the ×100 and store a 2,20 € coffee as 2
 // cents; having it hard-coded to two decimals stored a 480 ¥ tea as 48000 ¥ (inventory#101).
-import { createListController, dataTableLabels } from '@erplora/module-sdk';
+import { createListController, dataTableLabels, majorToMinor as sdkMajorToMinor } from '@erplora/module-sdk';
 import type { ListController, ListClient, ListParams, ListPage } from '@erplora/module-sdk';
 // Catálogo i18n del módulo (ADR-0055): esbuild inlinea estos JSON en el `dist` del WC. Los textos
 // internos se resuelven con `erplora.t(CATALOG, 'ui.clave')` (idioma activo, fallback locale→en→clave).
@@ -32,6 +32,33 @@ const CATALOG: Record<string, unknown> = { es: esLocale, en: enLocale };
 //
 // 90% de la lógica vive en Rust: este componente NO toca la BD; llama al SDK
 // (erplora.query/queryPage/command/on). El cliente se obtiene de `globalThis.erplora`.
+
+/**
+ * Columns whose `range` filter is money (inventory#115, pm#498). The column paints the INTEGER in
+ * the minor unit as money of the hub («2,20 €»), so the person types the major unit («12»); the
+ * dispatcher compares against the integer, so each edge is scaled before the list is asked for.
+ */
+const MONEY_RANGE_FILTERS = new Set(['price']);
+
+/**
+ * One typed edge of a money range → minor units, with the hub's currency decimals. The table emits
+ * a Number from the panel and text from the inline control («12,5» included). Empty or not a
+ * number → `''`, which the list controller drops: a stray keystroke never becomes «from 0».
+ */
+function moneyEdgeToMinor(edge: unknown, decimals: number): number | '' {
+  const text = typeof edge === 'string' ? edge.trim().replace(',', '.') : edge;
+  if (text === '' || text === null || text === undefined) return '';
+  const n = Number(text);
+  return Number.isFinite(n) ? sdkMajorToMinor(n, decimals) : '';
+}
+
+/** The `{ from?, to? }` a money range emits, scaled edge by edge; any other shape travels as is. */
+function moneyRangeToMinor(value: unknown, decimals: number): unknown {
+  if (value === null || typeof value !== 'object') return value;
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([edge, v]) => [edge, moneyEdgeToMinor(v, decimals)]),
+  );
+}
 
 interface ErploraClientLike extends ListClient {
   query<T = unknown>(name: string, params?: Record<string, unknown>): Promise<T>;
@@ -1554,9 +1581,14 @@ export class ErpInventoryProducts extends LitElement {
             // El valor VISIBLE se anota tal cual llega (inventory#83); al servidor va traducido —
             // `stock` viaja como rango en la unidad del artículo, no como lo teclea el usuario.
             this.setTableFilter(e.detail.col, e.detail.value);
+            // `price` travels in the minor unit of the hub currency (inventory#115, pm#498).
             this.ctrl.setFilter(
               e.detail.col,
-              e.detail.col === 'stock' ? this.stockFilterValue(e.detail.value) : e.detail.value,
+              e.detail.col === 'stock'
+                ? this.stockFilterValue(e.detail.value)
+                : MONEY_RANGE_FILTERS.has(e.detail.col)
+                  ? moneyRangeToMinor(e.detail.value, hubDecimals())
+                  : e.detail.value,
             );
           }}
         >
