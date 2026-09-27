@@ -5493,6 +5493,19 @@ async function printBarcodeLabel(label, deps = {}) {
 
 // ui/components/erp-inventory-products/erp-inventory-products.ts
 var CATALOG4 = { es: es_default, en: en_default };
+var MONEY_RANGE_FILTERS = /* @__PURE__ */ new Set(["price"]);
+function moneyEdgeToMinor(edge, decimals) {
+  const text = typeof edge === "string" ? edge.trim().replace(",", ".") : edge;
+  if (text === "" || text === null || text === void 0) return "";
+  const n6 = Number(text);
+  return Number.isFinite(n6) ? majorToMinor(n6, decimals) : "";
+}
+function moneyRangeToMinor(value, decimals) {
+  if (value === null || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value).map(([edge, v3]) => [edge, moneyEdgeToMinor(v3, decimals)])
+  );
+}
 var STATUS_UNCONFIGURED = "unconfigured";
 var STATUS_FROM_QUERY = {
   [STATUS_UNCONFIGURED]: STATUS_UNCONFIGURED,
@@ -6648,7 +6661,7 @@ var ErpInventoryProducts = class extends i3 {
       this.setTableFilter(e5.detail.col, e5.detail.value);
       this.ctrl.setFilter(
         e5.detail.col,
-        e5.detail.col === "stock" ? this.stockFilterValue(e5.detail.value) : e5.detail.value
+        e5.detail.col === "stock" ? this.stockFilterValue(e5.detail.value) : MONEY_RANGE_FILTERS.has(e5.detail.col) ? moneyRangeToMinor(e5.detail.value, hubDecimals()) : e5.detail.value
       );
     }}
         >
