@@ -2473,6 +2473,14 @@ describe('pasted money is read, never saved as 0 (pm#521)', () => {
     expect(wc.formError).toBe('ui.errNotAnAmount');
   });
 
+  // HALLAZGO rv-395: a pasted negative keeps its sign (ASCII or Unicode minus in front). It is never
+  // turned into +125050; the command schema (`minimum: 0`) is what refuses it on the server.
+  it.each(['-1.250,50', '−1.250,50'])('create: a pasted negative «%s» keeps its sign (-125050)', async (typed) => {
+    const wc = await fillCreate(typed, '');
+    await wc.createProduct(new Event('submit'));
+    expect(comandos.find((c) => c.name === 'inventory.products.create')?.payload.price).toBe(-125050);
+  });
+
   it('create: an ambiguous «1.250» is refused and the message carries BOTH readings', async () => {
     const wc = await fillCreate('1.250', '');
     await wc.createProduct(new Event('submit'));
