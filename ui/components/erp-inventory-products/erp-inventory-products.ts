@@ -5,7 +5,9 @@ import { state } from 'lit/decorators.js';
 import { code128b } from '../../lib/code128';
 import { printBarcodeLabel } from '../../lib/barcode-print';
 import { formatQuantity, fromMicro, onGrid, parseQuantity } from '../../lib/quantity';
-import { hubDecimals, majorToMinor, minorToInput, moneyStep } from '../../lib/hub-currency';
+import { hubDecimals, majorToMinor } from '../../lib/hub-currency';
+// What a person types or pastes into a money field, read the one way every module reads it (pm#521).
+import { formatMoneyInput, normaliseMoneyInput, parseMoneyInput } from '@erplora/module-toolkit/money-input';
 import { resolveTaxCategories, pickTaxValue, normalizeAlias, learnAlias, createCategoryWithAlias } from '../../lib/tax-resolve';
 // La etiqueta del selector de categoría fiscal (inventory#58): nombre + tipo aplicable, SIN la
 // clave técnica. El % se trae de `taxes` por su query pública; aquí no se recalcula nada.
@@ -257,6 +259,42 @@ function erplora(): ErploraClientLike {
   const c = (globalThis as { erplora?: ErploraClientLike }).erplora;
   if (!c) throw new Error('erplora SDK no inicializado por el shell');
   return c;
+}
+
+/**
+ * A money FIELD (price, cost, receipt cost) → minor units of the hub currency, or the sentence that
+ * says why it cannot be read (pm#521). The field used to go through `Number()`: «1.250,50» —
+ * verbatim what the screen prints — became NaN and the product was saved at 0, in silence.
+ * `minor: null` = nothing typed; the caller decides whether that is 0 (a required column) or «keep».
+ */
+function readMoneyField(typed: string): { ok: true; minor: number | null } | { ok: false; message: string } {
+  const c = erplora();
+  const d = hubDecimals();
+  const read = parseMoneyInput(typed, d, { currency: c.currency || undefined, locale: c.locale });
+  if (read.ok) return read;
+  if (read.code === 'ambiguous_amount') {
+    // Both readings, in the hub's format, so the person can copy the one they meant back.
+    return {
+      ok: false,
+      message: c.t(CATALOG, 'ui.errAmbiguousAmount', {
+        typed: typed.trim(),
+        grouped: formatMoneyInput(read.readings.grouped, d, c.locale),
+        decimal: formatMoneyInput(read.readings.decimal, d, c.locale),
+      }),
+    };
+  }
+  return { ok: false, message: c.t(CATALOG, 'ui.errNotAnAmount') };
+}
+
+/** Minor units → the money field's text: hub locale, currency decimals, NO grouping. */
+function moneyFieldText(minor: number | null | undefined): string {
+  return formatMoneyInput(minor, hubDecimals(), erplora().locale);
+}
+
+/** The money field once the person leaves it: the hub format when readable, as typed when not. */
+function normaliseMoneyField(typed: string): string {
+  const c = erplora();
+  return normaliseMoneyInput(typed, hubDecimals(), c.locale, c.currency || undefined);
 }
 
 /** Visibilidad de UI; el runtime vuelve a validar el permiso en cada command. */
@@ -580,11 +618,15 @@ export class ErpInventoryProducts extends LitElement {
       return;
     }
     // The cost is typed in MAJOR units and stored in the hub currency's MINOR units (ADR-0007/0123,
-    // inventory#101): a fixed `× 100` stored a 480 ¥ cost as 48000 ¥.
-    const cost = this.receiveCost.trim() === '' ? null : majorToMinor(Number(this.receiveCost));
+    // inventory#101). Empty = null: the receipt keeps the stored cost.
+    const cost = readMoneyField(this.receiveCost);
+    if (!cost.ok) {
+      this.stockError = cost.message;
+      return;
+    }
     try {
       await erplora().command('inventory.stock.receive', {
-        items: [{ product_id: this.receiveTarget.id, qty, unit_cost: cost }],
+        items: [{ product_id: this.receiveTarget.id, qty, unit_cost: cost.minor }],
       });
       this.receiveTarget = null;
       this.receiveQty = '';
@@ -672,8 +714,8 @@ export class ErpInventoryProducts extends LitElement {
       this.newSku = full.sku ?? '';
       // The DB stores the hub currency's MINOR units and the form edits MAJOR ones (ADR-0123,
       // inventory#101: in a yen hub there is nothing to divide).
-      this.newPrice = minorToInput(full.price);
-      this.newCost = minorToInput((full as unknown as { cost?: number }).cost ?? 0);
+      this.newPrice = moneyFieldText(full.price);
+      this.newCost = moneyFieldText((full as unknown as { cost?: number }).cost ?? 0);
       this.newThreshold = formatQuantity(
         (full as unknown as { low_stock_threshold?: number }).low_stock_threshold ?? 10_000_000,
       );
@@ -1426,6 +1468,11 @@ export class ErpInventoryProducts extends LitElement {
     this.formError = '';
     this.pageError = ''; // a save is the next thing the person did: an older row refusal is stale
     try {
+      // Price and cost are required columns: an empty field is 0, as it always was.
+      const price = readMoneyField(this.newPrice);
+      if (!price.ok) throw new Error(price.message);
+      const cost = readMoneyField(this.newCost);
+      if (!cost.ok) throw new Error(cost.message);
       const threshold = this.newThreshold.trim() === ''
         ? 10_000_000
         : parseQuantity(this.newThreshold);
@@ -1439,8 +1486,8 @@ export class ErpInventoryProducts extends LitElement {
         await erplora().command('inventory.products.update', {
           product_id: this.editingId,
           name: this.newName.trim(),
-          price: majorToMinor(this.newPrice),
-          cost: majorToMinor(this.newCost),
+          price: price.minor ?? 0,
+          cost: cost.minor ?? 0,
           low_stock_threshold: threshold,
           ean13: this.newEan.trim() || null,
           description: this.newDescription,
@@ -1478,8 +1525,8 @@ export class ErpInventoryProducts extends LitElement {
         await erplora().command('inventory.products.create', {
           name: this.newName.trim(),
           sku: this.newSku.trim(),
-          price: majorToMinor(this.newPrice),
-          cost: majorToMinor(this.newCost),
+          price: price.minor ?? 0,
+          cost: cost.minor ?? 0,
           stock,
           low_stock_threshold: threshold,
           product_type: this.newType,
@@ -1623,19 +1670,20 @@ export class ErpInventoryProducts extends LitElement {
               fill="outline"
               label=${erplora().t(CATALOG, 'ui.price')}
               label-placement="floating"
-              type="number"
-              .step=${moneyStep()}
+              type="text" inputmode="decimal"
               .value=${this.newPrice}
               @ionInput=${(e: Event) => (this.newPrice = (e.target as HTMLInputElement).value)}
+              @ionBlur=${() => (this.newPrice = normaliseMoneyField(this.newPrice))}
             ></ion-input>
             <ion-input mode="md"
               data-testid="inventory-products-cost"
               fill="outline"
               label=${`${erplora().t(CATALOG, 'ui.fieldCost')} (${erplora().currency})`}
               label-placement="floating"
-              type="number" .step=${moneyStep()} min="0"
+              type="text" inputmode="decimal"
               .value=${this.newCost}
               @ionInput=${(e: Event) => (this.newCost = (e.target as HTMLInputElement).value)}
+              @ionBlur=${() => (this.newCost = normaliseMoneyField(this.newCost))}
             ></ion-input>
             ${!this.editingId
               ? html`<ion-input mode="md"
@@ -2152,9 +2200,10 @@ export class ErpInventoryProducts extends LitElement {
             @ionInput=${(e: CustomEvent) => (this.receiveQty = String((e.detail as { value?: string }).value ?? ''))}
           ></ion-input>
           <ion-input mode="md" data-testid="inventory-products-receive-cost" class="ion-margin-top" fill="outline" label-placement="floating" label=${`${t('ui.receiveCost')} (${erplora().currency})`}
-            type="number" .step=${moneyStep()} min="0" inputmode="decimal"
+            type="text" inputmode="decimal"
             .value=${this.receiveCost}
             @ionInput=${(e: CustomEvent) => (this.receiveCost = String((e.detail as { value?: string }).value ?? ''))}
+            @ionBlur=${() => (this.receiveCost = normaliseMoneyField(this.receiveCost))}
           ></ion-input>
           ${this.stockError ? html`<ok-inline-feedback data-testid="inventory-products-receive-error" class="ion-margin-top" tone="danger" icon="alert-circle-outline">${this.stockError}</ok-inline-feedback>` : nothing}
           <ion-button data-testid="inventory-products-receive-submit" class="ion-margin-top" expand="block" .disabled=${this.receiveQty.trim() === ''}

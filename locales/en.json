@@ -143,6 +143,8 @@
     "errDeleteProduct": "The product could not be deleted",
     "errUpdateProduct": "The product could not be updated",
     "errSaveProduct": "The product could not be saved",
+    "errAmbiguousAmount": "This amount can be read in two ways: «{typed}» could be {grouped} or {decimal}. Write the decimals so there is no doubt.",
+    "errNotAnAmount": "This is not an amount. Type a figure, for example 12.50.",
     "errQuantity": "Enter a valid quantity with no more than 6 decimal places",
     "errQuantityGrid": "The quantity does not match the increment allowed for this unit",
     "errDeleteCategory": "The category could not be deleted",
