@@ -2398,7 +2398,8 @@ describe('pasted money is read, never saved as 0 (pm#521)', () => {
     return wc;
   }
 
-  it.each(['1.250,50', '1,250.50', '1250,5', '1 250,50', '1.250,50 €'])(
+  // `\u202f` (NNBSP) and `\u00a0` (NBSP) are what `Intl` prints between groups in fr / es: real pastes.
+  it.each(['1.250,50', '1,250.50', '1250,5', '1 250,50', '1\u202f250,50', '1\u00a0250,50 €', '1.250,50 €'])(
     'create: «%s» typed in price and cost is saved as 125050, not 0',
     async (typed) => {
       const wc = await fillCreate(typed, typed);
@@ -2430,6 +2431,26 @@ describe('pasted money is read, never saved as 0 (pm#521)', () => {
     expect(update, `refused: ${wc.formError}`).toBeTruthy();
     expect(update!.payload.price).toBe(125050);
     expect(update!.payload.cost).toBe(125050);
+  });
+
+  it('edit: a cleared cost is saved as 0, as before — the column is required', async () => {
+    (globalThis as Record<string, unknown>).erplora = {
+      ...sdk(),
+      query: async (name: string) =>
+        name === 'inventory.products.get'
+          ? [{ id: 'p1', name: 'Vino', sku: 'VIN', price: 900, cost: 500, stock: 0, tax_category_key: 'standard',
+               is_active: 1, product_type: 'physical' }]
+          : [],
+    };
+    const el = await montar();
+    const wc = el as unknown as Form;
+    await wc.onRowAction(new CustomEvent('rowAction', { detail: { actionId: 'edit', row: { id: 'p1', name: 'Vino', sku: 'VIN' } } }));
+    wc.newPrice = '';
+    wc.newCost = '';
+    await wc.createProduct(new Event('submit'));
+    const update = comandos.find((c) => c.name === 'inventory.products.update');
+    expect(update!.payload.price).toBe(0);
+    expect(update!.payload.cost).toBe(0);
   });
 
   it('empty price and cost still create a free item (0), as before — they are required columns', async () => {
@@ -2515,14 +2536,15 @@ describe('pasted money is read, never saved as 0 (pm#521)', () => {
       ...sdk(),
       query: async (name: string) =>
         name === 'inventory.products.get'
-          ? [{ id: 'p1', name: 'Vino', sku: 'VIN', price: 125050, cost: 50, stock: 0, tax_category_key: 'standard',
+          // Five digits: `es` does not group four (minimumGroupingDigits 2), so 1250,50 would not tell.
+          ? [{ id: 'p1', name: 'Vino', sku: 'VIN', price: 1234550, cost: 50, stock: 0, tax_category_key: 'standard',
                is_active: 1, product_type: 'physical' }]
           : [],
     };
     const el = await montar();
     const wc = el as unknown as Form;
     await wc.onRowAction(new CustomEvent('rowAction', { detail: { actionId: 'edit', row: { id: 'p1', name: 'Vino', sku: 'VIN' } } }));
-    expect(wc.newPrice).toBe('1250,50');
+    expect(wc.newPrice).toBe('12345,50');
     expect(wc.newCost).toBe('0,50');
   });
 
@@ -2544,7 +2566,7 @@ describe('pasted money is read, never saved as 0 (pm#521)', () => {
     const el = await montar();
     const wc = el as unknown as Form & Receipt & { updateComplete: Promise<unknown> };
     wc.receiveTarget = { id: 'p1', name: 'Vino', sku: 'VIN', stock: 0, unit_code: 'ud' };
-    wc.newPrice = '1.250,5';
+    wc.newPrice = 'EUR 1.250,5'; // the hub currency's code is cleaned on blur too
     wc.newCost = '12 abc';
     wc.receiveCost = '1,250.50 €';
     await wc.updateComplete;
