@@ -1554,6 +1554,8 @@ var es_default = {
     errDeleteProduct: "No se pudo eliminar el producto",
     errUpdateProduct: "No se pudo actualizar el producto",
     errSaveProduct: "No se pudo guardar el producto",
+    errAmbiguousAmount: "Este importe se puede leer de dos maneras: \xAB{typed}\xBB tanto puede ser {grouped} como {decimal}. Escribe los decimales para que no haya duda.",
+    errNotAnAmount: "Esto no es un importe. Escribe una cifra, por ejemplo 12,50.",
     errQuantity: "Introduce una cantidad v\xE1lida con un m\xE1ximo de 6 decimales",
     errQuantityGrid: "La cantidad no respeta el incremento permitido para esta unidad",
     errDeleteCategory: "No se pudo eliminar la categor\xEDa",
@@ -1762,6 +1764,8 @@ var en_default = {
     errDeleteProduct: "The product could not be deleted",
     errUpdateProduct: "The product could not be updated",
     errSaveProduct: "The product could not be saved",
+    errAmbiguousAmount: "This amount can be read in two ways: \xAB{typed}\xBB could be {grouped} or {decimal}. Write the decimals so there is no doubt.",
+    errNotAnAmount: "This is not an amount. Type a figure, for example 12.50.",
     errQuantity: "Enter a valid quantity with no more than 6 decimal places",
     errQuantityGrid: "The quantity does not match the increment allowed for this unit",
     errDeleteCategory: "The category could not be deleted",
@@ -5476,15 +5480,6 @@ function minorToMajor2(minor) {
 function majorToMinor2(major) {
   return majorToMinor(major, hubDecimals());
 }
-function minorToInput(minor) {
-  if (minor == null) return "";
-  const d3 = hubDecimals();
-  return minorToMajor(minor, d3).toFixed(d3);
-}
-function moneyStep() {
-  const d3 = hubDecimals();
-  return d3 === 0 ? "1" : `0.${"0".repeat(d3 - 1)}1`;
-}
 
 // ui/lib/barcode-print.ts
 function esc(s5) {
@@ -5563,6 +5558,138 @@ async function printBarcodeLabel(label, deps = {}) {
   }
   window.print();
   return { ok: true, via: "browser" };
+}
+
+// @erplora/module-toolkit/src/money-input.mjs
+var SPACING = "\\s'\\u2019\\u02bc";
+var GROUP_SEP = new RegExp(`[.,${SPACING}]`);
+var MINUS = /[-\u2212]/;
+var SIGN = /[-+\u2212]/;
+var SIGNS = /[-+\u2212]/g;
+var BRACKET = /[()]/;
+var CURRENCY_SIGNS = /\p{Sc}/gu;
+var AFFIX_FILLER = new RegExp(`^[${SPACING}\\p{Cf}.,+\\-\\u2212]*$`, "u");
+var NOT_AN_AMOUNT = Object.freeze({ ok: false, code: "not_an_amount" });
+function checkDecimals(decimals) {
+  if (!Number.isInteger(decimals) || decimals < 0 || decimals > 4) {
+    throw new RangeError(`money_input_decimals_invalid: ${String(decimals)}`);
+  }
+}
+function currencyWords(currency, locale) {
+  if (currency === void 0) return [];
+  if (typeof currency !== "string" || !/^[A-Za-z]{3}$/.test(currency)) {
+    throw new RangeError(`money_input_currency_invalid: ${String(currency)}`);
+  }
+  const words = /* @__PURE__ */ new Set([currency.toLowerCase()]);
+  for (const lang of [locale || "en", "en"]) {
+    for (const currencyDisplay of ["symbol", "narrowSymbol"]) {
+      const part = new Intl.NumberFormat(lang, { style: "currency", currency, currencyDisplay }).formatToParts(1).find((p4) => p4.type === "currency");
+      if (part) words.add(part.value.toLowerCase());
+    }
+  }
+  return [...words].sort((a3, b3) => b3.length - a3.length);
+}
+function isCurrencyOnly(affixes, words) {
+  let rest = affixes.toLowerCase();
+  if (!words.length) rest = rest.replace(CURRENCY_SIGNS, " ");
+  for (const word of words) rest = rest.split(word).join(" ");
+  return AFFIX_FILLER.test(rest);
+}
+function isGrouping(intPart) {
+  const groups = intPart.split(GROUP_SEP);
+  if (groups.length < 2) return false;
+  const [first, ...rest] = groups;
+  const last = rest.pop();
+  return /^[1-9]\d{0,2}$/.test(first) && rest.every((g3) => /^\d{2,3}$/.test(g3)) && /^\d{3}$/.test(last);
+}
+function digitsToMinor(intDigits2, fracDigits, decimals) {
+  const padded = fracDigits.padEnd(decimals + 1, "0");
+  const kept = (intDigits2 || "0") + padded.slice(0, decimals);
+  let minor = Number(kept);
+  if (Number(padded[decimals]) >= 5) minor += 1;
+  return Number.isSafeInteger(minor) ? minor : null;
+}
+function signed(minor, negative) {
+  return negative && minor !== 0 ? -minor : minor;
+}
+function splitCore(core, decimals) {
+  const dots = (core.match(/\./g) ?? []).length;
+  const commas = (core.match(/,/g) ?? []).length;
+  if (dots && commas) {
+    const dec = core.lastIndexOf(".") > core.lastIndexOf(",") ? "." : ",";
+    if ((dec === "." ? dots : commas) !== 1) return null;
+    const at2 = core.lastIndexOf(dec);
+    return { intPart: core.slice(0, at2), frac: core.slice(at2 + 1) };
+  }
+  if (dots + commas !== 1) return { intPart: core, frac: "" };
+  const at = Math.max(core.lastIndexOf("."), core.lastIndexOf(","));
+  const intPart = core.slice(0, at);
+  const tail = core.slice(at + 1);
+  if (tail.length === 3 && isGrouping(core)) {
+    if (decimals === 0) return { intPart: core, frac: "" };
+    if (decimals !== 3) return { ambiguous: { intPart, tail } };
+  }
+  return { intPart, frac: tail };
+}
+function intDigits(intPart) {
+  if (!GROUP_SEP.test(intPart)) return /^\d*$/.test(intPart) ? intPart : null;
+  return isGrouping(intPart) ? intPart.replace(/\D/g, "") : null;
+}
+function parseMoneyInput(typed, decimals, options = {}) {
+  checkDecimals(decimals);
+  const words = currencyWords(options.currency, options.locale);
+  if (typeof typed === "number") return parseNumber(typed, decimals);
+  const raw = String(typed ?? "").trim();
+  if (!raw) return { ok: true, minor: null };
+  const firstDigit = raw.search(/\d/);
+  if (firstDigit < 0) return NOT_AN_AMOUNT;
+  const start = firstDigit > 0 && /[.,]/.test(raw[firstDigit - 1]) ? firstDigit - 1 : firstDigit;
+  const end = raw.search(/\d\D*$/) + 1;
+  const prefix = raw.slice(0, start);
+  const suffix = raw.slice(end);
+  const core = raw.slice(start, end);
+  const signs = prefix.match(SIGNS) ?? [];
+  if (signs.length > 1 || SIGN.test(suffix) || BRACKET.test(prefix + suffix)) return NOT_AN_AMOUNT;
+  if (!isCurrencyOnly(`${prefix} ${suffix}`, words)) return NOT_AN_AMOUNT;
+  const negative = signs.length === 1 && MINUS.test(signs[0]);
+  const split = splitCore(core, decimals);
+  if (!split) return NOT_AN_AMOUNT;
+  if ("ambiguous" in split) {
+    const { intPart, tail } = split.ambiguous;
+    const digits = intPart.replace(/\D/g, "");
+    const grouped = digitsToMinor(digits + tail, "", decimals);
+    const decimal = digitsToMinor(digits, tail, decimals);
+    if (grouped === null || decimal === null) return NOT_AN_AMOUNT;
+    return {
+      ok: false,
+      code: "ambiguous_amount",
+      readings: { grouped: signed(grouped, negative), decimal: signed(decimal, negative) }
+    };
+  }
+  const whole = intDigits(split.intPart);
+  if (whole === null || split.frac && !/^\d+$/.test(split.frac)) return NOT_AN_AMOUNT;
+  const minor = digitsToMinor(whole, split.frac, decimals);
+  return minor === null ? NOT_AN_AMOUNT : { ok: true, minor: signed(minor, negative) };
+}
+function parseNumber(n6, decimals) {
+  const m4 = /^(\d+)(?:\.(\d+))?$/.exec(String(Math.abs(n6)));
+  if (!m4) return NOT_AN_AMOUNT;
+  const minor = digitsToMinor(m4[1], m4[2] ?? "", decimals);
+  return minor === null ? NOT_AN_AMOUNT : { ok: true, minor: signed(minor, n6 < 0) };
+}
+function formatMoneyInput(minor, decimals, locale) {
+  checkDecimals(decimals);
+  if (minor == null) return "";
+  return new Intl.NumberFormat(locale || "en", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+    useGrouping: false,
+    numberingSystem: "latn"
+  }).format(minor / 10 ** decimals);
+}
+function normaliseMoneyInput(typed, decimals, locale, currency) {
+  const parsed = parseMoneyInput(typed, decimals, { currency, locale });
+  return parsed.ok && parsed.minor !== null ? formatMoneyInput(parsed.minor, decimals, locale) : typed;
 }
 
 // ui/components/erp-inventory-products/erp-inventory-products.ts
@@ -5668,6 +5795,30 @@ function erplora4() {
   const c5 = globalThis.erplora;
   if (!c5) throw new Error("erplora SDK no inicializado por el shell");
   return c5;
+}
+function readMoneyField(typed) {
+  const c5 = erplora4();
+  const d3 = hubDecimals();
+  const read = parseMoneyInput(typed, d3, { currency: c5.currency || void 0, locale: c5.locale });
+  if (read.ok) return read;
+  if (read.code === "ambiguous_amount") {
+    return {
+      ok: false,
+      message: c5.t(CATALOG4, "ui.errAmbiguousAmount", {
+        typed: typed.trim(),
+        grouped: formatMoneyInput(read.readings.grouped, d3, c5.locale),
+        decimal: formatMoneyInput(read.readings.decimal, d3, c5.locale)
+      })
+    };
+  }
+  return { ok: false, message: c5.t(CATALOG4, "ui.errNotAnAmount") };
+}
+function moneyFieldText(minor) {
+  return formatMoneyInput(minor, hubDecimals(), erplora4().locale);
+}
+function normaliseMoneyField(typed) {
+  const c5 = erplora4();
+  return normaliseMoneyInput(typed, hubDecimals(), c5.locale, c5.currency || void 0);
 }
 function can2(permission) {
   const client = erplora4();
@@ -5926,10 +6077,14 @@ var ErpInventoryProducts = class extends i3 {
       this.stockError = erplora4().t(CATALOG4, "ui.errQuantityGrid");
       return;
     }
-    const cost = this.receiveCost.trim() === "" ? null : majorToMinor2(Number(this.receiveCost));
+    const cost = readMoneyField(this.receiveCost);
+    if (!cost.ok) {
+      this.stockError = cost.message;
+      return;
+    }
     try {
       await erplora4().command("inventory.stock.receive", {
-        items: [{ product_id: this.receiveTarget.id, qty, unit_cost: cost }]
+        items: [{ product_id: this.receiveTarget.id, qty, unit_cost: cost.minor }]
       });
       this.receiveTarget = null;
       this.receiveQty = "";
@@ -5995,8 +6150,8 @@ var ErpInventoryProducts = class extends i3 {
       this.formError = "";
       this.newName = full.name ?? "";
       this.newSku = full.sku ?? "";
-      this.newPrice = minorToInput(full.price);
-      this.newCost = minorToInput(full.cost ?? 0);
+      this.newPrice = moneyFieldText(full.price);
+      this.newCost = moneyFieldText(full.cost ?? 0);
       this.newThreshold = formatQuantity2(
         full.low_stock_threshold ?? 1e7
       );
@@ -6600,6 +6755,10 @@ var ErpInventoryProducts = class extends i3 {
     this.formError = "";
     this.pageError = "";
     try {
+      const price = readMoneyField(this.newPrice);
+      if (!price.ok) throw new Error(price.message);
+      const cost = readMoneyField(this.newCost);
+      if (!cost.ok) throw new Error(cost.message);
       const threshold = this.newThreshold.trim() === "" ? 1e7 : parseQuantity2(this.newThreshold);
       if (threshold === null) throw new Error(t5("ui.errQuantity"));
       if (!this.quantityMatchesUnit(threshold, this.newUnitCode)) {
@@ -6609,8 +6768,8 @@ var ErpInventoryProducts = class extends i3 {
         await erplora4().command("inventory.products.update", {
           product_id: this.editingId,
           name: this.newName.trim(),
-          price: majorToMinor2(this.newPrice),
-          cost: majorToMinor2(this.newCost),
+          price: price.minor ?? 0,
+          cost: cost.minor ?? 0,
           low_stock_threshold: threshold,
           ean13: this.newEan.trim() || null,
           description: this.newDescription,
@@ -6647,8 +6806,8 @@ var ErpInventoryProducts = class extends i3 {
         await erplora4().command("inventory.products.create", {
           name: this.newName.trim(),
           sku: this.newSku.trim(),
-          price: majorToMinor2(this.newPrice),
-          cost: majorToMinor2(this.newCost),
+          price: price.minor ?? 0,
+          cost: cost.minor ?? 0,
           stock,
           low_stock_threshold: threshold,
           product_type: this.newType,
@@ -6776,19 +6935,20 @@ var ErpInventoryProducts = class extends i3 {
               fill="outline"
               label=${erplora4().t(CATALOG4, "ui.price")}
               label-placement="floating"
-              type="number"
-              .step=${moneyStep()}
+              type="text" inputmode="decimal"
               .value=${this.newPrice}
               @ionInput=${(e5) => this.newPrice = e5.target.value}
+              @ionBlur=${() => this.newPrice = normaliseMoneyField(this.newPrice)}
             ></ion-input>
             <ion-input mode="md"
               data-testid="inventory-products-cost"
               fill="outline"
               label=${`${erplora4().t(CATALOG4, "ui.fieldCost")} (${erplora4().currency})`}
               label-placement="floating"
-              type="number" .step=${moneyStep()} min="0"
+              type="text" inputmode="decimal"
               .value=${this.newCost}
               @ionInput=${(e5) => this.newCost = e5.target.value}
+              @ionBlur=${() => this.newCost = normaliseMoneyField(this.newCost)}
             ></ion-input>
             ${!this.editingId ? b2`<ion-input mode="md"
                   data-testid="inventory-products-initial-stock"
@@ -7269,9 +7429,10 @@ var ErpInventoryProducts = class extends i3 {
             @ionInput=${(e5) => this.receiveQty = String(e5.detail.value ?? "")}
           ></ion-input>
           <ion-input mode="md" data-testid="inventory-products-receive-cost" class="ion-margin-top" fill="outline" label-placement="floating" label=${`${t5("ui.receiveCost")} (${erplora4().currency})`}
-            type="number" .step=${moneyStep()} min="0" inputmode="decimal"
+            type="text" inputmode="decimal"
             .value=${this.receiveCost}
             @ionInput=${(e5) => this.receiveCost = String(e5.detail.value ?? "")}
+            @ionBlur=${() => this.receiveCost = normaliseMoneyField(this.receiveCost)}
           ></ion-input>
           ${this.stockError ? b2`<ok-inline-feedback data-testid="inventory-products-receive-error" class="ion-margin-top" tone="danger" icon="alert-circle-outline">${this.stockError}</ok-inline-feedback>` : A}
           <ion-button data-testid="inventory-products-receive-submit" class="ion-margin-top" expand="block" .disabled=${this.receiveQty.trim() === ""}

@@ -1916,20 +1916,29 @@ describe('product money uses the hub currency scale (inventory#101)', () => {
     expect(comandos.find((c) => c.name === 'inventory.products.create')!.payload.price).toBe(120);
   });
 
-  it.each(SCALES)('the money inputs step by the $currency smallest unit', async ({ decimals, step }) => {
+  // The fields used to be `type="number"` with a `step` of the currency's smallest unit; a number
+  // field throws a pasted «1.250,50» away, so they are text now (pm#521) and the scale is what the
+  // field is REWRITTEN to when the person leaves it.
+  it.each(SCALES)('a money field is rewritten to the $currency scale on blur', async ({ decimals, step }) => {
     setScale(decimals);
     const el = await montar();
     const wc = el as unknown as { receiveTarget: Record<string, unknown> | null; requestUpdate: () => void;
+                                  newPrice: string; newCost: string; receiveCost: string;
                                   updateComplete: Promise<unknown>; shadowRoot: ShadowRoot };
     wc.receiveTarget = { id: 'p1', name: 'Té', sku: 'TEA', stock: 0, unit_code: 'ud' };
+    wc.newPrice = '12';
+    wc.newCost = '12';
+    wc.receiveCost = '12';
     wc.requestUpdate();
     await wc.updateComplete;
 
+    const expected = decimals === 0 ? '12' : `12${step.slice(1).replace(/1$/, '0')}`; // «12», «12.000»
     for (const id of ['inventory-products-price', 'inventory-products-cost', 'inventory-products-receive-cost']) {
-      const input = wc.shadowRoot.querySelector(`[data-testid="${id}"]`) as (HTMLElement & { step?: string }) | null;
+      const input = wc.shadowRoot.querySelector(`[data-testid="${id}"]`);
       expect(input, `${id} is rendered`).toBeTruthy();
-      expect(input!.step ?? input!.getAttribute('step'), id).toBe(step);
+      input!.dispatchEvent(new CustomEvent('ionBlur'));
     }
+    expect([wc.newPrice, wc.newCost, wc.receiveCost]).toEqual([expected, expected, expected]);
   });
 });
 
@@ -2333,5 +2342,247 @@ describe('Save stays above the shell tabbar in the mobile sheet (inventory#105)'
     window.dispatchEvent(new Event('resize'));
     await settle(el);
     expect(form(el).style.paddingBottom).toBe('72px');
+  });
+});
+
+// ERPlora/pm#521 — a money field reads what a person TYPES or PASTES the one way every module does
+// (`@erplora/module-toolkit/money-input`). The screen itself prints «1.250,50»; copied back into the
+// price, the cost or the receipt cost it became `Number('1.250,50')` = NaN → 0 (or, in the browser,
+// a `type="number"` field that threw the pasted text away): the product was saved FREE, in silence.
+// Garbage and an ambiguous «1.250» are refused with a code the screen explains, never a 0.
+describe('pasted money is read, never saved as 0 (pm#521)', () => {
+  type Form = {
+    newName: string; newSku: string; newPrice: string; newCost: string; newTaxCategoryKey: string;
+    formError: string; editingId: string | null;
+    createProduct: (ev: Event) => Promise<void>;
+    onRowAction: (ev: CustomEvent) => Promise<void>;
+  };
+  type Receipt = {
+    receiveTarget: Record<string, unknown> | null; receiveQty: string; receiveCost: string; stockError: string;
+    submitReceive: () => Promise<void>;
+  };
+  /** Every `t()` call with params, so the ambiguous refusal can be checked for its two readings. */
+  const translated: { key: string; params?: Record<string, unknown> }[] = [];
+
+  beforeEach(() => {
+    translated.length = 0;
+    const sdk = (globalThis as { erplora: Record<string, unknown> }).erplora;
+    sdk.t = (_catalog: unknown, key: string, params?: Record<string, unknown>) => {
+      translated.push({ key, params });
+      return key;
+    };
+  });
+
+  function sdk(): Record<string, unknown> {
+    return (globalThis as { erplora: Record<string, unknown> }).erplora;
+  }
+
+  async function fillCreate(price: string, cost = ''): Promise<Form> {
+    const el = await montar();
+    const wc = el as unknown as Form;
+    wc.newName = 'Vino';
+    wc.newSku = 'VIN';
+    wc.newPrice = price;
+    wc.newCost = cost;
+    wc.newTaxCategoryKey = 'standard';
+    return wc;
+  }
+
+  async function receive(cost: string): Promise<Receipt> {
+    const el = await montar();
+    const wc = el as unknown as Receipt;
+    wc.receiveTarget = { id: 'p1', name: 'Vino', sku: 'VIN', stock: 0, unit_code: 'ud' };
+    wc.receiveQty = '1';
+    wc.receiveCost = cost;
+    await wc.submitReceive();
+    return wc;
+  }
+
+  // `\u202f` (NNBSP) and `\u00a0` (NBSP) are what `Intl` prints between groups in fr / es: real pastes.
+  it.each(['1.250,50', '1,250.50', '1250,5', '1 250,50', '1\u202f250,50', '1\u00a0250,50 €', '1.250,50 €'])(
+    'create: «%s» typed in price and cost is saved as 125050, not 0',
+    async (typed) => {
+      const wc = await fillCreate(typed, typed);
+      await wc.createProduct(new Event('submit'));
+      const create = comandos.find((c) => c.name === 'inventory.products.create');
+      expect(create, `«${typed}» was refused: ${wc.formError}`).toBeTruthy();
+      expect(create!.payload.price).toBe(125050);
+      expect(create!.payload.cost).toBe(125050);
+    },
+  );
+
+  it('edit: «1.250,50» pasted over the price and cost is saved as 125050', async () => {
+    (globalThis as Record<string, unknown>).erplora = {
+      ...sdk(),
+      query: async (name: string) =>
+        name === 'inventory.products.get'
+          ? [{ id: 'p1', name: 'Vino', sku: 'VIN', price: 900, cost: 500, stock: 0, tax_category_key: 'standard',
+               is_active: 1, product_type: 'physical' }]
+          : [],
+    };
+    const el = await montar();
+    const wc = el as unknown as Form;
+    await wc.onRowAction(new CustomEvent('rowAction', { detail: { actionId: 'edit', row: { id: 'p1', name: 'Vino', sku: 'VIN' } } }));
+    expect(wc.editingId).toBe('p1');
+    wc.newPrice = '1.250,50';
+    wc.newCost = '1.250,50';
+    await wc.createProduct(new Event('submit'));
+    const update = comandos.find((c) => c.name === 'inventory.products.update');
+    expect(update, `refused: ${wc.formError}`).toBeTruthy();
+    expect(update!.payload.price).toBe(125050);
+    expect(update!.payload.cost).toBe(125050);
+  });
+
+  it('edit: a cleared cost is saved as 0, as before — the column is required', async () => {
+    (globalThis as Record<string, unknown>).erplora = {
+      ...sdk(),
+      query: async (name: string) =>
+        name === 'inventory.products.get'
+          ? [{ id: 'p1', name: 'Vino', sku: 'VIN', price: 900, cost: 500, stock: 0, tax_category_key: 'standard',
+               is_active: 1, product_type: 'physical' }]
+          : [],
+    };
+    const el = await montar();
+    const wc = el as unknown as Form;
+    await wc.onRowAction(new CustomEvent('rowAction', { detail: { actionId: 'edit', row: { id: 'p1', name: 'Vino', sku: 'VIN' } } }));
+    wc.newPrice = '';
+    wc.newCost = '';
+    await wc.createProduct(new Event('submit'));
+    const update = comandos.find((c) => c.name === 'inventory.products.update');
+    expect(update!.payload.price).toBe(0);
+    expect(update!.payload.cost).toBe(0);
+  });
+
+  it('empty price and cost still create a free item (0), as before — they are required columns', async () => {
+    const wc = await fillCreate('', '');
+    await wc.createProduct(new Event('submit'));
+    const create = comandos.find((c) => c.name === 'inventory.products.create');
+    expect(create!.payload.price).toBe(0);
+    expect(create!.payload.cost).toBe(0);
+  });
+
+  // HALLAZGO rv-395: a pasted negative with the minus BEHIND the digits, and accounting brackets,
+  // are not guessed; `$12` in a euro hub is not this hub's money (rv-397).
+  it.each([
+    ['abc', 'price'], ['12abc', 'price'], ['12−', 'price'], ['(12)', 'price'], ['$12', 'price'],
+    ['abc', 'cost'], ['1.5k', 'cost'],
+  ])('create: «%s» in the %s is refused with not_an_amount and nothing is sent', async (typed, field) => {
+    const wc = field === 'price' ? await fillCreate(typed, '1') : await fillCreate('1', typed);
+    await wc.createProduct(new Event('submit'));
+    expect(comandos.find((c) => c.name === 'inventory.products.create'), 'garbage must never be saved').toBeFalsy();
+    expect(wc.formError).toBe('ui.errNotAnAmount');
+  });
+
+  // HALLAZGO rv-395: a pasted negative keeps its sign (ASCII or Unicode minus in front). It is never
+  // turned into +125050; the command schema (`minimum: 0`) is what refuses it on the server.
+  it.each(['-1.250,50', '−1.250,50'])('create: a pasted negative «%s» keeps its sign (-125050)', async (typed) => {
+    const wc = await fillCreate(typed, '');
+    await wc.createProduct(new Event('submit'));
+    expect(comandos.find((c) => c.name === 'inventory.products.create')?.payload.price).toBe(-125050);
+  });
+
+  it('create: an ambiguous «1.250» is refused and the message carries BOTH readings', async () => {
+    const wc = await fillCreate('1.250', '');
+    await wc.createProduct(new Event('submit'));
+    expect(comandos.find((c) => c.name === 'inventory.products.create')).toBeFalsy();
+    expect(wc.formError).toBe('ui.errAmbiguousAmount');
+    const call = translated.find((c) => c.key === 'ui.errAmbiguousAmount');
+    expect(call?.params).toEqual({ typed: '1.250', grouped: '1250.00', decimal: '1.25' });
+  });
+
+  it('the readings of an ambiguous amount are written in the hub locale', async () => {
+    sdk().locale = 'es';
+    const wc = await fillCreate('2,500', '');
+    await wc.createProduct(new Event('submit'));
+    expect(wc.formError).toBe('ui.errAmbiguousAmount');
+    expect(translated.find((c) => c.key === 'ui.errAmbiguousAmount')?.params)
+      .toEqual({ typed: '2,500', grouped: '2500,00', decimal: '2,50' });
+  });
+
+  it('the hub currency as the hub locale prints it is cleaned (JPY in ja: «1,250￥»)', async () => {
+    sdk().currency = 'JPY';
+    sdk().currencyDecimals = 0;
+    sdk().locale = 'ja';
+    const wc = await fillCreate('1,250￥', '');
+    await wc.createProduct(new Event('submit'));
+    expect(wc.formError).toBe('');
+    expect(comandos.find((c) => c.name === 'inventory.products.create')!.payload.price).toBe(1250);
+  });
+
+  it('the hub currency written by its code is cleaned («EUR 12» → 1200)', async () => {
+    const wc = await fillCreate('EUR 12', '');
+    await wc.createProduct(new Event('submit'));
+    expect(wc.formError).toBe('');
+    expect(comandos.find((c) => c.name === 'inventory.products.create')!.payload.price).toBe(1200);
+  });
+
+  it('receive: «1.250,50» as the unit cost is received as 125050', async () => {
+    await receive('1.250,50');
+    const rec = comandos.find((c) => c.name === 'inventory.stock.receive');
+    expect(rec, 'the receipt was not sent').toBeTruthy();
+    expect((rec!.payload.items as Record<string, unknown>[])[0].unit_cost).toBe(125050);
+  });
+
+  it('receive: an empty unit cost stays empty (null keeps the stored cost), not 0', async () => {
+    await receive('   ');
+    const rec = comandos.find((c) => c.name === 'inventory.stock.receive');
+    expect((rec!.payload.items as Record<string, unknown>[])[0].unit_cost).toBeNull();
+  });
+
+  it.each([['abc', 'ui.errNotAnAmount'], ['1.250', 'ui.errAmbiguousAmount']])(
+    'receive: «%s» as the unit cost is refused inside the modal (%s) and nothing is received',
+    async (typed, key) => {
+      const wc = await receive(typed);
+      expect(comandos.find((c) => c.name === 'inventory.stock.receive')).toBeFalsy();
+      expect(wc.stockError).toBe(key);
+    },
+  );
+
+  it('edit reopens the amount in the hub locale with NO grouping (a field that reads itself back)', async () => {
+    sdk().locale = 'es';
+    (globalThis as Record<string, unknown>).erplora = {
+      ...sdk(),
+      query: async (name: string) =>
+        name === 'inventory.products.get'
+          // Five digits: `es` does not group four (minimumGroupingDigits 2), so 1250,50 would not tell.
+          ? [{ id: 'p1', name: 'Vino', sku: 'VIN', price: 1234550, cost: 50, stock: 0, tax_category_key: 'standard',
+               is_active: 1, product_type: 'physical' }]
+          : [],
+    };
+    const el = await montar();
+    const wc = el as unknown as Form;
+    await wc.onRowAction(new CustomEvent('rowAction', { detail: { actionId: 'edit', row: { id: 'p1', name: 'Vino', sku: 'VIN' } } }));
+    expect(wc.newPrice).toBe('12345,50');
+    expect(wc.newCost).toBe('0,50');
+  });
+
+  it('the money fields are text + inputmode=decimal, never type=number (a number field drops «1.250,50»)', async () => {
+    const el = await montar();
+    const wc = el as unknown as Form & Receipt & { updateComplete: Promise<unknown> };
+    wc.receiveTarget = { id: 'p1', name: 'Vino', sku: 'VIN', stock: 0, unit_code: 'ud' };
+    await wc.updateComplete;
+    for (const id of ['inventory-products-price', 'inventory-products-cost', 'inventory-products-receive-cost']) {
+      const input = el.shadowRoot!.querySelector(`[data-testid="${id}"]`);
+      expect(input, `${id} is not painted`).toBeTruthy();
+      expect(input!.getAttribute('type') ?? 'text', `${id}: type=number throws a pasted «1.250,50» away`).toBe('text');
+      expect(input!.getAttribute('inputmode'), `${id}: a tablet must offer the decimal keyboard`).toBe('decimal');
+    }
+  });
+
+  it('leaving a field rewrites a readable amount in the hub format, and garbage EXACTLY as typed', async () => {
+    sdk().locale = 'es';
+    const el = await montar();
+    const wc = el as unknown as Form & Receipt & { updateComplete: Promise<unknown> };
+    wc.receiveTarget = { id: 'p1', name: 'Vino', sku: 'VIN', stock: 0, unit_code: 'ud' };
+    wc.newPrice = 'EUR 1.250,5'; // the hub currency's code is cleaned on blur too
+    wc.newCost = '12 abc';
+    wc.receiveCost = '1,250.50 €';
+    await wc.updateComplete;
+    for (const id of ['inventory-products-price', 'inventory-products-cost', 'inventory-products-receive-cost']) {
+      el.shadowRoot!.querySelector(`[data-testid="${id}"]`)!.dispatchEvent(new CustomEvent('ionBlur'));
+    }
+    expect(wc.newPrice).toBe('1250,50');
+    expect(wc.newCost, 'rewriting garbage throws away what the person wrote').toBe('12 abc');
+    expect(wc.receiveCost).toBe('1250,50');
   });
 });

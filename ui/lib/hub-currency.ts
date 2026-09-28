@@ -20,18 +20,3 @@ export function minorToMajor(minor: number): number {
 export function majorToMinor(major: string | number): number {
   return sdkMajorToMinor(major, hubDecimals());
 }
-
-/** Minor units → the text an edit field starts with («480», «2.20», «1.234»). This is the value of a
- *  `type="number"` input, not a display string: the screen shows money through `formatMoney`.
- *  Nothing stored → an empty field (no price is not the same as free). */
-export function minorToInput(minor: number | null | undefined): string {
-  if (minor == null) return '';
-  const d = hubDecimals();
-  return sdkMinorToMajor(minor, d).toFixed(d);
-}
-
-/** The `step` of a money input: the currency's smallest unit (JPY «1», EUR «0.01», KWD «0.001»). */
-export function moneyStep(): string {
-  const d = hubDecimals();
-  return d === 0 ? '1' : `0.${'0'.repeat(d - 1)}1`;
-}

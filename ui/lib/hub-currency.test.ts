@@ -1,6 +1,6 @@
 // inventory#101 — the hub currency's scale, read from the shell SDK (JPY 0, EUR 2, KWD 3).
 import { afterEach, describe, expect, it } from 'vitest';
-import { hubDecimals, majorToMinor, minorToInput, minorToMajor, moneyStep } from './hub-currency.js';
+import { hubDecimals, majorToMinor, minorToMajor } from './hub-currency.js';
 
 function withScale(d: unknown): void {
   (globalThis as Record<string, unknown>).erplora = { currencyDecimals: d };
@@ -40,23 +40,5 @@ describe('minorToMajor / majorToMinor', () => {
     withScale(2);
     expect(majorToMinor(1.005 + 0.001)).toBe(101);
     expect(Number.isInteger(majorToMinor(0.1 + 0.2))).toBe(true);
-  });
-});
-
-describe('minorToInput / moneyStep (the edit field)', () => {
-  it.each([
-    { d: 0, minor: 480, text: '480', step: '1' },
-    { d: 2, minor: 220, text: '2.20', step: '0.01' },
-    { d: 3, minor: 1234, text: '1.234', step: '0.001' },
-  ])('fills the field and steps by the smallest unit ($d decimals)', ({ d, minor, text, step }) => {
-    withScale(d);
-    expect(minorToInput(minor)).toBe(text);
-    expect(moneyStep()).toBe(step);
-  });
-
-  it('an absent amount is an empty field, not «0» (no price is not the same as free)', () => {
-    withScale(2);
-    expect(minorToInput(undefined)).toBe('');
-    expect(minorToInput(null)).toBe('');
   });
 });
