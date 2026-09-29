@@ -705,9 +705,7 @@
       "options": {
         "label": "Stock value (at cost)",
         "icon": "cash-outline",
-        "format": "currency",
-        "currency": "EUR",
-        "locale": "es-ES"
+        "format": "currency"
       }
     },
     "inventory.in_stock": {
