@@ -154,6 +154,66 @@ def string_array(path: str, value) -> None:
         expect(f"{path}[{i}]", item, str)
 
 
+def read_defs(path: str, value) -> None:
+    """`enum ReadDef` (`#[serde(untagged)]`): a bare query name, or `{query, params, required}`."""
+    if not expect(path, value, list):
+        return
+    for i, item in enumerate(value):
+        if isinstance(item, str):
+            continue
+        if not expect(f"{path}[{i}]", item, dict):
+            continue
+        field(f"{path}[{i}]", item, "query", str, required=True)
+        field(f"{path}[{i}]", item, "required", bool)
+        params = field(f"{path}[{i}]", item, "params", dict)
+        for key, expr in (params or {}).items():
+            expect(f"{path}[{i}].params.{key}", expr, str)
+
+
+# The read the unit's INCREMENT comes from, and with it the grid a decrease is checked against
+# (ADR-0147 §2.2). A read that fails is omitted unless it is `required` (hub#701), and then the
+# handler cannot tell "the read failed" from "this product has no unit": it skips the check and
+# half a loose unit leaves the stock (inventory#125). The kernel aborts a `required` read with
+# `read_unavailable` instead — same door as `taxes.calculate` (taxes#82).
+UNIT_READ = "inventory.products.unit_of"
+# The commands whose handler validates a quantity against the unit. Each one has to pre-load it:
+# with the read dropped from the manifest the grid is never checked, not only when the database
+# failed.
+GRID_COMMANDS = ("inventory.stock.decrease",)
+
+
+def check_unit_reads_are_required(m: dict) -> None:
+    commands = m.get("commands")
+    for name, c in (commands if isinstance(commands, dict) else {}).items():
+        if not isinstance(c, dict):
+            continue
+        reads = c.get("reads")
+        declares_unit = False
+        # A `reads` of the wrong type is already reported by `read_defs`; it must not crash here.
+        for i, read in enumerate(reads if isinstance(reads, list) else []):
+            if isinstance(read, str):
+                query = read
+            elif isinstance(read, dict):
+                query = read.get("query")
+            else:
+                continue
+            if query != UNIT_READ:
+                continue
+            declares_unit = True
+            if not (isinstance(read, dict) and read.get("required") is True):
+                failures.append(
+                    f"commands.{name}.reads[{i}]: `{UNIT_READ}` must be declared "
+                    '`{"query": …, "required": true}` — without it a failed read skips the unit\'s '
+                    "grid instead of refusing with `read_unavailable` (inventory#125)"
+                )
+        if name in GRID_COMMANDS and not declares_unit:
+            failures.append(
+                f"commands.{name}.reads: must pre-load `{UNIT_READ}` as "
+                '`{"query": …, "required": true}` — without the read the handler never checks the '
+                "quantity against the unit's increment (inventory#125)"
+            )
+
+
 # ── Layer 1: the type contract, mirroring `struct Manifest` ──────────────────────────────
 
 
@@ -255,6 +315,7 @@ def check_sql_blocks(m: dict) -> None:
             field(path, c, "min_affected_rows", int)
             string_array(f"{path}.sql", c.get("sql", []))
             string_array(f"{path}.emit", c.get("emit", []))
+            read_defs(f"{path}.reads", c.get("reads", []))
             if "handler" in c and expect(f"{path}.handler", c["handler"], dict):
                 h = c["handler"]
                 field(f"{path}.handler", h, "type", str, required=True)
@@ -729,6 +790,7 @@ def main() -> int:
     check_permissions(manifest)
     check_navigation(manifest)
     check_sql_blocks(manifest)
+    check_unit_reads_are_required(manifest)
     check_events_and_slots(manifest)
     check_scheduled_tasks(manifest)
     check_setup(manifest)
