@@ -657,7 +657,7 @@
     "inventory.low_stock_count": {
       "title": "Low stock",
       "icon": "alert-circle-outline",
-      "category": "Inventario",
+      "category": "Inventory",
       "size": "sm",
       "permission": "inventory.view_product",
       "sectors": [
@@ -684,7 +684,7 @@
     "inventory.value": {
       "title": "Inventory value",
       "icon": "cash-outline",
-      "category": "Inventario",
+      "category": "Inventory",
       "size": "sm",
       "permission": "inventory.view_product",
       "sectors": [
@@ -712,7 +712,7 @@
     "inventory.in_stock": {
       "title": "Products in stock",
       "icon": "cube-outline",
-      "category": "Inventario",
+      "category": "Inventory",
       "size": "sm",
       "permission": "inventory.view_product",
       "sectors": [
@@ -739,7 +739,7 @@
     "inventory.low_stock_products": {
       "title": "Lowest-stock products",
       "icon": "trending-down-outline",
-      "category": "Inventario",
+      "category": "Inventory",
       "size": "md",
       "permission": "inventory.view_product",
       "sectors": [
