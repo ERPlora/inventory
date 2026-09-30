@@ -533,11 +533,16 @@ pub fn decrease_on_sale_pure(input: Value) -> Output {
 }
 
 
-/// El INCREMENTO de la unidad del producto, pre-cargado por el host en
-/// `context.reads["inventory.products.unit_of"]` (ADR-0069 fase 2 — reads CON parámetros).
-/// `None` si no hay read, si el producto no tiene unidad en el registro, o si el incremento no es
-/// positivo: en esos casos no se valida rejilla y se sigue, que es preferible a bloquear una venta
-/// por un registro incompleto.
+/// The INCREMENT of the product's unit, pre-loaded by the host in
+/// `context.reads["inventory.products.unit_of"]` (ADR-0069 phase 2 — reads WITH parameters).
+///
+/// A read that FAILS never gets here: the read is `required` in `inventory.stock.decrease`
+/// (inventory#125), so the kernel aborts the command with `read_unavailable` before the handler
+/// runs and the stock is untouched. `None` therefore means the read ANSWERED without a usable
+/// increment — the product's unit is not in the register (`product_unit_of.sql` LEFT JOINs on
+/// purpose) or its increment is not positive — and then the grid is not checked and the decrease
+/// goes on: an incomplete unit register must not block a sale. A missing read (a caller that
+/// bypasses the kernel) degrades the same way.
 fn increment_for_product(input: &Value) -> Option<i64> {
     let inc = input
         .get("context")?
@@ -1172,6 +1177,56 @@ mod tests {
         ))
         .unwrap();
         assert_eq!(op_names(&on), ["inventory._ensure_location", "inventory._decrease_stock"]);
+    }
+
+    // ── inventory#127: when the unit's grid is skipped, and when it is not ─────────────────────
+    //
+    // A read that FAILS never reaches the handler: `inventory.products.unit_of` is `required` in
+    // `inventory.stock.decrease` (inventory#125), so the kernel aborts with `read_unavailable`.
+    // The handler only skips the grid when the read ANSWERED without a usable increment.
+
+    fn decrease_with_increment(qty: i64, increment: Value) -> Value {
+        let mut input = decrease_input(
+            json!({ "product_id": "p1", "qty": qty }),
+            Some(settings_rows(1, 0)),
+            Some(product_rows(5_000_000, "physical")),
+        );
+        input["context"]["reads"]["inventory.products.unit_of"] = json!([{
+            "product_id": "p1", "unit_code": "box", "increment_value": increment
+        }]);
+        input
+    }
+
+    /// Positive control: a unit with an increment refuses a quantity off its grid (as a trap
+    /// today, as a domain refusal since inventory#129) and persists nothing.
+    #[test]
+    fn decrease_off_the_units_grid_is_refused() {
+        match decrease_stock_pure(decrease_with_increment(500_000, json!(1_000_000))) {
+            Err(_) => {}
+            Ok(out) => {
+                assert!(out.error.is_some(), "half a unit of a whole-unit product must be refused");
+                assert!(out.operations.is_empty(), "{:?}", out.operations);
+            }
+        }
+    }
+
+    /// The product's unit is not in the register (LEFT JOIN → no increment): the decrease goes
+    /// on without a grid check, so an incomplete register never blocks a sale.
+    #[test]
+    fn decrease_of_a_product_whose_unit_is_not_registered_skips_the_grid() {
+        let out = decrease_stock_pure(decrease_with_increment(500_000, Value::Null)).unwrap();
+        assert!(out.error.is_none(), "{:?}", out.error);
+        assert_eq!(op_names(&out), ["inventory._ensure_location", "inventory._decrease_stock"]);
+    }
+
+    /// A non-positive increment is not a grid: the decrease goes on instead of dividing by zero.
+    #[test]
+    fn decrease_with_a_non_positive_increment_skips_the_grid() {
+        for increment in [json!(0), json!(-1_000_000)] {
+            let out = decrease_stock_pure(decrease_with_increment(500_000, increment)).unwrap();
+            assert!(out.error.is_none(), "{:?}", out.error);
+            assert_eq!(op_names(&out), ["inventory._ensure_location", "inventory._decrease_stock"]);
+        }
     }
 
     /// bulk_create forwards the per-line `track_stock` (NULL when the line does not say).
