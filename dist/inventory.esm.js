@@ -1598,18 +1598,22 @@ var es_default = {
   widgets: {
     "inventory.low_stock_count": {
       title: "Stock bajo",
-      label: "Productos en stock bajo"
+      label: "Productos en stock bajo",
+      category: "Inventario"
     },
     "inventory.value": {
       title: "Valor de inventario",
-      label: "Valor del stock (a coste)"
+      label: "Valor del stock (a coste)",
+      category: "Inventario"
     },
     "inventory.in_stock": {
       title: "Productos en stock",
-      label: "Productos con existencias"
+      label: "Productos con existencias",
+      category: "Inventario"
     },
     "inventory.low_stock_products": {
-      title: "Productos con menos stock"
+      title: "Productos con menos stock",
+      category: "Inventario"
     }
   },
   errors: {
