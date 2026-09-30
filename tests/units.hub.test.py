@@ -123,12 +123,22 @@ def test_an_off_grid_quantity_is_refused_and_the_stock_is_untouched(hub: Hub) ->
         {"items": [{"product_id": gambas, "qty": ONE}]},
     )
 
-    status, _ = hub.command(
+    status, body = hub.command(
         "inventory.stock.decrease",
         {"product_id": gambas, "qty": 500},  # half a gram, kg's grid is 1 g
     )
     hub.check_true(
         "half a gram does not fall on the gram grid", status != 200, str(status)
+    )
+    # inventory#129: refused as a DOMAIN refusal with its own code (409), not a redacted `wasm`
+    # 400 — the caller learns that the quantity is the problem and which step fits.
+    error = ((body or {}).get("error") or {}) if isinstance(body, dict) else {}
+    hub.check("…with its own code", error.get("code"), "inventory.off_grid_quantity")
+    hub.check("…as a domain refusal (HTTP 409)", status, 409)
+    hub.check_true(
+        "…whose sentence names the step of the unit",
+        "0.001 kg" in (error.get("message") or ""),
+        str(error),
     )
     hub.check("the stock was NOT touched", stock_of(hub, gambas), ONE)
 

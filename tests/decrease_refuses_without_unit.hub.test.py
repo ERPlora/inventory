@@ -75,10 +75,11 @@ def expect_off_grid(hub: Hub, label: str, product_id: str) -> None:
         else None
     )
     # Refused by the GRID, not by the read: `read_unavailable` here would mean the unit was not
-    # read at all, and then this control would not be telling the two cases apart.
+    # read at all, and then this control would not be telling the two cases apart. Since
+    # inventory#129 the grid speaks its own code (409), so the check is exact.
     hub.check_true(
         f"{label} (code {code})",
-        status != 200 and code != "read_unavailable",
+        status == 409 and code == "inventory.off_grid_quantity",
         f"HTTP {status}: {body}",
     )
 
