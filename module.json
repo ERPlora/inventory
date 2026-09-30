@@ -1,7 +1,7 @@
 {
   "id": "inventory",
   "name": "Inventory",
-  "version": "1.2.64",
+  "version": "1.2.65",
   "description": "Products, stock and warehouses: check availability, adjust stock and receive goods.",
   "agent": {
     "description": "Product catalog and basic stock control: check availability, adjust stock, receive goods, create or remove products and categories.",
