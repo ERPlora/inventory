@@ -483,7 +483,7 @@
         }
       ],
       "ai": {
-        "description": "Decreases a product's stock, governed by the stock-control settings (#6) and the product's own `track_stock` flag (#48): rejects an insufficient decrease when overselling is not allowed, is a no-op when the article does not track stock, and rejects quantities off the unit's minimum increment (ADR-0147). Emits `inventory.low_stock_crossed` (below) when the decrease crosses the product's threshold (#47)."
+        "description": "Decreases a product's stock, governed by the stock-control settings (#6) and the product's own `track_stock` flag (#48): rejects an insufficient decrease when overselling is not allowed, is a no-op when the article does not track stock, and rejects quantities off the unit's minimum increment with `inventory.off_grid_quantity`, whose message names the quantity and the step that fits (ADR-0147, inventory#129). Emits `inventory.low_stock_crossed` (below) when the decrease crosses the product's threshold (#47)."
       }
     },
     "inventory.stock.receive": {
@@ -764,6 +764,11 @@
         "max": 10
       }
     }
+  },
+  "errors": {
+    "inventory.insufficient_stock": {},
+    "inventory.off_grid_quantity": {},
+    "inventory.unknown_product": {}
   },
   "events": {
     "listen": {

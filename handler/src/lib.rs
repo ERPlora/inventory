@@ -79,8 +79,8 @@ pub fn bulk_create(input: Json<erplora_guest_sdk::Input>) -> FnResult<Json<Outpu
 
 /// Single-product stock decrease. Exports `decrease_stock`.
 /// `Err` (a WASM trap) stays reserved for broken-contract payloads (missing product_id,
-/// off-grid quantity — loud on every runtime); business rejections travel as
-/// `HandlerOutput.error` (ADR-0205 domain channel).
+/// non-positive quantity — loud on every runtime); business rejections, an off-grid quantity
+/// included (inventory#129), travel as `HandlerOutput.error` (ADR-0205 domain channel).
 #[cfg(feature = "guest")]
 #[plugin_fn]
 pub fn decrease_stock(input: Json<erplora_guest_sdk::Input>) -> FnResult<Json<HandlerOutput>> {
@@ -557,6 +557,34 @@ fn increment_for_product(input: &Value) -> Option<i64> {
     }
 }
 
+/// The product's unit code from the same pre-loaded read (`ud`, `kg`…), to name the step in the
+/// refusal. Empty when the read does not carry it.
+fn unit_code_for_product(input: &Value) -> String {
+    input
+        .get("context")
+        .and_then(|c| c.get("reads"))
+        .and_then(|r| r.get("inventory.products.unit_of"))
+        .and_then(|rows| rows.as_array())
+        .and_then(|rows| rows.first())
+        .and_then(|row| row.get("unit_code"))
+        .and_then(|code| code.as_str())
+        .unwrap_or_default()
+        .to_string()
+}
+
+/// A 10^6 fixed-point quantity in logical units, without trailing zeros: 500_000 → `0.5`,
+/// 1_000 → `0.001`, 2_000_000 → `2`.
+fn logical_qty(qty: i64) -> String {
+    let sign = if qty < 0 { "-" } else { "" };
+    let abs = qty.unsigned_abs();
+    let (whole, frac) = (abs / 1_000_000, abs % 1_000_000);
+    if frac == 0 {
+        return format!("{sign}{whole}");
+    }
+    let digits = format!("{frac:06}");
+    format!("{sign}{whole}.{}", digits.trim_end_matches('0'))
+}
+
 /// `inventory.stock.decrease` — descuento de stock de UN producto, con VALIDACIÓN DE REJILLA.
 ///
 /// Era Tier-0 (SQL directo). Pasa a handler por una sola razón: ADR-0147 §2.2 exige **rechazar**
@@ -580,10 +608,19 @@ pub fn decrease_stock_pure(input: Value) -> Result<HandlerOutput, String> {
 
     if let Some(increment) = increment_for_product(&input) {
         if qty % increment != 0 {
-            return Err(format!(
-                "off_grid: {qty} is not valid for a unit with increments of {increment} \
-                 (both in 10^6 scale). Adjust the quantity to the step; it is not rounded \
-                 automatically because that would change what was sold."
+            // A business refusal with its own code (inventory#129), not a trap: the runtime
+            // redacts a trap to a generic `wasm`, and the caller could not tell what to fix.
+            let unit = unit_code_for_product(&input);
+            let with_unit = |q: i64| format!("{} {unit}", logical_qty(q)).trim_end().to_string();
+            return Ok(HandlerOutput::rejected(
+                "inventory.off_grid_quantity",
+                format!(
+                    "Quantity {} does not fit the step of {} of the product's unit: send a \
+                     multiple of {}. It is not rounded, because that would change what was sold.",
+                    with_unit(qty),
+                    with_unit(increment),
+                    with_unit(increment)
+                ),
             ));
         }
     }
@@ -1019,6 +1056,60 @@ mod tests {
         assert!(out.error.is_none());
     }
 
+    // ── inventory#129: an off-grid quantity is a DOMAIN refusal with its own code ─────────
+    //
+    // It used to be an `Err` (a WASM trap), which the runtime redacts to a generic `wasm` 400:
+    // the assistant, a flow or an integration could not tell that the QUANTITY was the problem,
+    // nor which step would fit. The rule itself does not change — the quantity is refused, never
+    // rounded — only how the refusal travels.
+
+    fn decrease_with_unit(qty: i64, unit_code: &str, increment: i64) -> Value {
+        let mut input = decrease_input(
+            json!({ "product_id": "p1", "qty": qty }),
+            Some(settings_rows(1, 0)),
+            Some(product_rows(5_000_000, "physical")),
+        );
+        input["context"]["reads"]["inventory.products.unit_of"] = json!([{
+            "product_id": "p1", "unit_code": unit_code, "increment_value": increment
+        }]);
+        input
+    }
+
+    #[test]
+    fn off_grid_decrease_rejects_with_its_own_domain_code() {
+        let out = decrease_stock_pure(decrease_with_unit(500_000, "ud", 1_000_000))
+            .expect("an off-grid quantity is a business refusal, not a broken contract");
+        let err = out.error.expect("off-grid decrease must reject with a domain error");
+        assert_eq!(err.code, "inventory.off_grid_quantity");
+        assert!(err.message.chars().count() <= 500, "ADR-0205 caps the message at 500 chars");
+        assert!(out.operations.is_empty(), "a rejection persists nothing");
+        assert!(out.events.is_empty(), "a rejection emits no stock_changed");
+    }
+
+    /// The server's own sentence (what the API, a flow or the assistant reads) names the quantity
+    /// and the step in the product's unit, in logical units — not the 10^6 wire scale.
+    #[test]
+    fn off_grid_refusal_names_the_quantity_and_the_step_in_the_unit() {
+        let can = decrease_stock_pure(decrease_with_unit(500_000, "ud", 1_000_000)).unwrap();
+        let msg = can.error.expect("refused").message;
+        assert!(msg.contains("0.5 ud"), "{msg}");
+        assert!(msg.contains("step of 1 ud"), "{msg}");
+        assert!(!msg.contains("500000"), "no wire-scale integers: {msg}");
+
+        let gram = decrease_stock_pure(decrease_with_unit(500, "kg", 1_000)).unwrap();
+        let msg = gram.error.expect("refused").message;
+        assert!(msg.contains("0.0005 kg"), "{msg}");
+        assert!(msg.contains("step of 0.001 kg"), "{msg}");
+    }
+
+    /// The rule is untouched: a quantity ON the step still decreases.
+    #[test]
+    fn on_grid_decrease_still_proceeds() {
+        let out = decrease_stock_pure(decrease_with_unit(2_000_000, "ud", 1_000_000)).unwrap();
+        assert!(out.error.is_none(), "{:?}", out.error);
+        assert_eq!(op_names(&out), ["inventory._ensure_location", "inventory._decrease_stock"]);
+    }
+
     /// Reads absent entirely (old manifest or degraded queries): the handler degrades and the
     /// SQL guards stay the single authority — the command still emits its ops, never an error.
     #[test]
@@ -1197,17 +1288,16 @@ mod tests {
         input
     }
 
-    /// Positive control: a unit with an increment refuses a quantity off its grid (as a trap
-    /// today, as a domain refusal since inventory#129) and persists nothing.
+    /// Positive control: a unit with an increment refuses a quantity off its grid with the
+    /// domain refusal of inventory#129 (never a trap) and persists nothing.
     #[test]
     fn decrease_off_the_units_grid_is_refused() {
-        match decrease_stock_pure(decrease_with_increment(500_000, json!(1_000_000))) {
-            Err(_) => {}
-            Ok(out) => {
-                assert!(out.error.is_some(), "half a unit of a whole-unit product must be refused");
-                assert!(out.operations.is_empty(), "{:?}", out.operations);
-            }
-        }
+        let out = decrease_stock_pure(decrease_with_increment(500_000, json!(1_000_000)))
+            .expect("an off-grid quantity is a business refusal, not a broken contract");
+        let err = out.error.expect("half a unit of a whole-unit product must be refused");
+        assert_eq!(err.code, "inventory.off_grid_quantity");
+        assert!(out.operations.is_empty(), "{:?}", out.operations);
+        assert!(out.events.is_empty(), "{:?}", out.events);
     }
 
     /// The product's unit is not in the register (LEFT JOIN → no increment): the decrease goes
