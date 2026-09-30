@@ -1618,7 +1618,8 @@ var es_default = {
   },
   errors: {
     "inventory.insufficient_stock": "No hay stock suficiente para completar la operaci\xF3n.",
-    "inventory.unknown_product": "Este producto no existe en este hub."
+    "inventory.unknown_product": "Este producto no existe en este hub.",
+    "inventory.off_grid_quantity": "Esa cantidad no encaja en la unidad del producto: se vende en escalones fijos (unidades enteras, gramos\u2026) y no se puede descontar un trozo de escal\xF3n, como media lata. Pon un m\xFAltiplo exacto del escal\xF3n de la unidad; no se redondea solo, porque cambiar\xEDa lo vendido."
   }
 };
 
@@ -1811,7 +1812,8 @@ var en_default = {
   },
   errors: {
     "inventory.insufficient_stock": "Not enough stock to complete the operation.",
-    "inventory.unknown_product": "This product does not exist in this hub."
+    "inventory.unknown_product": "This product does not exist in this hub.",
+    "inventory.off_grid_quantity": "That quantity does not fit the product's unit: it is sold in fixed steps (whole units, grams\u2026), and a part of a step, such as half a can, cannot be taken off. Enter a whole multiple of the unit's step; it is not rounded for you, because that would change what was sold."
   }
 };
 

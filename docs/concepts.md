@@ -101,7 +101,8 @@ Each product has a base unit (`unit_code`, `ud` by default). Every unit in the h
 declares a **minimum increment** — the smallest step you are allowed to move.
 
 If you try to decrease a quantity that does not land on that grid, the hub **rejects it** instead of
-rounding. You will be told the quantity is invalid, not quietly given a different number. Units also
+rounding, with the code `inventory.off_grid_quantity` and a message that names the quantity and the
+step that fits. You are told why, not quietly given a different number. Units also
 carry an exact conversion factor as a fraction (numerator and denominator), never an approximated
 decimal.
 
