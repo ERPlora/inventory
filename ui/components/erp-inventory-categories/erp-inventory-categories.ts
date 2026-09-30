@@ -12,7 +12,7 @@ import { define } from '@erplora/outfitkit/define';
 import '@erplora/outfitkit/ok-inline-feedback';
 import '@erplora/outfitkit/ok-data-table';
 import type { DataTableColumn, DataTableAction } from '@erplora/outfitkit';
-import { createListController, dataTableLabels } from '@erplora/module-sdk';
+import { createListController, dataTableLabels, dataTableShowsLoadError } from '@erplora/module-sdk';
 import type { ListController, ListClient, ListParams, ListPage } from '@erplora/module-sdk';
 
 // Vista "Categories" del módulo inventory: segundo data-table (categorías de producto).
@@ -381,12 +381,14 @@ export class ErpInventoryCategories extends LitElement {
     return html`
       <div class="page">
         ${this.pageError ? html`<ok-inline-feedback data-testid="inventory-categories-page-error" tone="danger" icon="alert-circle-outline">${this.pageError}</ok-inline-feedback>` : nothing}
-        ${this.ctrl?.error ? html`<ok-inline-feedback data-testid="inventory-categories-load-error" tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : nothing}
+        ${this.ctrl?.error && !dataTableShowsLoadError() ? html`<ok-inline-feedback data-testid="inventory-categories-load-error" tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : nothing}
 
         <!-- The «Edit» button is not the only door: rowClickable makes the whole row open the
              same edit panel (outfitkit#67 — the actions column can be off-screen at 1440 px). -->
         <ok-data-table
           testid="inventory-categories-table"
+          .error=${this.ctrl?.error ?? ''}
+          @retry=${() => Promise.all([this.ctrl?.load(), this.loadTaxCategories()])}
           .serverSide=${true}
           .fill=${true}
           .labels=${dataTableLabels(erplora().locale)}
