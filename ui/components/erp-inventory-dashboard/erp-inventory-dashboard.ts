@@ -6,7 +6,7 @@ import '@erplora/outfitkit/ok-data-table';
 import '@erplora/outfitkit/ok-kpi';
 import '@erplora/outfitkit/ok-inline-feedback';
 import type { DataTableColumn } from '@erplora/outfitkit';
-import { createListController, dataTableLabels } from '@erplora/module-sdk';
+import { createListController, dataTableLabels, dataTableShowsLoadError } from '@erplora/module-sdk';
 import type { ListController, ListClient, ListParams, ListPage } from '@erplora/module-sdk';
 import { formatQuantity } from '../../lib/quantity';
 
@@ -106,6 +106,17 @@ export class ErpInventoryDashboard extends LitElement {
   }
 
   async firstUpdated(): Promise<void> {
+    await this.loadStats();
+    this.ctrl = createListController<LowStockRow>(erplora(), 'inventory.products.low_stock', () => this.requestUpdate(), {
+      pageSize: 5,
+    });
+    await this.ctrl.load();
+  }
+
+  /** The figures above the table. Never throws: a failed read is `statsError`, painted as a notice. */
+  private async loadStats(): Promise<void> {
+    this.statsLoading = true;
+    this.statsError = false;
     try {
       // `query()` devuelve FILAS: stats es una query de agregados → una única fila.
       const res = await erplora().query<unknown>('inventory.products.stats');
@@ -120,10 +131,6 @@ export class ErpInventoryDashboard extends LitElement {
     } finally {
       this.statsLoading = false;
     }
-    this.ctrl = createListController<LowStockRow>(erplora(), 'inventory.products.low_stock', () => this.requestUpdate(), {
-      pageSize: 5,
-    });
-    await this.ctrl.load();
   }
 
   private kpis() {
@@ -151,14 +158,16 @@ export class ErpInventoryDashboard extends LitElement {
     return html`
       <div>
         ${this.statsLoading ? html`<p data-testid="inventory-dashboard-loading" class="state">${t('ui.loading')}</p>` : nothing}
-        ${this.statsError ? html`<ok-inline-feedback data-testid="inventory-dashboard-stats-error" tone="danger" icon="alert-circle-outline">${t('ui.statsError')}</ok-inline-feedback>` : nothing}
+        ${this.statsError && !this.ctrl?.error ? html`<ok-inline-feedback data-testid="inventory-dashboard-stats-error" tone="danger" icon="alert-circle-outline">${t('ui.statsError')}</ok-inline-feedback>` : nothing}
         ${this.stats ? this.kpis() : nothing}
 
         <div class="section">
           <h2>${t('ui.lowStockTitle')}</h2>
-          ${this.ctrl?.error ? html`<ok-inline-feedback data-testid="inventory-dashboard-load-error" tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : nothing}
+          ${this.ctrl?.error && !dataTableShowsLoadError() ? html`<ok-inline-feedback data-testid="inventory-dashboard-load-error" tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : nothing}
           <ok-data-table
             testid="inventory-dashboard-low-stock-table"
+            .error=${this.ctrl?.error ?? ''}
+            @retry=${() => Promise.all([this.ctrl?.load(), this.loadStats()])}
             .serverSide=${true}
             .labels=${dataTableLabels(erplora().locale)}
             .columns=${this.columns}

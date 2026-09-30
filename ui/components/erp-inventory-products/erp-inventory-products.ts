@@ -22,7 +22,7 @@ import type { DataTableColumn, DataTableAction } from '@erplora/outfitkit';
 // The major ↔ minor boundary lives in ONE place (`lib/hub-currency`, on top of the SDK, ADR-0123):
 // having it copied is what made the CSV import forget the ×100 and store a 2,20 € coffee as 2
 // cents; having it hard-coded to two decimals stored a 480 ¥ tea as 48000 ¥ (inventory#101).
-import { createListController, dataTableLabels } from '@erplora/module-sdk';
+import { createListController, dataTableLabels, dataTableShowsLoadError } from '@erplora/module-sdk';
 import type { ListController, ListClient, ListParams, ListPage } from '@erplora/module-sdk';
 // Catálogo i18n del módulo (ADR-0055): esbuild inlinea estos JSON en el `dist` del WC. Los textos
 // internos se resuelven con `erplora.t(CATALOG, 'ui.clave')` (idioma activo, fallback locale→en→clave).
@@ -1579,7 +1579,7 @@ export class ErpInventoryProducts extends LitElement {
     return html`
       <div class="page">
         ${this.pageError ? html`<ok-inline-feedback data-testid="inventory-products-page-error" tone="danger" icon="alert-circle-outline">${this.pageError}</ok-inline-feedback>` : nothing}
-        ${this.ctrl?.error ? html`<ok-inline-feedback data-testid="inventory-products-load-error" tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : nothing}
+        ${this.ctrl?.error && !dataTableShowsLoadError() ? html`<ok-inline-feedback data-testid="inventory-products-load-error" tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : nothing}
         <!-- Importación en marcha (inventory#13): por dónde va y una salida. Con 280 filas, lo
              único que había era una pantalla quieta durante minutos. -->
         ${this.importProgress
@@ -1594,6 +1594,8 @@ export class ErpInventoryProducts extends LitElement {
              same detail modal (outfitkit#67 — the actions column can be off-screen at 1440 px). -->
         <ok-data-table
           testid="inventory-products-table"
+          .error=${this.ctrl?.error ?? ''}
+          @retry=${() => Promise.all([this.ctrl?.load(), this.loadTaxCategories(), this.loadProductCategories(), this.loadUnits(), this.loadStockSettings()])}
           .serverSide=${true}
           .filterValues=${this.tableFilters}
           .fill=${true}

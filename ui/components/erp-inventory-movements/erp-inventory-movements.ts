@@ -3,7 +3,7 @@ import { define } from '@erplora/outfitkit/define';
 import '@erplora/outfitkit/ok-data-table';
 import '@erplora/outfitkit/ok-inline-feedback';
 import type { DataTableColumn } from '@erplora/outfitkit';
-import { createListController, dataTableLabels } from '@erplora/module-sdk';
+import { createListController, dataTableLabels, dataTableShowsLoadError } from '@erplora/module-sdk';
 import type { ListController, ListClient, ListParams, ListPage } from '@erplora/module-sdk';
 import { formatQuantity, fromMicro } from '../../lib/quantity';
 
@@ -117,9 +117,11 @@ export class ErpInventoryMovements extends LitElement {
     const t = (k: string): string => erplora().t(CATALOG, k);
     return html`
       <div class="page">
-      ${this.ctrl?.error ? html`<ok-inline-feedback data-testid="inventory-movements-load-error" tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : nothing}
+      ${this.ctrl?.error && !dataTableShowsLoadError() ? html`<ok-inline-feedback data-testid="inventory-movements-load-error" tone="danger" icon="alert-circle-outline">${this.ctrl.error}</ok-inline-feedback>` : nothing}
       <ok-data-table
         testid="inventory-movements-table"
+        .error=${this.ctrl?.error ?? ''}
+        @retry=${() => this.ctrl?.load()}
         fill
         .serverSide=${true}
         .labels=${dataTableLabels(erplora().locale)}
