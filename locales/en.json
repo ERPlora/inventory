@@ -186,6 +186,7 @@
   },
   "errors": {
     "inventory.insufficient_stock": "Not enough stock to complete the operation.",
-    "inventory.unknown_product": "This product does not exist in this hub."
+    "inventory.unknown_product": "This product does not exist in this hub.",
+    "inventory.off_grid_quantity": "That quantity does not fit the product's unit: it is sold in fixed steps (whole units, grams…), and a part of a step, such as half a can, cannot be taken off. Enter a whole multiple of the unit's step; it is not rounded for you, because that would change what was sold."
   }
 }

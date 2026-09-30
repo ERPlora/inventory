@@ -208,6 +208,7 @@
   },
   "errors": {
     "inventory.insufficient_stock": "No hay stock suficiente para completar la operación.",
-    "inventory.unknown_product": "Este producto no existe en este hub."
+    "inventory.unknown_product": "Este producto no existe en este hub.",
+    "inventory.off_grid_quantity": "Esa cantidad no encaja en la unidad del producto: se vende en escalones fijos (unidades enteras, gramos…) y no se puede descontar un trozo de escalón, como media lata. Pon un múltiplo exacto del escalón de la unidad; no se redondea solo, porque cambiaría lo vendido."
   }
 }
