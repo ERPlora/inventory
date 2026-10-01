@@ -5860,17 +5860,26 @@ __decorateClass([
 ], ErpInventoryDashboard.prototype, "statsError", 2);
 define("erp-inventory-dashboard", ErpInventoryDashboard);
 
+// ui/lib/list-date.ts
+function formatListDateTime(value, locale) {
+  const raw = value == null ? "" : String(value);
+  if (!raw) return "";
+  const d3 = new Date(raw);
+  if (Number.isNaN(d3.getTime())) return raw;
+  const options = d3.getFullYear() === (/* @__PURE__ */ new Date()).getFullYear() ? { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" } : { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" };
+  try {
+    return new Intl.DateTimeFormat(locale || "es", options).format(d3);
+  } catch {
+    return new Intl.DateTimeFormat("es", options).format(d3);
+  }
+}
+
 // ui/components/erp-inventory-movements/erp-inventory-movements.ts
 var CATALOG3 = { es: es_default, en: en_default };
 function erplora3() {
   const c5 = globalThis.erplora;
   if (!c5) throw new Error("erplora SDK no inicializado por el shell");
   return c5;
-}
-function formatDate(v3, locale) {
-  const d3 = new Date(v3);
-  if (Number.isNaN(d3.getTime())) return v3;
-  return d3.toLocaleString(locale || "es", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 function formatQty(v3) {
   const logical = fromMicro2(Number(v3));
@@ -5915,15 +5924,17 @@ var ErpInventoryMovements = class extends i3 {
         key: "created_at",
         header: t5("ui.mvDate"),
         sortable: true,
-        format: (r6) => formatDate(String(r6.created_at), erplora3().locale)
+        width: "minmax(6.25rem,1fr)",
+        format: (r6) => formatListDateTime(r6.created_at, erplora3().locale)
       },
-      { key: "product_name", header: t5("ui.name") },
-      { key: "sku", header: t5("ui.sku") },
+      { key: "product_name", header: t5("ui.name"), width: "minmax(7.5rem,3fr)" },
+      { key: "sku", header: t5("ui.sku"), width: "minmax(4.5rem,0.8fr)" },
       {
         key: "movement_type",
         header: t5("ui.mvType"),
         filterable: true,
         filterType: "select",
+        width: "4.5rem",
         options: ["reception", "sale", "void", "count", "decrease", "initial"].map((v3) => ({ value: v3, label: t5(typeKey(v3)) })),
         format: (r6) => t5(typeKey(String(r6.movement_type)))
       },
@@ -5932,6 +5943,7 @@ var ErpInventoryMovements = class extends i3 {
         header: t5("ui.mvQty"),
         align: "right",
         sortable: true,
+        width: "5.25rem",
         format: (r6) => formatQty(r6.qty)
       },
       {
@@ -5939,10 +5951,11 @@ var ErpInventoryMovements = class extends i3 {
         header: t5("ui.mvStockAfter"),
         align: "right",
         sortable: true,
+        width: "4.75rem",
         format: (r6) => formatQuantity2(r6.stock_after)
       },
-      { key: "reason", header: t5("ui.mvReason") },
-      { key: "reference", header: t5("ui.mvReference"), filterable: true, filterType: "text" }
+      { key: "reason", header: t5("ui.mvReason"), width: "minmax(3.25rem,1fr)" },
+      { key: "reference", header: t5("ui.mvReference"), filterable: true, filterType: "text", width: "minmax(4.75rem,1.25fr)" }
     ];
   }
   async firstUpdated() {

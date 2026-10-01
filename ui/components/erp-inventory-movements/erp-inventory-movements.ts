@@ -6,6 +6,7 @@ import type { DataTableColumn } from '@erplora/outfitkit';
 import { createListController, dataTableLabels, dataTableShowsLoadError } from '@erplora/module-sdk';
 import type { ListController, ListClient, ListParams, ListPage } from '@erplora/module-sdk';
 import { formatQuantity, fromMicro } from '../../lib/quantity';
+import { formatListDateTime } from '../../lib/list-date';
 
 // Catálogo i18n del módulo (ADR-0055).
 import esLocale from '../../../locales/es.json';
@@ -45,13 +46,6 @@ function erplora(): ErploraClientLike {
   return c;
 }
 
-/** Fecha legible en el locale activo (QA 07-16: el ISO crudo con offset no es para humanos). */
-function formatDate(v: string, locale: string): string {
-  const d = new Date(v);
-  if (Number.isNaN(d.getTime())) return v;
-  return d.toLocaleString(locale || 'es', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
-
 /** Delta firmado: las entradas llevan `+` explícito; Postgres sirve NUMERIC como string. */
 function formatQty(v: number | string): string {
   const logical = fromMicro(Number(v));
@@ -88,23 +82,28 @@ export class ErpInventoryMovements extends LitElement {
       };
       return map[mt] ?? mt;
     };
+    // Widths measured on the hub:dev bench (inventory#130): the floors add up to 652 px (the data
+    // columns get 664 at 1024x768 with the side menu open, 700 at 820x1180), so on a tablet the
+    // name keeps 165 px, and it takes most of the leftover on a wider screen. The reference grows
+    // a little faster (still at its floor on a tablet) so a delivery note number fits on a desktop.
+    // Type, quantity and balance paint a word or a short number and do not grow.
     return [
-      { key: 'created_at', header: t('ui.mvDate'), sortable: true,
-        format: (r) => formatDate(String((r as unknown as MovementRow).created_at), erplora().locale) },
-      { key: 'product_name', header: t('ui.name') },
-      { key: 'sku', header: t('ui.sku') },
+      { key: 'created_at', header: t('ui.mvDate'), sortable: true, width: 'minmax(6.25rem,1fr)',
+        format: (r) => formatListDateTime((r as unknown as MovementRow).created_at, erplora().locale) },
+      { key: 'product_name', header: t('ui.name'), width: 'minmax(7.5rem,3fr)' },
+      { key: 'sku', header: t('ui.sku'), width: 'minmax(4.5rem,0.8fr)' },
       {
-        key: 'movement_type', header: t('ui.mvType'), filterable: true, filterType: 'select',
+        key: 'movement_type', header: t('ui.mvType'), filterable: true, filterType: 'select', width: '4.5rem',
         options: ['reception', 'sale', 'void', 'count', 'decrease', 'initial']
           .map((v) => ({ value: v, label: t(typeKey(v)) })),
         format: (r) => t(typeKey(String((r as unknown as MovementRow).movement_type))),
       },
-      { key: 'qty', header: t('ui.mvQty'), align: 'right', sortable: true,
+      { key: 'qty', header: t('ui.mvQty'), align: 'right', sortable: true, width: '5.25rem',
         format: (r) => formatQty((r as unknown as MovementRow).qty) },
-      { key: 'stock_after', header: t('ui.mvStockAfter'), align: 'right', sortable: true,
+      { key: 'stock_after', header: t('ui.mvStockAfter'), align: 'right', sortable: true, width: '4.75rem',
         format: (r) => formatQuantity((r as unknown as MovementRow).stock_after) },
-      { key: 'reason', header: t('ui.mvReason') },
-      { key: 'reference', header: t('ui.mvReference'), filterable: true, filterType: 'text' },
+      { key: 'reason', header: t('ui.mvReason'), width: 'minmax(3.25rem,1fr)' },
+      { key: 'reference', header: t('ui.mvReference'), filterable: true, filterType: 'text', width: 'minmax(4.75rem,1.25fr)' },
     ];
   }
 
