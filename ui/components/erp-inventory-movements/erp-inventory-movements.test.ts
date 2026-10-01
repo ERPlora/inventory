@@ -78,6 +78,8 @@ describe('hallazgos del QA en navegador (07-16)', () => {
     const fecha = table.columns.find((c) => c.key === 'created_at')!;
     const out = fecha.format?.({ created_at: '2026-07-16T10:12:00+00:00' }) ?? '';
     expect(out, 'nada de ISO crudo con offset').not.toContain('T10:12:00+00:00');
-    expect(out).toMatch(/2026|26/);
+    // inventory#130: the year is dropped only for the current one; day, month and time always show.
+    expect(out).toMatch(/16\/0?7/);
+    expect(out).toMatch(/\d{2}:\d{2}/);
   });
 });
