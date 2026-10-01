@@ -32,6 +32,13 @@ describe('formatListDateTime (inventory#130)', () => {
     expect(shown).toMatch(/\d{2}:\d{2}/);
   });
 
+  it('the current year is read from the clock: in January a December movement shows its year', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2027-01-02T10:00:00'));
+    expect(formatListDateTime(new Date(2026, 11, 31, 8, 5).toISOString(), 'es')).toBe('31/12/2026, 08:05');
+    expect(formatListDateTime(new Date(2027, 0, 1, 8, 5).toISOString(), 'es')).toBe('1/1, 08:05');
+  });
+
   it('follows the hub language: English puts the month first', () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(NOW);
