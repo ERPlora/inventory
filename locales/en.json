@@ -106,6 +106,7 @@
     "mvReason": "Reason",
     "mvReference": "Reference",
     "mvEmpty": "No movements yet. They appear when you use Receive stock or Count stock on a product in Products, and with every sale.",
+    "mvNoMatch": "No movement matches the search or the filters. A sale is found by the number of its ticket, invoice or sale.",
     "mvInitial": "Initial",
     "mvReception": "Reception",
     "mvSale": "Sale",

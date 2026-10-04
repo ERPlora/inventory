@@ -1517,6 +1517,7 @@ var es_default = {
     mvReason: "Motivo",
     mvReference: "Referencia",
     mvEmpty: "Todav\xEDa no hay movimientos. Aparecen al usar Recibir stock o Contar stock en un producto de Productos, y con cada venta.",
+    mvNoMatch: "Ning\xFAn movimiento coincide con la b\xFAsqueda o los filtros. Una venta se encuentra por el n\xFAmero de su tique, factura o venta.",
     mvInitial: "Inicial",
     mvReception: "Recepci\xF3n",
     mvSale: "Venta",
@@ -1732,6 +1733,7 @@ var en_default = {
     mvReason: "Reason",
     mvReference: "Reference",
     mvEmpty: "No movements yet. They appear when you use Receive stock or Count stock on a product in Products, and with every sale.",
+    mvNoMatch: "No movement matches the search or the filters. A sale is found by the number of its ticket, invoice or sale.",
     mvInitial: "Initial",
     mvReception: "Reception",
     mvSale: "Sale",
@@ -5942,6 +5944,56 @@ async function resolveSaleDocument(sdk, saleId) {
   }
   return null;
 }
+var DOCUMENT_LOOKUP_LIMIT = 20;
+function rowsOf2(answer) {
+  const rows = Array.isArray(answer) ? answer : answer?.rows;
+  return Array.isArray(rows) ? rows.filter((r6) => !!r6 && typeof r6 === "object") : [];
+}
+var textOf = (v3) => v3 == null ? "" : String(v3);
+async function saleOfInvoiceNumber(sdk, number) {
+  const invoices = rowsOf2(await sdk.queryOptional("invoice.list", { f_number: number, limit: DOCUMENT_LOOKUP_LIMIT }));
+  for (const invoice of invoices) {
+    if (textOf(invoice.source_type) !== "sale") continue;
+    const saleId = textOf(firstRow(await sdk.queryOptional("invoice.get", { invoice_id: invoice.id }))?.source_id);
+    if (saleId) return saleId;
+  }
+  return "";
+}
+async function saleOfSaleNumber(sdk, number) {
+  const sales = rowsOf2(await sdk.queryOptional("sales.list", { f_sale_number: number, limit: DOCUMENT_LOOKUP_LIMIT }));
+  return textOf(sales.find((s5) => textOf(s5.sale_number) === number)?.id);
+}
+async function findSaleByDocumentNumber(sdk, typed) {
+  const number = typed.trim();
+  if (!/\d/.test(number)) return null;
+  for (const source of [saleOfInvoiceNumber, saleOfSaleNumber]) {
+    try {
+      const saleId = await source(sdk, number);
+      if (saleId) return saleId;
+    } catch {
+    }
+  }
+  return null;
+}
+function withDocumentNumberSearch(client) {
+  const known = /* @__PURE__ */ new Map();
+  const saleOf = (typed) => {
+    const text = textOf(typed);
+    if (!known.has(text)) known.set(text, findSaleByDocumentNumber(client, text));
+    return known.get(text);
+  };
+  return {
+    // erplora-contracts: ignore — pass-through, see above.
+    queryOptional: (name, params) => client.queryOptional(name, params),
+    async queryPage(name, params) {
+      const out = { ...params };
+      if (params.search) out.search = await saleOf(params.search) ?? params.search;
+      const reference = params.filters?.reference;
+      if (reference) out.filters = { ...params.filters, reference: await saleOf(reference) ?? reference };
+      return client.queryPage(name, out);
+    }
+  };
+}
 
 // ui/components/erp-inventory-movements/erp-inventory-movements.ts
 var CATALOG3 = { es: es_default, en: en_default };
@@ -6055,8 +6107,17 @@ var ErpInventoryMovements = class extends i3 {
       });
     }
   }
+  /** A search or a filter is on: an empty page means «nothing matches», not «no movements yet». */
+  get hasQuery() {
+    const s5 = this.ctrl?.state;
+    return !!s5 && (s5.search.trim() !== "" || Object.keys(s5.filters).length > 0);
+  }
   async firstUpdated() {
-    this.ctrl = createListController(erplora3(), "inventory.stock.movements", () => this.requestUpdate());
+    this.ctrl = createListController(
+      withDocumentNumberSearch(erplora3()),
+      "inventory.stock.movements",
+      () => this.requestUpdate()
+    );
     await this.ctrl.load();
   }
   render() {
@@ -6079,7 +6140,7 @@ var ErpInventoryMovements = class extends i3 {
         .total=${this.ctrl?.total ?? 0}
         .page=${this.ctrl?.state.page ?? 0}
         .pageSize=${this.ctrl?.state.pageSize ?? 50}
-        .emptyMessage=${this.ctrl?.loading ? t5("ui.loading") : t5("ui.mvEmpty")}
+        .emptyMessage=${this.ctrl?.loading ? t5("ui.loading") : t5(this.hasQuery ? "ui.mvNoMatch" : "ui.mvEmpty")}
         @pageChange=${(e5) => this.ctrl.setPage(e5.detail)}
         @pageSizeChange=${(e5) => this.ctrl.setPageSize(e5.detail)}
         @searchChange=${(e5) => this.ctrl.setSearch(e5.detail)}

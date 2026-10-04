@@ -7,7 +7,9 @@ import { createListController, dataTableLabels, dataTableShowsLoadError } from '
 import type { ListController, ListClient, ListParams, ListPage } from '@erplora/module-sdk';
 import { formatQuantity, fromMicro } from '../../lib/quantity';
 import { formatListDateTime } from '../../lib/list-date';
-import { movementReference, resolveSaleDocument, saleReferenceOf, type SaleDocument } from '../../lib/movement-reference';
+import {
+  movementReference, resolveSaleDocument, saleReferenceOf, withDocumentNumberSearch, type SaleDocument,
+} from '../../lib/movement-reference';
 
 // Catálogo i18n del módulo (ADR-0055).
 import esLocale from '../../../locales/es.json';
@@ -133,8 +135,17 @@ export class ErpInventoryMovements extends LitElement {
     }
   }
 
+  /** A search or a filter is on: an empty page means «nothing matches», not «no movements yet». */
+  private get hasQuery(): boolean {
+    const s = this.ctrl?.state;
+    return !!s && (s.search.trim() !== '' || Object.keys(s.filters).length > 0);
+  }
+
   async firstUpdated(): Promise<void> {
-    this.ctrl = createListController<MovementRow>(erplora(), 'inventory.stock.movements', () => this.requestUpdate());
+    // inventory#142: a typed ticket/invoice/sale number is searched as the sale it names.
+    this.ctrl = createListController<MovementRow>(
+      withDocumentNumberSearch(erplora()), 'inventory.stock.movements', () => this.requestUpdate(),
+    );
     await this.ctrl.load();
   }
 
@@ -158,7 +169,7 @@ export class ErpInventoryMovements extends LitElement {
         .total=${this.ctrl?.total ?? 0}
         .page=${this.ctrl?.state.page ?? 0}
         .pageSize=${this.ctrl?.state.pageSize ?? 50}
-        .emptyMessage=${this.ctrl?.loading ? t('ui.loading') : t('ui.mvEmpty')}
+        .emptyMessage=${this.ctrl?.loading ? t('ui.loading') : t(this.hasQuery ? 'ui.mvNoMatch' : 'ui.mvEmpty')}
         @pageChange=${(e: CustomEvent<number>) => this.ctrl.setPage(e.detail)}
         @pageSizeChange=${(e: CustomEvent<number>) => this.ctrl.setPageSize(e.detail)}
         @searchChange=${(e: CustomEvent<string>) => this.ctrl.setSearch(e.detail)}

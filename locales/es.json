@@ -107,6 +107,7 @@
     "mvReason": "Motivo",
     "mvReference": "Referencia",
     "mvEmpty": "Todavía no hay movimientos. Aparecen al usar Recibir stock o Contar stock en un producto de Productos, y con cada venta.",
+    "mvNoMatch": "Ningún movimiento coincide con la búsqueda o los filtros. Una venta se encuentra por el número de su tique, factura o venta.",
     "mvInitial": "Inicial",
     "mvReception": "Recepción",
     "mvSale": "Venta",
