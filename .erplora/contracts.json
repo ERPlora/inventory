@@ -16,7 +16,10 @@
       "taxes.categories.list",
       "taxes.rules.list"
     ],
-    "optional_queries": [],
+    "optional_queries": [
+      "invoice.by_source",
+      "sales.get"
+    ],
     "commands": [
       "inventory.categories.create",
       "inventory.categories.delete",
