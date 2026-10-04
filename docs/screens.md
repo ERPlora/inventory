@@ -87,6 +87,13 @@ The stock ledger — every movement that has ever touched stock
 Each row carries the signed delta, the resulting balance, the reason and a reference to the document
 that caused it. Movement types: `initial`, `reception`, `sale`, `void`, `count`, `decrease`.
 
+The reference of a `sale` or `void` movement is the number of the document the sale produced: the
+receipt or invoice number when the Invoicing app issued one, otherwise the sale number from Sales
+(`20261004-0002`). A role that can read neither invoices nor sales sees the cell empty rather than the
+sale's internal id. The row itself keeps the sale's internal id, so searching or filtering by that
+printed number does not find the movement yet. A reception shows the delivery note number that was
+typed.
+
 - **Search** by product name, SKU or reference.
 - **Sort** by date, type, quantity or resulting balance. Default: date, newest first.
 - **Filter** by product, movement type, reference or date range.

@@ -2,19 +2,29 @@
 // producto/tipo/fecha/referencia, server-side sobre `inventory.stock.movements`.
 import { beforeEach, describe, expect, it } from 'vitest';
 
+const SALE_ID = '3750546f-c61b-4731-a1f2-2a64ec1ce824';
+
 const MOVS = [
   { id: 'm1', product_id: 'p1', product_name: 'Café', sku: 'CAF', movement_type: 'sale',
-    qty: -2_500_000, stock_after: 7_500_000, reason: null, reference: 'sl-1', unit_cost: null,
+    qty: -2_500_000, stock_after: 7_500_000, reason: null, reference: SALE_ID, unit_cost: null,
     location_id: 'h1:default', created_by: 'u1', created_at: '2026-07-16T10:00:00+00:00' },
   { id: 'm2', product_id: 'p1', product_name: 'Café', sku: 'CAF', movement_type: 'count',
     qty: 3_000_000, stock_after: 10_000_000, reason: 'recuento', reference: null, unit_cost: null,
     location_id: 'h1:default', created_by: 'u1', created_at: '2026-07-16T09:00:00+00:00' },
 ];
 
+let optionalCalls: [string, Record<string, unknown> | undefined][] = [];
+
 beforeEach(() => {
   document.body.innerHTML = '';
+  optionalCalls = [];
   (globalThis as Record<string, unknown>).erplora = {
     query: async () => [],
+    // No invoicing app on this hub: the sale's own number names the document (inventory#137).
+    queryOptional: async (name: string, params?: Record<string, unknown>) => {
+      optionalCalls.push([name, params]);
+      return name === 'sales.get' && params?.sale_id === SALE_ID ? [{ id: SALE_ID, sale_number: '20261004-0002' }] : undefined;
+    },
     queryPage: async (name: string) =>
       name === 'inventory.stock.movements'
         ? { rows: MOVS, total: 2, limit: 50, offset: 0 }
@@ -81,5 +91,33 @@ describe('hallazgos del QA en navegador (07-16)', () => {
     // inventory#130: the year is dropped only for the current one; day, month and time always show.
     expect(out).toMatch(/16\/0?7/);
     expect(out).toMatch(/\d{2}:\d{2}/);
+  });
+});
+
+describe('the reference of a sale is the number of its ticket (inventory#137)', () => {
+  it('a sale movement prints the sale number, not the uuid stored in the row', async () => {
+    const el = await montar();
+    await new Promise((r) => setTimeout(r, 0));
+    const table = el.shadowRoot.querySelector('ok-data-table') as unknown as {
+      columns: { key: string; format?: (r: Record<string, unknown>) => string }[];
+    };
+    const reference = table.columns.find((c) => c.key === 'reference')!;
+    expect(reference.format, 'the reference column must format its cell').toBeTypeOf('function');
+    expect(reference.format!(MOVS[0])).toBe('20261004-0002');
+    expect(reference.format!(MOVS[1]), 'a count has no reference').toBe('');
+    expect(optionalCalls.map(([n]) => n), 'one sale on the page, resolved once').toEqual(['invoice.by_source', 'sales.get']);
+  });
+
+  it('the table repaints with the number once it is resolved (the cell on screen, not only the formatter)', async () => {
+    const el = await montar();
+    await new Promise((r) => setTimeout(r, 0));
+    await (el as unknown as { updateComplete: Promise<unknown> }).updateComplete;
+    const table = el.shadowRoot.querySelector('ok-data-table') as unknown as HTMLElement & {
+      updateComplete: Promise<unknown>; shadowRoot: ShadowRoot;
+    };
+    await table.updateComplete;
+    const painted = table.shadowRoot.textContent ?? '';
+    expect(painted).toContain('20261004-0002');
+    expect(painted).not.toContain(SALE_ID);
   });
 });
