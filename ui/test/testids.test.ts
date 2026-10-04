@@ -100,7 +100,7 @@ const COVERED: Record<
   // the only banner it can wait for.
   'components/erp-inventory-movements/erp-inventory-movements.ts': {
     prefix: 'inventory-movements-',
-    contract: ['inventory-movements-load-error'],
+    contract: ['inventory-movements-load-error', 'inventory-movements-reference'],
     tables: ['inventory-movements-table'],
   },
   // Products (`/m/inventory/products`): the CRUD of the module and the surface the restaurant QA

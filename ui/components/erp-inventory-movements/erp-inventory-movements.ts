@@ -68,6 +68,9 @@ export class ErpInventoryMovements extends LitElement {
   /** The document each sale on screen produced, by sale id (inventory#137): `null` while being
    *  resolved or when none could be. Asked once per sale for the life of the view. */
   private readonly saleDocuments = new Map<string, SaleDocument | null>();
+  /** Movement ids whose Reference a tap unfolded (inventory#144); a new page folds them again. */
+  private readonly unfoldedReferences = new Set<string>();
+  private lastPointerType = '';
   private readonly onLocaleChange = (): void => this.requestUpdate();
 
   connectedCallback(): void {
@@ -111,11 +114,45 @@ export class ErpInventoryMovements extends LitElement {
         format: (r) => formatQuantity((r as unknown as MovementRow).stock_after) },
       { key: 'reason', header: t('ui.mvReason'), width: 'minmax(3.25rem,1fr)' },
       { key: 'reference', header: t('ui.mvReference'), filterable: true, filterType: 'text', width: 'minmax(4.75rem,1.25fr)',
-        format: (r) => {
-          const row = r as unknown as MovementRow;
-          return movementReference(row, this.saleDocuments.get(saleReferenceOf(row)));
-        } },
+        format: (r) => this.referenceText(r as unknown as MovementRow),
+        render: (r) => this.referenceCell(r as unknown as MovementRow) },
     ];
+  }
+
+  private referenceText(row: MovementRow): string {
+    return movementReference(row, this.saleDocuments.get(saleReferenceOf(row)));
+  }
+
+  /**
+   * inventory#144: a document number tells itself from its neighbours by its END — a ticket starts
+   * with the date («20261004-0001»), a delivery note with its series («ALB-2026-000123») — and on a
+   * tablet the column (76 px) holds about seven of its characters. So the cell clips at its START
+   * («…04-0001»): `dir="rtl"` moves the overflow and its ellipsis to the left, and the `<bdi>`
+   * keeps the number itself reading left to right. The rest is ok-data-table's text cell (#217):
+   * the whole number as the title, and a tap on a clipped number unfolds it in place.
+   */
+  private referenceCell(row: MovementRow): unknown {
+    const text = this.referenceText(row);
+    if (!text) return nothing;
+    const unfolded = this.unfoldedReferences.has(row.id);
+    return html`<span
+      data-testid="inventory-movements-reference"
+      class=${unfolded ? 'unfolded' : nothing}
+      dir=${unfolded ? nothing : 'rtl'}
+      title=${text}
+      @pointerdown=${(e: PointerEvent) => { this.lastPointerType = e.pointerType; }}
+      @click=${(e: MouseEvent) => this.unfoldReference(e, row.id)}
+    ><bdi dir="ltr">${text}</bdi></span>`;
+  }
+
+  /** Same rule as ok-data-table (#217): a mouse has the title on hover, so only a touch unfolds,
+   *  and only a number that is actually clipped. */
+  private unfoldReference(e: MouseEvent, id: string): void {
+    if (this.lastPointerType !== 'touch') return;
+    const span = e.currentTarget as HTMLElement;
+    if (span.scrollWidth <= span.clientWidth) return;
+    this.unfoldedReferences.add(id);
+    this.requestUpdate();
   }
 
   protected updated(): void {
@@ -144,7 +181,10 @@ export class ErpInventoryMovements extends LitElement {
   async firstUpdated(): Promise<void> {
     // inventory#142: a typed ticket/invoice/sale number is searched as the sale it names.
     this.ctrl = createListController<MovementRow>(
-      withDocumentNumberSearch(erplora()), 'inventory.stock.movements', () => this.requestUpdate(),
+      withDocumentNumberSearch(erplora()), 'inventory.stock.movements', () => {
+        this.unfoldedReferences.clear();
+        this.requestUpdate();
+      },
     );
     await this.ctrl.load();
   }
