@@ -157,3 +157,83 @@ describe('a search that finds nothing says so (inventory#142)', () => {
     expect(await emptyAfter('filterChange', { col: 'reference', value: 'ALB-0099' })).toBe('ui.mvNoMatch');
   });
 });
+
+describe('on a tablet the reference keeps the end that tells one document from another (inventory#144)', () => {
+  // At 820x1180 the Reference column is 76 px and a ticket number asks ~108: clipped at the END,
+  // every sale of the day read «20261004-…» and a delivery note «ALB-2026-…». The cell now clips at
+  // the START («…04-0002»), keeps the whole number as its title and still unfolds on a tap.
+  async function referenceCell(): Promise<HTMLElement> {
+    const el = await montar();
+    await new Promise((r) => setTimeout(r, 0));
+    await (el as unknown as { updateComplete: Promise<unknown> }).updateComplete;
+    const table = el.shadowRoot.querySelector('ok-data-table') as unknown as HTMLElement & {
+      updateComplete: Promise<unknown>; shadowRoot: ShadowRoot;
+    };
+    await table.updateComplete;
+    const spans = [...table.shadowRoot.querySelectorAll('span')].filter((s) => s.textContent?.trim() === '20261004-0002');
+    expect(spans, 'the ticket number is painted once, in one cell').toHaveLength(1);
+    return spans[0];
+  }
+
+  /** The Reference cell as painted after the next render. */
+  async function paintedReference(): Promise<HTMLElement> {
+    await new Promise((r) => setTimeout(r, 0));
+    const host = document.querySelector('erp-inventory-movements') as HTMLElement & { updateComplete: Promise<unknown>; shadowRoot: ShadowRoot };
+    await host.updateComplete;
+    const table = host.shadowRoot.querySelector('ok-data-table') as unknown as { updateComplete: Promise<unknown>; shadowRoot: ShadowRoot };
+    await table.updateComplete;
+    return [...table.shadowRoot.querySelectorAll('span')].find((s) => s.textContent?.trim() === '20261004-0002')!;
+  }
+
+  it('the cell clips at its start and keeps the number itself reading left to right', async () => {
+    const cell = await referenceCell();
+    expect(cell.getAttribute('dir'), 'the overflow (and its «…») goes to the start of the cell').toBe('rtl');
+    const number = cell.querySelector('bdi');
+    expect(number?.getAttribute('dir'), 'the number is isolated so «-» and digits keep their order').toBe('ltr');
+    expect(number?.textContent).toBe('20261004-0002');
+    expect(cell.getAttribute('title'), 'hover shows the whole number').toBe('20261004-0002');
+  });
+
+  it('a tap on a clipped number unfolds it in place, reading from its start', async () => {
+    const cell = await referenceCell();
+    Object.defineProperty(cell, 'scrollWidth', { configurable: true, value: 108 });
+    Object.defineProperty(cell, 'clientWidth', { configurable: true, value: 76 });
+    cell.dispatchEvent(new PointerEvent('pointerdown', { pointerType: 'touch', bubbles: true, composed: true }));
+    cell.click();
+    await new Promise((r) => setTimeout(r, 0));
+    const after = await paintedReference();
+    expect(after.classList.contains('unfolded'), 'the clipped number unfolds').toBe(true);
+    expect(after.getAttribute('dir'), 'unfolded, it wraps from its first digit').not.toBe('rtl');
+  });
+
+  it('a mouse click, or a number that fits, changes nothing (hover already shows the title)', async () => {
+    const cell = await referenceCell();
+    Object.defineProperty(cell, 'scrollWidth', { configurable: true, value: 108 });
+    Object.defineProperty(cell, 'clientWidth', { configurable: true, value: 76 });
+    cell.dispatchEvent(new PointerEvent('pointerdown', { pointerType: 'mouse', bubbles: true, composed: true }));
+    cell.click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(cell.classList.contains('unfolded')).toBe(false);
+    expect(cell.getAttribute('dir')).toBe('rtl');
+
+    Object.defineProperty(cell, 'scrollWidth', { configurable: true, value: 76 });
+    cell.dispatchEvent(new PointerEvent('pointerdown', { pointerType: 'touch', bubbles: true, composed: true }));
+    cell.click();
+    expect((await paintedReference()).classList.contains('unfolded'), 'a number that fits has nothing to unfold').toBe(false);
+  });
+
+  it('a new page folds the numbers a tap unfolded', async () => {
+    const cell = await referenceCell();
+    Object.defineProperty(cell, 'scrollWidth', { configurable: true, value: 108 });
+    Object.defineProperty(cell, 'clientWidth', { configurable: true, value: 76 });
+    cell.dispatchEvent(new PointerEvent('pointerdown', { pointerType: 'touch', bubbles: true, composed: true }));
+    cell.click();
+    expect((await paintedReference()).classList.contains('unfolded')).toBe(true);
+    const table = document.querySelector('erp-inventory-movements')!.shadowRoot!.querySelector('ok-data-table')!;
+    table.dispatchEvent(new CustomEvent('pageChange', { detail: 1 }));
+    for (let i = 0; i < 3; i++) await new Promise((r) => setTimeout(r, 0));
+    const folded = await paintedReference();
+    expect(folded.classList.contains('unfolded')).toBe(false);
+    expect(folded.getAttribute('dir')).toBe('rtl');
+  });
+});

@@ -6012,6 +6012,9 @@ var ErpInventoryMovements = class extends i3 {
     /** The document each sale on screen produced, by sale id (inventory#137): `null` while being
      *  resolved or when none could be. Asked once per sale for the life of the view. */
     this.saleDocuments = /* @__PURE__ */ new Map();
+    /** Movement ids whose Reference a tap unfolded (inventory#144); a new page folds them again. */
+    this.unfoldedReferences = /* @__PURE__ */ new Set();
+    this.lastPointerType = "";
     this.onLocaleChange = () => this.requestUpdate();
   }
   static {
@@ -6085,12 +6088,45 @@ var ErpInventoryMovements = class extends i3 {
         filterable: true,
         filterType: "text",
         width: "minmax(4.75rem,1.25fr)",
-        format: (r6) => {
-          const row = r6;
-          return movementReference(row, this.saleDocuments.get(saleReferenceOf(row)));
-        }
+        format: (r6) => this.referenceText(r6),
+        render: (r6) => this.referenceCell(r6)
       }
     ];
+  }
+  referenceText(row) {
+    return movementReference(row, this.saleDocuments.get(saleReferenceOf(row)));
+  }
+  /**
+   * inventory#144: a document number tells itself from its neighbours by its END — a ticket starts
+   * with the date («20261004-0001»), a delivery note with its series («ALB-2026-000123») — and on a
+   * tablet the column (76 px) holds about seven of its characters. So the cell clips at its START
+   * («…04-0001»): `dir="rtl"` moves the overflow and its ellipsis to the left, and the `<bdi>`
+   * keeps the number itself reading left to right. The rest is ok-data-table's text cell (#217):
+   * the whole number as the title, and a tap on a clipped number unfolds it in place.
+   */
+  referenceCell(row) {
+    const text = this.referenceText(row);
+    if (!text) return A;
+    const unfolded = this.unfoldedReferences.has(row.id);
+    return b2`<span
+      data-testid="inventory-movements-reference"
+      class=${unfolded ? "unfolded" : A}
+      dir=${unfolded ? A : "rtl"}
+      title=${text}
+      @pointerdown=${(e5) => {
+      this.lastPointerType = e5.pointerType;
+    }}
+      @click=${(e5) => this.unfoldReference(e5, row.id)}
+    ><bdi dir="ltr">${text}</bdi></span>`;
+  }
+  /** Same rule as ok-data-table (#217): a mouse has the title on hover, so only a touch unfolds,
+   *  and only a number that is actually clipped. */
+  unfoldReference(e5, id) {
+    if (this.lastPointerType !== "touch") return;
+    const span = e5.currentTarget;
+    if (span.scrollWidth <= span.clientWidth) return;
+    this.unfoldedReferences.add(id);
+    this.requestUpdate();
   }
   updated() {
     this.resolveDocuments();
@@ -6116,7 +6152,10 @@ var ErpInventoryMovements = class extends i3 {
     this.ctrl = createListController(
       withDocumentNumberSearch(erplora3()),
       "inventory.stock.movements",
-      () => this.requestUpdate()
+      () => {
+        this.unfoldedReferences.clear();
+        this.requestUpdate();
+      }
     );
     await this.ctrl.load();
   }
