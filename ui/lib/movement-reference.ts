@@ -144,13 +144,18 @@ export function withDocumentNumberSearch(client: MovementListClient): MovementLi
     if (!known.has(text)) known.set(text, findSaleByDocumentNumber(client, text));
     return known.get(text)!;
   };
+  // Both doors only pass on the name they receive: the literal lives at the call site
+  // (`createListController(withDocumentNumberSearch(erplora()), 'inventory.stock.movements', …)`),
+  // where `erplora contracts` already records it (ADR-0127).
   return {
+    // erplora-contracts: ignore — pass-through, see above.
     queryOptional: (name, params) => client.queryOptional(name, params),
     async queryPage<R = unknown>(name: string, params: ListParams): Promise<ListPage<R>> {
       const out: ListParams = { ...params };
       if (params.search) out.search = (await saleOf(params.search)) ?? params.search;
       const reference = params.filters?.reference;
       if (reference) out.filters = { ...params.filters, reference: (await saleOf(reference)) ?? reference };
+      // erplora-contracts: ignore — pass-through, see above.
       return client.queryPage<R>(name, out);
     },
   };

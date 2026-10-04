@@ -5983,6 +5983,7 @@ function withDocumentNumberSearch(client) {
     return known.get(text);
   };
   return {
+    // erplora-contracts: ignore — pass-through, see above.
     queryOptional: (name, params) => client.queryOptional(name, params),
     async queryPage(name, params) {
       const out = { ...params };
