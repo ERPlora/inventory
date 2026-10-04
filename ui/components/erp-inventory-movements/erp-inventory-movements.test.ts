@@ -14,19 +14,22 @@ const MOVS = [
 ];
 
 let optionalCalls: [string, Record<string, unknown> | undefined][] = [];
+let pageCalls: [string, Record<string, unknown>][] = [];
 
 beforeEach(() => {
   document.body.innerHTML = '';
   optionalCalls = [];
+  pageCalls = [];
   (globalThis as Record<string, unknown>).erplora = {
     query: async () => [],
     // No invoicing app on this hub: the sale's own number names the document (inventory#137).
     queryOptional: async (name: string, params?: Record<string, unknown>) => {
       optionalCalls.push([name, params]);
+      if (name === 'sales.list') return { rows: [{ id: SALE_ID, sale_number: '20261004-0002' }], total: 1, limit: 20, offset: 0 };
       return name === 'sales.get' && params?.sale_id === SALE_ID ? [{ id: SALE_ID, sale_number: '20261004-0002' }] : undefined;
     },
-    queryPage: async (name: string) =>
-      name === 'inventory.stock.movements'
+    queryPage: async (name: string, params: Record<string, unknown>) =>
+      (pageCalls.push([name, params]), name === 'inventory.stock.movements')
         ? { rows: MOVS, total: 2, limit: 50, offset: 0 }
         : { rows: [], total: 0, limit: 50, offset: 0 },
     command: async () => ({}),
@@ -119,5 +122,18 @@ describe('the reference of a sale is the number of its ticket (inventory#137)', 
     const painted = table.shadowRoot.textContent ?? '';
     expect(painted).toContain('20261004-0002');
     expect(painted).not.toContain(SALE_ID);
+  });
+});
+
+describe('searching the ticket number finds its movements (inventory#142)', () => {
+  it('typing the number the Reference column shows sends its sale to the server search', async () => {
+    const el = await montar();
+    const table = el.shadowRoot.querySelector('ok-data-table') as HTMLElement;
+    pageCalls = [];
+    table.dispatchEvent(new CustomEvent('searchChange', { detail: '20261004-0002' }));
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0));
+    const searched = pageCalls.filter(([n]) => n === 'inventory.stock.movements').map(([, p]) => p.search);
+    expect(searched, 'the uuid stored in the row is what the server search can match').toEqual([SALE_ID]);
   });
 });

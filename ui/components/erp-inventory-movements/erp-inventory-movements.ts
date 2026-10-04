@@ -7,7 +7,9 @@ import { createListController, dataTableLabels, dataTableShowsLoadError } from '
 import type { ListController, ListClient, ListParams, ListPage } from '@erplora/module-sdk';
 import { formatQuantity, fromMicro } from '../../lib/quantity';
 import { formatListDateTime } from '../../lib/list-date';
-import { movementReference, resolveSaleDocument, saleReferenceOf, type SaleDocument } from '../../lib/movement-reference';
+import {
+  movementReference, resolveSaleDocument, saleReferenceOf, withDocumentNumberSearch, type SaleDocument,
+} from '../../lib/movement-reference';
 
 // Catálogo i18n del módulo (ADR-0055).
 import esLocale from '../../../locales/es.json';
@@ -134,7 +136,10 @@ export class ErpInventoryMovements extends LitElement {
   }
 
   async firstUpdated(): Promise<void> {
-    this.ctrl = createListController<MovementRow>(erplora(), 'inventory.stock.movements', () => this.requestUpdate());
+    // inventory#142: a typed ticket/invoice/sale number is searched as the sale it names.
+    this.ctrl = createListController<MovementRow>(
+      withDocumentNumberSearch(erplora()), 'inventory.stock.movements', () => this.requestUpdate(),
+    );
     await this.ctrl.load();
   }
 
