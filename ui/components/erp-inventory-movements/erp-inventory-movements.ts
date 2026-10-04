@@ -7,6 +7,7 @@ import { createListController, dataTableLabels, dataTableShowsLoadError } from '
 import type { ListController, ListClient, ListParams, ListPage } from '@erplora/module-sdk';
 import { formatQuantity, fromMicro } from '../../lib/quantity';
 import { formatListDateTime } from '../../lib/list-date';
+import { movementReference, resolveSaleDocument, saleReferenceOf, type SaleDocument } from '../../lib/movement-reference';
 
 // Catálogo i18n del módulo (ADR-0055).
 import esLocale from '../../../locales/es.json';
@@ -21,6 +22,7 @@ const CATALOG: Record<string, unknown> = { es: esLocale, en: enLocale };
 interface ErploraClientLike extends ListClient {
   query<T = unknown>(name: string, params?: Record<string, unknown>): Promise<T>;
   queryPage<R = unknown>(name: string, params: ListParams): Promise<ListPage<R>>;
+  queryOptional<T = unknown>(name: string, params?: Record<string, unknown>): Promise<T | undefined>;
   locale: string;
   t(catalog: Record<string, unknown>, key: string): string;
 }
@@ -61,6 +63,9 @@ export class ErpInventoryMovements extends LitElement {
   `;
 
   private ctrl!: ListController<MovementRow>;
+  /** The document each sale on screen produced, by sale id (inventory#137): `null` while being
+   *  resolved or when none could be. Asked once per sale for the life of the view. */
+  private readonly saleDocuments = new Map<string, SaleDocument | null>();
   private readonly onLocaleChange = (): void => this.requestUpdate();
 
   connectedCallback(): void {
@@ -103,8 +108,29 @@ export class ErpInventoryMovements extends LitElement {
       { key: 'stock_after', header: t('ui.mvStockAfter'), align: 'right', sortable: true, width: '4.75rem',
         format: (r) => formatQuantity((r as unknown as MovementRow).stock_after) },
       { key: 'reason', header: t('ui.mvReason'), width: 'minmax(3.25rem,1fr)' },
-      { key: 'reference', header: t('ui.mvReference'), filterable: true, filterType: 'text', width: 'minmax(4.75rem,1.25fr)' },
+      { key: 'reference', header: t('ui.mvReference'), filterable: true, filterType: 'text', width: 'minmax(4.75rem,1.25fr)',
+        format: (r) => {
+          const row = r as unknown as MovementRow;
+          return movementReference(row, this.saleDocuments.get(saleReferenceOf(row)));
+        } },
     ];
+  }
+
+  protected updated(): void {
+    this.resolveDocuments();
+  }
+
+  /** Ask, once per sale, which document the sales on the current page produced (inventory#137). */
+  private resolveDocuments(): void {
+    for (const row of this.ctrl?.rows ?? []) {
+      const saleId = saleReferenceOf(row);
+      if (!saleId || this.saleDocuments.has(saleId)) continue;
+      this.saleDocuments.set(saleId, null);
+      void resolveSaleDocument(erplora(), saleId).then((doc) => {
+        this.saleDocuments.set(saleId, doc);
+        if (doc) this.requestUpdate();
+      });
+    }
   }
 
   async firstUpdated(): Promise<void> {

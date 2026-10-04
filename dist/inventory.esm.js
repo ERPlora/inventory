@@ -5910,6 +5910,39 @@ function formatListDateTime(value, locale) {
   }
 }
 
+// ui/lib/movement-reference.ts
+var SALE_MOVEMENTS = /* @__PURE__ */ new Set(["sale", "void"]);
+var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function saleReferenceOf(row) {
+  const reference = row.reference == null ? "" : String(row.reference);
+  return reference && SALE_MOVEMENTS.has(String(row.movement_type ?? "")) ? reference : "";
+}
+function movementReference(row, doc) {
+  const reference = row.reference == null ? "" : String(row.reference);
+  if (!saleReferenceOf(row)) return reference;
+  if (doc) return doc.number;
+  return UUID.test(reference) ? "" : reference;
+}
+function firstRow(rows) {
+  const row = Array.isArray(rows) ? rows[0] : rows;
+  return row && typeof row === "object" ? row : void 0;
+}
+async function resolveSaleDocument(sdk, saleId) {
+  try {
+    const invoice = firstRow(await sdk.queryOptional("invoice.by_source", { source_id: saleId }));
+    const number = invoice?.number == null ? "" : String(invoice.number);
+    if (number) return { kind: invoice?.invoice_type === "F2" ? "receipt" : "invoice", number };
+  } catch {
+  }
+  try {
+    const sale = firstRow(await sdk.queryOptional("sales.get", { sale_id: saleId }));
+    const number = sale?.sale_number == null ? "" : String(sale.sale_number);
+    if (number) return { kind: "sale", number };
+  } catch {
+  }
+  return null;
+}
+
 // ui/components/erp-inventory-movements/erp-inventory-movements.ts
 var CATALOG3 = { es: es_default, en: en_default };
 function erplora3() {
@@ -5924,6 +5957,9 @@ function formatQty(v3) {
 var ErpInventoryMovements = class extends i3 {
   constructor() {
     super(...arguments);
+    /** The document each sale on screen produced, by sale id (inventory#137): `null` while being
+     *  resolved or when none could be. Asked once per sale for the life of the view. */
+    this.saleDocuments = /* @__PURE__ */ new Map();
     this.onLocaleChange = () => this.requestUpdate();
   }
   static {
@@ -5991,8 +6027,33 @@ var ErpInventoryMovements = class extends i3 {
         format: (r6) => formatQuantity2(r6.stock_after)
       },
       { key: "reason", header: t5("ui.mvReason"), width: "minmax(3.25rem,1fr)" },
-      { key: "reference", header: t5("ui.mvReference"), filterable: true, filterType: "text", width: "minmax(4.75rem,1.25fr)" }
+      {
+        key: "reference",
+        header: t5("ui.mvReference"),
+        filterable: true,
+        filterType: "text",
+        width: "minmax(4.75rem,1.25fr)",
+        format: (r6) => {
+          const row = r6;
+          return movementReference(row, this.saleDocuments.get(saleReferenceOf(row)));
+        }
+      }
     ];
+  }
+  updated() {
+    this.resolveDocuments();
+  }
+  /** Ask, once per sale, which document the sales on the current page produced (inventory#137). */
+  resolveDocuments() {
+    for (const row of this.ctrl?.rows ?? []) {
+      const saleId = saleReferenceOf(row);
+      if (!saleId || this.saleDocuments.has(saleId)) continue;
+      this.saleDocuments.set(saleId, null);
+      void resolveSaleDocument(erplora3(), saleId).then((doc) => {
+        this.saleDocuments.set(saleId, doc);
+        if (doc) this.requestUpdate();
+      });
+    }
   }
   async firstUpdated() {
     this.ctrl = createListController(erplora3(), "inventory.stock.movements", () => this.requestUpdate());
