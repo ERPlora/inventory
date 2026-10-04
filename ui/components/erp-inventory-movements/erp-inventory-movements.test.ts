@@ -1,5 +1,6 @@
 // Vista «Movimientos» del ledger (inventory#7): historial inmutable, filtrable por
 // producto/tipo/fecha/referencia, server-side sobre `inventory.stock.movements`.
+import { render } from 'lit';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 const SALE_ID = '3750546f-c61b-4731-a1f2-2a64ec1ce824';
@@ -204,6 +205,16 @@ describe('on a tablet the reference keeps the end that tells one document from a
     const after = await paintedReference();
     expect(after.classList.contains('unfolded'), 'the clipped number unfolds').toBe(true);
     expect(after.getAttribute('dir'), 'unfolded, it wraps from its first digit').not.toBe('rtl');
+
+    // Only the tapped row unfolds: the reference of any other movement stays clipped at its start.
+    const host = document.querySelector('erp-inventory-movements')!.shadowRoot!;
+    const column = (host.querySelector('ok-data-table') as unknown as { columns: Array<{ key: string; render?: (r: unknown) => unknown }> })
+      .columns.find((c) => c.key === 'reference')!;
+    const other = document.createElement('div');
+    render(column.render!({ ...MOVS[0], id: 'm9', movement_type: 'receipt', reference: 'ALB-2026-000123' }), other);
+    const otherCell = other.querySelector('span')!;
+    expect(otherCell.classList.contains('unfolded'), 'another row stays folded').toBe(false);
+    expect(otherCell.getAttribute('dir')).toBe('rtl');
   });
 
   it('a mouse click, or a number that fits, changes nothing (hover already shows the title)', async () => {
