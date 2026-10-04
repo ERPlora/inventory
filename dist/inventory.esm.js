@@ -1517,6 +1517,7 @@ var es_default = {
     mvReason: "Motivo",
     mvReference: "Referencia",
     mvEmpty: "Todav\xEDa no hay movimientos. Aparecen al usar Recibir stock o Contar stock en un producto de Productos, y con cada venta.",
+    mvNoMatch: "Ning\xFAn movimiento coincide con la b\xFAsqueda o los filtros. Una venta se encuentra por el n\xFAmero de su tique, factura o venta.",
     mvInitial: "Inicial",
     mvReception: "Recepci\xF3n",
     mvSale: "Venta",
@@ -1732,6 +1733,7 @@ var en_default = {
     mvReason: "Reason",
     mvReference: "Reference",
     mvEmpty: "No movements yet. They appear when you use Receive stock or Count stock on a product in Products, and with every sale.",
+    mvNoMatch: "No movement matches the search or the filters. A sale is found by the number of its ticket, invoice or sale.",
     mvInitial: "Initial",
     mvReception: "Reception",
     mvSale: "Sale",
@@ -6104,6 +6106,11 @@ var ErpInventoryMovements = class extends i3 {
       });
     }
   }
+  /** A search or a filter is on: an empty page means «nothing matches», not «no movements yet». */
+  get hasQuery() {
+    const s5 = this.ctrl?.state;
+    return !!s5 && (s5.search.trim() !== "" || Object.keys(s5.filters).length > 0);
+  }
   async firstUpdated() {
     this.ctrl = createListController(
       withDocumentNumberSearch(erplora3()),
@@ -6132,7 +6139,7 @@ var ErpInventoryMovements = class extends i3 {
         .total=${this.ctrl?.total ?? 0}
         .page=${this.ctrl?.state.page ?? 0}
         .pageSize=${this.ctrl?.state.pageSize ?? 50}
-        .emptyMessage=${this.ctrl?.loading ? t5("ui.loading") : t5("ui.mvEmpty")}
+        .emptyMessage=${this.ctrl?.loading ? t5("ui.loading") : t5(this.hasQuery ? "ui.mvNoMatch" : "ui.mvEmpty")}
         @pageChange=${(e5) => this.ctrl.setPage(e5.detail)}
         @pageSizeChange=${(e5) => this.ctrl.setPageSize(e5.detail)}
         @searchChange=${(e5) => this.ctrl.setSearch(e5.detail)}
