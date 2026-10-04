@@ -18,7 +18,10 @@
     ],
     "optional_queries": [
       "invoice.by_source",
-      "sales.get"
+      "invoice.get",
+      "invoice.list",
+      "sales.get",
+      "sales.list"
     ],
     "commands": [
       "inventory.categories.create",
