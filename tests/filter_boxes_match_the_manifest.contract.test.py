@@ -90,7 +90,9 @@ def components():
     """Every Web Component of the module that drives a paginated `list` query, and its query.
 
     Discovered, never listed: `createListController(erplora(), '<query>', …)` is the one way a
-    screen binds itself to a list, so a new table cannot be born outside this gate.
+    screen binds itself to a list, so a new table cannot be born outside this gate. The client may
+    come wrapped once — `withDocumentNumberSearch(erplora())` in movements (inventory#142) — and
+    the screen is still swept.
     """
     found = []
     for path in sorted((MODULE_DIR / "ui/components").rglob("*.ts")):
@@ -98,7 +100,7 @@ def components():
             continue
         src = path.read_text(encoding="utf-8")
         for query in re.findall(
-            r"createListController[^(]*\(\s*erplora\(\)\s*,\s*'([^']+)'", src
+            r"createListController[^(]*\(\s*(?:\w+\(\s*)?erplora\(\)\s*\)?\s*,\s*'([^']+)'", src
         ):
             found.append((path, query, src))
     return found
