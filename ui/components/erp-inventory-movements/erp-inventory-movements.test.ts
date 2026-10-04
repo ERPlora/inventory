@@ -29,7 +29,7 @@ beforeEach(() => {
       return name === 'sales.get' && params?.sale_id === SALE_ID ? [{ id: SALE_ID, sale_number: '20261004-0002' }] : undefined;
     },
     queryPage: async (name: string, params: Record<string, unknown>) =>
-      (pageCalls.push([name, params]), name === 'inventory.stock.movements')
+      (pageCalls.push([name, params]), name === 'inventory.stock.movements' && !params.search && !(params.filters as Record<string, unknown> | undefined)?.reference)
         ? { rows: MOVS, total: 2, limit: 50, offset: 0 }
         : { rows: [], total: 0, limit: 50, offset: 0 },
     command: async () => ({}),
@@ -135,5 +135,25 @@ describe('searching the ticket number finds its movements (inventory#142)', () =
     await new Promise((r) => setTimeout(r, 0));
     const searched = pageCalls.filter(([n]) => n === 'inventory.stock.movements').map(([, p]) => p.search);
     expect(searched, 'the uuid stored in the row is what the server search can match').toEqual([SALE_ID]);
+  });
+});
+
+describe('a search that finds nothing says so (inventory#142)', () => {
+  async function emptyAfter(event: string, detail: unknown) {
+    const el = await montar();
+    const table = el.shadowRoot.querySelector('ok-data-table') as HTMLElement & { emptyMessage: string };
+    expect(table.emptyMessage, 'with nothing typed, the ledger is just empty').toBe('ui.mvEmpty');
+    table.dispatchEvent(new CustomEvent(event, { detail }));
+    for (let i = 0; i < 3; i++) await new Promise((r) => setTimeout(r, 0));
+    await (el as unknown as { updateComplete: Promise<unknown> }).updateComplete;
+    return table.emptyMessage;
+  }
+
+  it('a number that names no movement is «nothing matches», not «no movements yet»', async () => {
+    expect(await emptyAfter('searchChange', '20261004-0099')).toBe('ui.mvNoMatch');
+  });
+
+  it('same for the Reference filter', async () => {
+    expect(await emptyAfter('filterChange', { col: 'reference', value: 'ALB-0099' })).toBe('ui.mvNoMatch');
   });
 });

@@ -135,6 +135,12 @@ export class ErpInventoryMovements extends LitElement {
     }
   }
 
+  /** A search or a filter is on: an empty page means «nothing matches», not «no movements yet». */
+  private get hasQuery(): boolean {
+    const s = this.ctrl?.state;
+    return !!s && (s.search.trim() !== '' || Object.keys(s.filters).length > 0);
+  }
+
   async firstUpdated(): Promise<void> {
     // inventory#142: a typed ticket/invoice/sale number is searched as the sale it names.
     this.ctrl = createListController<MovementRow>(
@@ -163,7 +169,7 @@ export class ErpInventoryMovements extends LitElement {
         .total=${this.ctrl?.total ?? 0}
         .page=${this.ctrl?.state.page ?? 0}
         .pageSize=${this.ctrl?.state.pageSize ?? 50}
-        .emptyMessage=${this.ctrl?.loading ? t('ui.loading') : t('ui.mvEmpty')}
+        .emptyMessage=${this.ctrl?.loading ? t('ui.loading') : t(this.hasQuery ? 'ui.mvNoMatch' : 'ui.mvEmpty')}
         @pageChange=${(e: CustomEvent<number>) => this.ctrl.setPage(e.detail)}
         @pageSizeChange=${(e: CustomEvent<number>) => this.ctrl.setPageSize(e.detail)}
         @searchChange=${(e: CustomEvent<string>) => this.ctrl.setSearch(e.detail)}
