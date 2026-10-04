@@ -5902,13 +5902,29 @@ define("erp-inventory-dashboard", ErpInventoryDashboard);
 function formatListDateTime(value, locale) {
   const raw = value == null ? "" : String(value);
   if (!raw) return "";
+  const parts = listDateTimeParts(raw, locale);
+  return parts ? parts.map((p4) => p4.value).join("") : raw;
+}
+function splitListDateTime(value, locale) {
+  const raw = value == null ? "" : String(value);
+  const parts = raw ? listDateTimeParts(raw, locale) : null;
+  if (!parts) return null;
+  const hour = parts.findIndex((p4) => p4.type === "hour");
+  if (hour < 0) return null;
+  let lastDateField = hour - 1;
+  while (lastDateField >= 0 && !["day", "month", "year"].includes(parts[lastDateField].type)) lastDateField -= 1;
+  if (lastDateField < 0) return null;
+  const text = (from, to) => parts.slice(from, to).map((p4) => p4.value).join("");
+  return { date: text(0, lastDateField + 1), separator: text(lastDateField + 1, hour), time: text(hour) };
+}
+function listDateTimeParts(raw, locale) {
   const d3 = new Date(raw);
-  if (Number.isNaN(d3.getTime())) return raw;
-  const options = d3.getFullYear() === (/* @__PURE__ */ new Date()).getFullYear() ? { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" } : { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" };
+  if (Number.isNaN(d3.getTime())) return null;
+  const options = d3.getFullYear() === (/* @__PURE__ */ new Date()).getFullYear() ? { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" } : { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" };
   try {
-    return new Intl.DateTimeFormat(locale || "es", options).format(d3);
+    return new Intl.DateTimeFormat(locale || "es", options).formatToParts(d3);
   } catch {
-    return new Intl.DateTimeFormat("es", options).format(d3);
+    return new Intl.DateTimeFormat("es", options).formatToParts(d3);
   }
 }
 
@@ -6051,10 +6067,11 @@ var ErpInventoryMovements = class extends i3 {
         key: "created_at",
         header: t5("ui.mvDate"),
         sortable: true,
-        width: "minmax(6.25rem,1fr)",
-        format: (r6) => formatListDateTime(r6.created_at, erplora3().locale)
+        width: "minmax(6.75rem,0.9fr)",
+        format: (r6) => formatListDateTime(r6.created_at, erplora3().locale),
+        render: (r6) => this.dateCell(r6)
       },
-      { key: "product_name", header: t5("ui.name"), width: "minmax(7.5rem,3fr)" },
+      { key: "product_name", header: t5("ui.name"), width: "minmax(7.5rem,3.1fr)" },
       { key: "sku", header: t5("ui.sku"), width: "minmax(4.5rem,0.8fr)" },
       {
         key: "movement_type",
@@ -6092,6 +6109,21 @@ var ErpInventoryMovements = class extends i3 {
         render: (r6) => this.referenceCell(r6)
       }
     ];
+  }
+  /**
+   * inventory#139: an older movement in English, «12/31/25, 11:45 PM», is wider than the tablet
+   * column (108 px), and ok-data-table makes a cell one clipped line, so it read «12/31/25, 11:…».
+   * The date and the time are painted as pieces that never break inside, and the time drops under
+   * the date when both do not fit — that row is a line taller, but nothing is cut.
+   */
+  dateCell(row) {
+    const locale = erplora3().locale;
+    const text = formatListDateTime(row.created_at, locale);
+    const parts = splitListDateTime(row.created_at, locale);
+    if (!parts) return text;
+    return b2`<span data-testid="inventory-movements-date" title=${text} style="white-space:normal"
+      ><span style="white-space:nowrap">${parts.date}${parts.separator.trimEnd()}</span> <span
+      style="white-space:nowrap">${parts.time}</span></span>`;
   }
   referenceText(row) {
     return movementReference(row, this.saleDocuments.get(saleReferenceOf(row)));

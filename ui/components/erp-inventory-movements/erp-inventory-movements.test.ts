@@ -248,3 +248,48 @@ describe('on a tablet the reference keeps the end that tells one document from a
     expect(folded.getAttribute('dir')).toBe('rtl');
   });
 });
+
+describe('on a tablet an older movement keeps its time (inventory#139)', () => {
+  // «12/31/25, 11:45 PM» (an older movement in English) is ~125 px and a tablet gives the Date
+  // column ~108: clipped, it read «12/31/25, 11:…». The cell paints the date and the time as two
+  // pieces that never break inside and lets the time drop under the date when both do not fit.
+  async function dateColumn() {
+    const el = await montar();
+    const table = el.shadowRoot.querySelector('ok-data-table') as unknown as {
+      columns: { key: string; format?: (r: Record<string, unknown>) => string; render?: (r: unknown) => unknown }[];
+    };
+    return table.columns.find((c) => c.key === 'created_at')!;
+  }
+
+  function paint(template: unknown): HTMLElement {
+    const host = document.createElement('div');
+    render(template, host);
+    return host;
+  }
+
+  it('the date and the time are unbreakable pieces with a break allowed only between them', async () => {
+    const date = await dateColumn();
+    expect(date.render, 'the Date column paints its own cell').toBeTypeOf('function');
+    const value = new Date(2025, 11, 31, 23, 45).toISOString();
+    for (const locale of ['es', 'en']) {
+      (globalThis as { erplora: { locale: string } }).erplora.locale = locale;
+      const text = date.format!({ created_at: value });
+      const cell = paint(date.render!({ ...MOVS[0], created_at: value }));
+      const outer = cell.querySelector('[data-testid="inventory-movements-date"]') as HTMLElement;
+      expect(outer, 'the cell carries its test hook').not.toBeNull();
+      expect(outer.style.whiteSpace, 'the cell may wrap (ok-data-table makes a cell one clipped line)').toBe('normal');
+      const pieces = [...outer.querySelectorAll(':scope > span')] as HTMLElement[];
+      expect(pieces.map((p) => p.style.whiteSpace)).toEqual(['nowrap', 'nowrap']);
+      expect(pieces[1].textContent).toMatch(/^\d{1,2}:\d{2}/);
+      expect(outer.textContent?.replace(/\s+/g, ' ').trim(), 'what is painted is what the CSV and the cards print')
+        .toBe(text.replace(/\s+/g, ' '));
+      expect(outer.getAttribute('title')).toBe(text);
+    }
+  });
+
+  it('a value that is not a date is painted as it comes, never as an empty cell', async () => {
+    const date = await dateColumn();
+    expect(paint(date.render!({ ...MOVS[0], created_at: 'not-a-date' })).textContent?.trim()).toBe('not-a-date');
+    expect(paint(date.render!({ ...MOVS[0], created_at: null })).textContent?.trim()).toBe('');
+  });
+});

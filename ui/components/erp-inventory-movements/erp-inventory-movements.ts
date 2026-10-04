@@ -6,7 +6,7 @@ import type { DataTableColumn } from '@erplora/outfitkit';
 import { createListController, dataTableLabels, dataTableShowsLoadError } from '@erplora/module-sdk';
 import type { ListController, ListClient, ListParams, ListPage } from '@erplora/module-sdk';
 import { formatQuantity, fromMicro } from '../../lib/quantity';
-import { formatListDateTime } from '../../lib/list-date';
+import { formatListDateTime, splitListDateTime } from '../../lib/list-date';
 import {
   movementReference, resolveSaleDocument, saleReferenceOf, withDocumentNumberSearch, type SaleDocument,
 } from '../../lib/movement-reference';
@@ -92,15 +92,17 @@ export class ErpInventoryMovements extends LitElement {
       };
       return map[mt] ?? mt;
     };
-    // Widths measured on the hub:dev bench (inventory#130): the floors add up to 652 px (the data
-    // columns get 664 at 1024x768 with the side menu open, 700 at 820x1180), so on a tablet the
-    // name keeps 165 px, and it takes most of the leftover on a wider screen. The reference grows
-    // a little faster (still at its floor on a tablet) so a delivery note number fits on a desktop.
+    // Widths measured on the hub:dev bench (inventory#130, #139): the floors add up to 660 px (the
+    // data columns get 664 at 1024x768 with the side menu open, 700 at 820x1180), so on a tablet
+    // the date holds 108 px (an older movement in Spanish, «29/08/29, 20:59», is 107) and the name
+    // keeps 160, and the name takes most of the leftover on a wider screen. The reference grows a
+    // little faster (still at its floor on a tablet) so a delivery note number fits on a desktop.
     // Type, quantity and balance paint a word or a short number and do not grow.
     return [
-      { key: 'created_at', header: t('ui.mvDate'), sortable: true, width: 'minmax(6.25rem,1fr)',
-        format: (r) => formatListDateTime((r as unknown as MovementRow).created_at, erplora().locale) },
-      { key: 'product_name', header: t('ui.name'), width: 'minmax(7.5rem,3fr)' },
+      { key: 'created_at', header: t('ui.mvDate'), sortable: true, width: 'minmax(6.75rem,0.9fr)',
+        format: (r) => formatListDateTime((r as unknown as MovementRow).created_at, erplora().locale),
+        render: (r) => this.dateCell(r as unknown as MovementRow) },
+      { key: 'product_name', header: t('ui.name'), width: 'minmax(7.5rem,3.1fr)' },
       { key: 'sku', header: t('ui.sku'), width: 'minmax(4.5rem,0.8fr)' },
       {
         key: 'movement_type', header: t('ui.mvType'), filterable: true, filterType: 'select', width: '4.5rem',
@@ -117,6 +119,22 @@ export class ErpInventoryMovements extends LitElement {
         format: (r) => this.referenceText(r as unknown as MovementRow),
         render: (r) => this.referenceCell(r as unknown as MovementRow) },
     ];
+  }
+
+  /**
+   * inventory#139: an older movement in English, «12/31/25, 11:45 PM», is wider than the tablet
+   * column (108 px), and ok-data-table makes a cell one clipped line, so it read «12/31/25, 11:…».
+   * The date and the time are painted as pieces that never break inside, and the time drops under
+   * the date when both do not fit — that row is a line taller, but nothing is cut.
+   */
+  private dateCell(row: MovementRow): unknown {
+    const locale = erplora().locale;
+    const text = formatListDateTime(row.created_at, locale);
+    const parts = splitListDateTime(row.created_at, locale);
+    if (!parts) return text;
+    return html`<span data-testid="inventory-movements-date" title=${text} style="white-space:normal"
+      ><span style="white-space:nowrap">${parts.date}${parts.separator.trimEnd()}</span> <span
+      style="white-space:nowrap">${parts.time}</span></span>`;
   }
 
   private referenceText(row: MovementRow): string {

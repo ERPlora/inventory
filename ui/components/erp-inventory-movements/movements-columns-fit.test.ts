@@ -72,6 +72,13 @@ describe('Movements fits a tablet and gives the name what is left (inventory#130
     expect(resolve(cols, 700).get('product_name')).toBeGreaterThanOrEqual(160);
   });
 
+  it('on a tablet the Date column holds an older movement in Spanish without cutting its time (inventory#139)', async () => {
+    // «29/08/29, 20:59» is 107 px on the bench; at 820x1180 the column got 100 and read «31/12/2025, 23:…».
+    const cols = await columns();
+    expect(resolve(cols, 700).get('created_at')).toBeGreaterThanOrEqual(107);
+    expect(resolve(cols, 664).get('created_at'), '1024x768 with the side menu open').toBeGreaterThanOrEqual(107);
+  });
+
   it('on a desktop the name does not starve the reason or the reference that fitted before', async () => {
     // At 1440x900 (side menu open) the data columns have 1080 px. «Recuento mensual» is 119 px and
     // a delivery note «ALB-2026-000123» 122 px: both fitted in the old equal split (135 px). The
@@ -99,8 +106,9 @@ describe('Movements fits a tablet and gives the name what is left (inventory#130
   it('each floor still holds the widest thing its column paints (bench, es/en, ios/md)', async () => {
     const cols = await columns();
     const floor = (key: string) => track(cols.find((c) => c.key === key)!).floorPx;
-    // «9/30, 11:45 AM» in English is 97 px; the Spanish «30/9, 23:45» is shorter.
-    expect(floor('created_at')).toBeGreaterThanOrEqual(100);
+    // inventory#139: an older movement in Spanish, «29/08/29, 20:59», is 107 px, and this year's
+    // «12/28, 10:08 PM» in English 105 (the 97 px of «9/30, 11:45 AM» was not the widest).
+    expect(floor('created_at')).toBeGreaterThanOrEqual(107);
     // The name keeps more than the 88 px that printed «Producto d...».
     expect(floor('product_name')).toBeGreaterThanOrEqual(120);
     // «SKU-0005» is 69 px.
@@ -125,7 +133,7 @@ describe('Movements fits a tablet and gives the name what is left (inventory#130
     expect(fr('movement_type')).toBe(0);
     expect(fr('qty')).toBe(0);
     expect(fr('stock_after')).toBe(0);
-    // An older movement prints «31/12/2025, 23:45» (118 px): the date grows where there is room.
+    // An older movement in English prints «12/31/25, 11:45 PM» (~125 px): the date grows where there is room.
     expect(fr('created_at')).toBeGreaterThan(0);
   });
 
