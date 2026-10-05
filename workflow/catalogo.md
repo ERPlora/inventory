@@ -19,7 +19,7 @@ Pasos:
 Entra: las categorías fiscales y sus tipos (Impuestos); las unidades de medida y las categorías de producto (este módulo).
 Sale: el producto, activo, con su stock inicial y enlazado a las categorías marcadas en la misma operación (avisa: inventory.product.created). Ventas lo ofrece en la rejilla del TPV; la lista «Termina de configurar tu negocio» da por hecho el paso del catálogo (INVENTORY-F28).
 Si falla: «Guardar» está apagado mientras falten Nombre, SKU o categoría fiscal. Sin categorías fiscales sale «Todavía no hay categorías fiscales. Créalas en Impuestos: un producto no se puede vender sin saber cómo tributa.». Un importe ilegible: «Esto no es un importe. Escribe una cifra, por ejemplo 12,50.» o «Este importe se puede leer de dos maneras…»; una cantidad mala: «Introduce una cantidad válida con un máximo de 6 decimales» o «La cantidad no respeta el incremento permitido para esta unidad». Un SKU o un EAN-13 que ya tiene otro producto vivo se rechaza; la pantalla tiene «Ese SKU ya existe en el catálogo», pero solo lo pone si el mensaje del servidor nombra el SKU, y el hub oculta el detalle de la base de datos (sin confirmar qué texto sale). Todo rechazo sale dentro del panel y no se guarda nada.
-Implicados: SALES-F01, TAXES-F01, TAXES-F19, REC_RESTAURANTE-F03
+Implicados: SALES-F01, TAXES-F01, TAXES-F19, REC_PELUQUERIA-F04, REC_RESTAURANTE-F03
 QA: qa-hub §4, qa-hub-restaurant §7.03
 
 ### INVENTORY-F02 Editar un producto

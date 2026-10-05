@@ -17,7 +17,7 @@ Pasos:
 Entra: la venta cobrada, de Ventas: cada línea con su artículo, su cantidad (exacta, ya comprobada contra el escalón al cobrar), si es servicio y, si es un menú, sus componentes (INVENTORY-F22).
 Sale: el stock baja y queda el movimiento «Venta» con la venta como referencia, en una sola sentencia. Con «Permitir vender sin stock» encendido, el saldo puede quedar en negativo. Si cruza el mínimo, avisa (INVENTORY-F18). Si el negocio no controla stock y ninguna línea lo controla, marca la venta como «sin movimientos» para que su anulación no reponga nada. No emite el aviso de stock cambiado.
 Si falla: la venta ya está cobrada; si Inventario no puede aplicar el aviso, lo reintenta el hub y, si sigue fallando, queda en su lista de avisos fallidos, sin nada en la pantalla de Inventario. Dos ventas a la vez sobre la última unidad: con el ajuste apagado, la segunda no baja nada; encendido, queda en negativo.
-Implicados: SALES-F01, SALES-F11, SALES-F15, REC_RESTAURANTE-F11
+Implicados: SALES-F01, SALES-F11, SALES-F15, REC_PELUQUERIA-F09, REC_RESTAURANTE-F11
 Pendiente de enlazar: hub — reintentar un aviso entre módulos y dejarlo en avisos fallidos
 QA: R-04, B-05, BD-09, qa-hub-restaurant §7.03 (discrepa), qa-hub-restaurant §8
 
@@ -49,7 +49,7 @@ Pasos:
 Entra: la venta anulada, de Ventas (solo cuál es).
 Sale: el stock sube y queda el movimiento «Anulación». Devuelve lo que salió aunque el artículo haya dejado de controlar stock entre medias. No avisa del cruce de mínimo ni de stock cambiado.
 Si falla: una segunda entrega del mismo aviso no repone dos veces. Un artículo borrado después de la venta no recupera nada. Si el aviso no se puede aplicar, lo reintenta el hub (INVENTORY-F21). Si el aviso de la venta cobrada falla y se reintenta después del de la anulación (la cola entrega en paralelo y reintenta hasta 8 veces), la anulación no encuentra nada que reponer y deja su marca, pero la bajada de la venta no mira esa marca: se aplica después y el stock queda bajado por una venta anulada, sin aviso; se corrige contando (INVENTORY-F14) (leído en el código, sin ejecutar).
-Implicados: SALES-F30, REC_RESTAURANTE-F15
+Implicados: SALES-F30, REC_PELUQUERIA-F14, REC_RESTAURANTE-F15
 QA: R-11, B-08, qa-hub-restaurant §7.13
 
 ### INVENTORY-F24 Reponer el stock de una devolución
@@ -64,7 +64,7 @@ Pasos:
 Entra: nada (el aviso de venta devuelta existe, pero Inventario no lo escucha).
 Sale: nada.
 Si falla: el stock queda por debajo de lo real hasta el siguiente recuento.
-Implicados: SALES-F31, REC_RESTAURANTE-F15
+Implicados: SALES-F31, REC_PELUQUERIA-F14, REC_RESTAURANTE-F15
 QA: R-11, B-08, qa-hub-restaurant §7.12
 
 ### INVENTORY-F25 Imprimir la etiqueta del código de barras

@@ -96,8 +96,7 @@ Pasos:
 Entra: el saldo de antes, leído justo antes del movimiento, y el umbral del producto.
 Sale: el aviso (inventory.low_stock_crossed) con el producto, su SKU y su nombre, la cantidad de antes y la de después, el umbral, el tipo de movimiento y la venta o el albarán.
 Si falla: si no se pudo leer el saldo de antes, no se emite ningún cruce (no se adivina). Si dos movimientos se cruzan en el tiempo, el aviso puede perderse o salir dos veces (cada uno decide con el saldo que leyó antes).
-Implicados: pendiente
-Pendiente de enlazar: flows — disparar un flujo cuando un artículo cruza su mínimo
+Implicados: FLOWS-F13
 QA: qa-hub-restaurant §7.12
 
 ### INVENTORY-F19 Ajustar el inventario
