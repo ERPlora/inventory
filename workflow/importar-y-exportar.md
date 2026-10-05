@@ -20,10 +20,7 @@ Pasos:
 Entra: el fichero; las categorías fiscales y sus alias (Impuestos); las unidades.
 Sale: un producto activo por fila lista, creado uno a uno (avisa cada uno: inventory.product.created); en Impuestos, los alias aprendidos y las categorías creadas desde la ventana fiscal. Una fila con un SKU que ya tiene un producto vivo se cuenta como omitida y ese producto no se toca; un SKU de un producto borrado crea uno nuevo.
 Si falla: motivos de fila: «Faltan nombre o SKU», «Precio no numérico» (también para el coste), «SKU duplicado en el fichero», «Introduce una cantidad válida con un máximo de 6 decimales», «La cantidad no respeta el incremento permitido para esta unidad», «Falta la categoría fiscal» o el del servidor. Si no se pueden leer las categorías de Impuestos, la importación sigue: las filas con texto fiscal acaban fallidas con «Falta la categoría fiscal» y las que no traen columna se preguntan igual. Si el texto no casa y falla la búsqueda de alias, se pregunta. «Cancelar» en la ventana fiscal no importa nada. «Parar» deja lo ya creado y el informe dice «La importación se paró a medias. Lo que ya se había creado está contado abajo; el resto del fichero se quedó como estaba.».
-Implicados: pendiente
-Pendiente de enlazar: taxes — TAXES-F15 resolver el texto fiscal del fichero por categorías y alias
-Pendiente de enlazar: taxes — TAXES-F14 el alias que se aprende al elegir una categoría
-Pendiente de enlazar: taxes — TAXES-F02 la categoría fiscal que se crea desde la ventana del importador
+Implicados: TAXES-F02, TAXES-F14, TAXES-F15
 QA: ninguno
 
 ### INVENTORY-F10 Importar categorías desde un CSV
@@ -38,8 +35,7 @@ Pasos:
 Entra: el fichero; las categorías fiscales y sus alias (Impuestos).
 Sale: las categorías creadas. No avisa a nadie.
 Si falla: no se enseña nada; lo que no entró simplemente no está en la tabla.
-Implicados: pendiente
-Pendiente de enlazar: taxes — TAXES-F15 resolver el texto fiscal del fichero por categorías y alias
+Implicados: TAXES-F15
 QA: ninguno
 
 ### INVENTORY-F11 Exportar el catálogo a CSV

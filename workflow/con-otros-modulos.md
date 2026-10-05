@@ -17,10 +17,7 @@ Pasos:
 Entra: la venta cobrada, de Ventas: cada línea con su artículo, su cantidad (exacta, ya comprobada contra el escalón al cobrar), si es servicio y, si es un menú, sus componentes (INVENTORY-F22).
 Sale: el stock baja y queda el movimiento «Venta» con la venta como referencia, en una sola sentencia. Con «Permitir vender sin stock» encendido, el saldo puede quedar en negativo. Si cruza el mínimo, avisa (INVENTORY-F18). Si el negocio no controla stock y ninguna línea lo controla, marca la venta como «sin movimientos» para que su anulación no reponga nada. No emite el aviso de stock cambiado.
 Si falla: la venta ya está cobrada; si Inventario no puede aplicar el aviso, lo reintenta el hub y, si sigue fallando, queda en su lista de avisos fallidos, sin nada en la pantalla de Inventario. Dos ventas a la vez sobre la última unidad: con el ajuste apagado, la segunda no baja nada; encendido, queda en negativo.
-Implicados: pendiente
-Pendiente de enlazar: sales — SALES-F01 cobra la venta y avisa para que baje el stock
-Pendiente de enlazar: sales — SALES-F15 lo invitado también baja stock
-Pendiente de enlazar: sales — SALES-F11 los suplementos no mueven stock
+Implicados: SALES-F01, SALES-F11, SALES-F15, REC_RESTAURANTE-F11
 Pendiente de enlazar: hub — reintentar un aviso entre módulos y dejarlo en avisos fallidos
 QA: R-04, B-05, BD-09, qa-hub-restaurant §7.03 (discrepa), qa-hub-restaurant §8
 
@@ -37,9 +34,7 @@ Pasos:
 Entra: los componentes de la línea, que Ventas congela del menú de Menús al cobrar.
 Sale: un movimiento «Venta» por componente; la anulación los repone igual (INVENTORY-F23).
 Si falla: como INVENTORY-F21.
-Implicados: pendiente
-Pendiente de enlazar: sales — SALES-F12 componer un menú y mandar sus componentes en la venta
-Pendiente de enlazar: combos — los componentes de un menú y de qué catálogo salen
+Implicados: COMBOS-F10, SALES-F12, REC_RESTAURANTE-F11
 QA: qa-hub-restaurant §7.03, qa-hub-restaurant §7.12
 
 ### INVENTORY-F23 Reponer el stock al anularse una venta
@@ -54,8 +49,7 @@ Pasos:
 Entra: la venta anulada, de Ventas (solo cuál es).
 Sale: el stock sube y queda el movimiento «Anulación». Devuelve lo que salió aunque el artículo haya dejado de controlar stock entre medias. No avisa del cruce de mínimo ni de stock cambiado.
 Si falla: una segunda entrega del mismo aviso no repone dos veces. Un artículo borrado después de la venta no recupera nada. Si el aviso no se puede aplicar, lo reintenta el hub (INVENTORY-F21). Si el aviso de la venta cobrada falla y se reintenta después del de la anulación (la cola entrega en paralelo y reintenta hasta 8 veces), la anulación no encuentra nada que reponer y deja su marca, pero la bajada de la venta no mira esa marca: se aplica después y el stock queda bajado por una venta anulada, sin aviso; se corrige contando (INVENTORY-F14) (leído en el código, sin ejecutar).
-Implicados: pendiente
-Pendiente de enlazar: sales — SALES-F30 anular una venta cobrada (Inventario repone el stock)
+Implicados: SALES-F30, REC_RESTAURANTE-F15
 QA: R-11, B-08, qa-hub-restaurant §7.13
 
 ### INVENTORY-F24 Reponer el stock de una devolución
@@ -70,8 +64,7 @@ Pasos:
 Entra: nada (el aviso de venta devuelta existe, pero Inventario no lo escucha).
 Sale: nada.
 Si falla: el stock queda por debajo de lo real hasta el siguiente recuento.
-Implicados: pendiente
-Pendiente de enlazar: sales — SALES-F31 devolver una venta (no vuelve stock)
+Implicados: SALES-F31, REC_RESTAURANTE-F15
 QA: R-11, B-08, qa-hub-restaurant §7.12
 
 ### INVENTORY-F25 Imprimir la etiqueta del código de barras
@@ -87,9 +80,7 @@ Pasos:
 Entra: el SKU, el nombre y el precio del producto; la impresora con la función «Etiqueta» (Impresión).
 Sale: el papel, o un trabajo en la cola del hub con la clave del SKU (la misma cada vez).
 Si falla: si la puerta de impresión del hub no lo puede mandar a ningún sitio, dentro de la ficha sale «No se pudo imprimir la etiqueta del código de barras» con el motivo. En un navegador, si la cola no lo acepta, se abre el diálogo de imprimir del navegador (código, SKU y nombre, sin precio). El aviso «Ninguna impresora tiene el rol «Etiqueta»: asígnale una en Impresión» no sale nunca: dentro de la app instalada la puerta del hub contesta «ningún sitio» para una etiqueta, nunca «navegador». Se arregla asignando la función «Etiqueta» a una impresora (PRINTING-F04).
-Implicados: pendiente
-Pendiente de enlazar: printing — PRINTING-F12 imprimir la etiqueta de un código de barras
-Pendiente de enlazar: printing — PRINTING-F04 asignar la función «Etiqueta» a una impresora
+Implicados: PRINTING-F04, PRINTING-F12
 Pendiente de enlazar: hub — la cola de impresión y su clave de un solo uso por trabajo
 QA: qa-hub §8
 
@@ -106,8 +97,7 @@ Pasos:
 Entra: las unidades del negocio, sembradas al instalar el módulo.
 Sale: el producto con su unidad. Ventas la lee para la línea; el precio se entiende por 1 de la unidad (lo cobra Ventas, sin confirmar aquí).
 Si falla: en pantalla, «La cantidad no respeta el incremento permitido para esta unidad»; en el descuento directo, «Esa cantidad no encaja en la unidad del producto…». Un producto con una unidad que no está en el registro no comprueba escalón, para no bloquear la venta.
-Implicados: pendiente
-Pendiente de enlazar: sales — SALES-F10 vender por peso tecleando la cantidad (con báscula no funciona)
+Implicados: SALES-F10
 Pendiente de enlazar: hub — leer la báscula y mandar el peso al TPV (no existe)
 QA: qa-hub-restaurant §7.03
 
@@ -124,10 +114,7 @@ Pasos:
 Entra: nada; lo piden los demás por sus consultas públicas.
 Sale: las lecturas. Solo salen productos activos y no borrados en el catálogo de venta y en el mapa de categorías; el catálogo de venta no lleva stock, así que el TPV no enseña ni comprueba disponibilidad.
 Si falla: lo decide quien lee: Ventas rechaza una línea de catálogo si no puede leer el catálogo de venta y avisa en el TPV si Inventario está instalado y no contesta; Cocina se queda sin opciones de enrutado.
-Implicados: pendiente
-Pendiente de enlazar: sales — SALES-F01 la rejilla del TPV y el precio autoritativo del catálogo
-Pendiente de enlazar: kitchen — elegir los productos y las categorías que enruta una estación
-Pendiente de enlazar: combos — elegir los artículos componentes de un menú
+Implicados: COMBOS-F06, KITCHEN-F04, SALES-F01, REC_RESTAURANTE-F06
 QA: R-04, B-05
 
 ### INVENTORY-F28 Completar el primer paso «Tu catálogo»

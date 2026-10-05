@@ -64,9 +64,7 @@ Pasos:
 Entra: el libro de movimientos; el número de la factura o el tique de cada venta (Facturación) y, si no hay, el número de la venta (Ventas), pedidos solo para pintarlos.
 Sale: nada (solo lectura; no se edita ni se borra ningún movimiento).
 Si falla: si no se puede leer Facturación ni Ventas (no instaladas o sin permiso), la celda Referencia de una venta sale vacía en vez del identificador interno. Error de carga: el aviso de la tabla con reintento.
-Implicados: pendiente
-Pendiente de enlazar: invoice — INVOICE-F20 la factura o el tique de una venta, para pintar su número
-Pendiente de enlazar: sales — SALES-F28 el número de una venta, para pintarlo y para buscarla
+Implicados: INVOICE-F20, SALES-F28
 QA: qa-hub-restaurant §7.12, qa-hub-restaurant §7.15
 
 ### INVENTORY-F17 Ver el panel y los productos con stock bajo
@@ -116,9 +114,8 @@ Pasos:
 Entra: los ajustes guardados del negocio (uno por negocio); sin guardar nunca, valen los de fábrica.
 Sale: los ajustes. No avisan a nadie; se aplican desde el siguiente movimiento.
 Si falla: «No se pudieron guardar los ajustes.». A quien no es administrador: «Solo un administrador puede cambiar estos ajustes.». Sin el permiso de ajustes (empleado, cajero), los valores no cargan («No se pudieron cargar los ajustes.», sin confirmar en pantalla).
-Implicados: pendiente
+Implicados: SALES-F01
 Pendiente de enlazar: hub — la pestaña Ajustes de un módulo, que solo deja guardar al administrador
-Pendiente de enlazar: sales — SALES-F01 el TPV no mira el stock al cobrar
 QA: qa-hub-restaurant §7.03 (discrepa)
 
 ### INVENTORY-F20 Decidir qué artículos llevan control de stock
@@ -133,6 +130,5 @@ Pasos:
 Entra: el ajuste «Controlar stock» del negocio, para lo que se enseña antes de decidir.
 Sale: la decisión del artículo (avisa: inventory.product.created / inventory.product.updated). Vale la del artículo; si no tiene, la del negocio; si no hay ajustes guardados, sí; un servicio nunca. Sin control, la venta no lo mueve, no sale en stock bajo ni en las cifras del Panel y no cruza su mínimo; recibir y contar sí lo mueven.
 Si falla: los rechazos del formulario (INVENTORY-F01). Una vez decidido, el artículo no vuelve a «Sigue el ajuste del hub» (INVENTORY-F02).
-Implicados: pendiente
-Pendiente de enlazar: sales — SALES-F01 la venta de un artículo sin control de stock no mueve su stock
+Implicados: SALES-F01
 QA: qa-hub-restaurant §7.03

@@ -19,10 +19,7 @@ Pasos:
 Entra: las categorías fiscales y sus tipos (Impuestos); las unidades de medida y las categorías de producto (este módulo).
 Sale: el producto, activo, con su stock inicial y enlazado a las categorías marcadas en la misma operación (avisa: inventory.product.created). Ventas lo ofrece en la rejilla del TPV; la lista «Termina de configurar tu negocio» da por hecho el paso del catálogo (INVENTORY-F28).
 Si falla: «Guardar» está apagado mientras falten Nombre, SKU o categoría fiscal. Sin categorías fiscales sale «Todavía no hay categorías fiscales. Créalas en Impuestos: un producto no se puede vender sin saber cómo tributa.». Un importe ilegible: «Esto no es un importe. Escribe una cifra, por ejemplo 12,50.» o «Este importe se puede leer de dos maneras…»; una cantidad mala: «Introduce una cantidad válida con un máximo de 6 decimales» o «La cantidad no respeta el incremento permitido para esta unidad». Un SKU o un EAN-13 que ya tiene otro producto vivo se rechaza; la pantalla tiene «Ese SKU ya existe en el catálogo», pero solo lo pone si el mensaje del servidor nombra el SKU, y el hub oculta el detalle de la base de datos (sin confirmar qué texto sale). Todo rechazo sale dentro del panel y no se guarda nada.
-Implicados: pendiente
-Pendiente de enlazar: taxes — TAXES-F01 el selector de categoría fiscal del producto
-Pendiente de enlazar: taxes — TAXES-F19 guardar un producto con su categoría fiscal (TAXES-F19 dice que Inventario comprueba que exista; no lo comprueba)
-Pendiente de enlazar: sales — SALES-F01 el TPV vende el artículo con el precio y la categoría fiscal de este catálogo
+Implicados: SALES-F01, TAXES-F01, TAXES-F19, REC_RESTAURANTE-F03
 QA: qa-hub §4, qa-hub-restaurant §7.03
 
 ### INVENTORY-F02 Editar un producto
@@ -38,10 +35,7 @@ Pasos:
 Entra: el producto completo (este módulo); categorías fiscales (Impuestos); unidades y categorías de producto.
 Sale: el producto cambiado (avisa: inventory.product.updated) y cada categoría añadida o quitada (avisa: inventory.product.categorized / inventory.product.uncategorized). El precio nuevo vale para lo que se añada a una cuenta desde ahora: una cuenta abierta conserva el de cuando se pidió (lo decide Ventas).
 Si falla: los mismos rechazos que el alta (INVENTORY-F01), dentro del panel. Vaciar la categoría fiscal no se puede: «Elige la categoría fiscal: sin ella el producto no se puede vender.».
-Implicados: pendiente
-Pendiente de enlazar: taxes — TAXES-F01 el selector de categoría fiscal del producto
-Pendiente de enlazar: taxes — TAXES-F19 guardar un producto con su categoría fiscal
-Pendiente de enlazar: sales — SALES-F01 el TPV toma el precio del catálogo al añadir la línea y lo congela
+Implicados: SALES-F01, TAXES-F01, TAXES-F19
 QA: qa-hub-restaurant §7.03
 
 ### INVENTORY-F03 Activar y desactivar un producto
@@ -55,8 +49,7 @@ Pasos:
 Entra: el producto completo (se relee antes de guardar para no perder campos).
 Sale: el producto activo o inactivo (avisa: inventory.product.updated). Inactivo, deja de salir en el TPV y en el catálogo que lee Ventas al cobrar, en las cifras del Panel, en la lista de stock bajo y en el número de productos de cada categoría; sigue en Productos y en sus movimientos.
 Si falla: el motivo sale encima de la tabla («No se pudo actualizar el producto» o el del servidor). Sin permiso de cambio se ve «Sí»/«No» sin interruptor.
-Implicados: pendiente
-Pendiente de enlazar: sales — SALES-F01 el TPV solo enseña y cobra artículos activos
+Implicados: SALES-F01, REC_RESTAURANTE-F03
 QA: ninguno
 
 ### INVENTORY-F04 Eliminar un producto
@@ -71,8 +64,7 @@ Pasos:
 Entra: el producto elegido.
 Sale: el producto marcado como borrado, inactivo y fuera de todas las listas y del TPV; su SKU y su EAN-13 quedan libres para otro producto; sus movimientos siguen en **Movimientos** con su nombre (avisa: inventory.product.deleted). No mira si tiene stock ni si está en una cuenta abierta: Ventas rechaza al cobrar la línea de un producto que ya no está en el catálogo.
 Si falla: «No se pudo eliminar el producto» (o el motivo del servidor) encima de la tabla.
-Implicados: pendiente
-Pendiente de enlazar: sales — SALES-F01 una línea de un producto que ya no está en el catálogo se rechaza al cobrar
+Implicados: SALES-F01
 QA: ninguno
 
 ### INVENTORY-F05 Revisar los productos que no se pueden vender por falta de IVA
@@ -87,9 +79,7 @@ Pasos:
 Entra: los productos sin categoría fiscal (vacía o nula), que vienen de antes de que fuera obligatoria; no se les inventa ninguna.
 Sale: el producto con su categoría (avisa: inventory.product.updated); el TPV deja de marcarlo «Falta el IVA».
 Si falla: los rechazos del formulario (INVENTORY-F02).
-Implicados: pendiente
-Pendiente de enlazar: sales — SALES-F01 el aviso de artículos sin IVA y «Revisar el catálogo» que lleva aquí
-Pendiente de enlazar: taxes — TAXES-F01 el selector de categoría fiscal del producto
+Implicados: SALES-F01, TAXES-F01, REC_RESTAURANTE-F03
 QA: qa-hub §4
 
 ### INVENTORY-F06 Crear y editar una categoría
@@ -104,10 +94,7 @@ Pasos:
 Entra: las categorías fiscales y sus tipos (Impuestos).
 Sale: la categoría guardada, activa. No avisa a nadie. Ventas la lee para la tira de categorías del TPV y Cocina para elegir por qué categorías enruta cada estación (lo que pintan lo decide cada uno).
 Si falla: «Guardar» está apagado sin Nombre; un rechazo sale dentro del panel («No se pudo guardar la categoría» o el del servidor).
-Implicados: pendiente
-Pendiente de enlazar: taxes — TAXES-F01 el selector de categoría fiscal de las categorías de producto
-Pendiente de enlazar: sales — SALES-F01 la tira de categorías del TPV
-Pendiente de enlazar: kitchen — enrutar la comanda a una estación por categoría
+Implicados: KITCHEN-F04, SALES-F01, TAXES-F01
 QA: qa-hub-restaurant §7.03
 
 ### INVENTORY-F07 Eliminar una categoría
@@ -122,9 +109,7 @@ Pasos:
 Entra: la categoría elegida.
 Sale: la categoría borrada (lógico) y todos sus productos, activos o no, desvinculados en la misma operación; los productos siguen. El TPV deja de agruparlos bajo ella. No avisa a nadie.
 Si falla: «No se pudo eliminar la categoría» (o el motivo del servidor) encima de la tabla.
-Implicados: pendiente
-Pendiente de enlazar: sales — SALES-F01 la tira de categorías del TPV
-Pendiente de enlazar: kitchen — una estación que enrutaba por esta categoría
+Implicados: KITCHEN-F04, SALES-F01
 QA: ninguno
 
 ### INVENTORY-F08 Agrupar productos en categorías para el TPV
@@ -139,7 +124,5 @@ Pasos:
 Entra: las categorías activas del negocio.
 Sale: el enlace producto–categoría (avisa al editar: inventory.product.categorized / inventory.product.uncategorized; en el alta va dentro de inventory.product.created). Un producto puede estar en varias. Ventas filtra la rejilla con este mapa (que solo trae productos activos); Cocina lee las categorías y los productos para su enrutado.
 Si falla: al editar, el enlace se guarda después del producto; si falla, sale el motivo en el panel y el producto ya quedó guardado (INVENTORY-F02). Un producto sin categoría se vende igual, solo que sale en «Todos».
-Implicados: pendiente
-Pendiente de enlazar: sales — SALES-F01 la tira de categorías y el filtro de la rejilla
-Pendiente de enlazar: kitchen — elegir los productos y las categorías que enruta una estación
+Implicados: KITCHEN-F04, SALES-F01, REC_RESTAURANTE-F03
 QA: qa-hub-restaurant §7.03
