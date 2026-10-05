@@ -43,7 +43,7 @@ Pendiente de enlazar: combos — los componentes de un menú y de qué catálogo
 QA: qa-hub-restaurant §7.03, qa-hub-restaurant §7.12
 
 ### INVENTORY-F23 Reponer el stock al anularse una venta
-Estado: hecho
+Estado: parcial — si la bajada de la venta se retrasa (reintento del aviso) y la anulación llega antes, la anulación no repone nada y la bajada se aplica después: el stock queda bajado por una venta anulada, sin aviso
 Vertical: comun
 Actor: sistema
 Pantalla: ninguna
@@ -53,7 +53,7 @@ Pasos:
 3. En **Movimientos** sale una línea «Anulación» por artículo, con la misma referencia que la venta.
 Entra: la venta anulada, de Ventas (solo cuál es).
 Sale: el stock sube y queda el movimiento «Anulación». Devuelve lo que salió aunque el artículo haya dejado de controlar stock entre medias. No avisa del cruce de mínimo ni de stock cambiado.
-Si falla: una segunda entrega del mismo aviso no repone dos veces. Un artículo borrado después de la venta no recupera nada. Si el aviso no se puede aplicar, lo reintenta el hub (INVENTORY-F21).
+Si falla: una segunda entrega del mismo aviso no repone dos veces. Un artículo borrado después de la venta no recupera nada. Si el aviso no se puede aplicar, lo reintenta el hub (INVENTORY-F21). Si el aviso de la venta cobrada falla y se reintenta después del de la anulación (la cola entrega en paralelo y reintenta hasta 8 veces), la anulación no encuentra nada que reponer y deja su marca, pero la bajada de la venta no mira esa marca: se aplica después y el stock queda bajado por una venta anulada, sin aviso; se corrige contando (INVENTORY-F14) (leído en el código, sin ejecutar).
 Implicados: pendiente
 Pendiente de enlazar: sales — SALES-F30 anular una venta cobrada (Inventario repone el stock)
 QA: R-11, B-08, qa-hub-restaurant §7.13
@@ -86,7 +86,7 @@ Pasos:
 4. Si no, la etiqueta va a la cola de impresión del hub y la saca el equipo que imprima etiquetas.
 Entra: el SKU, el nombre y el precio del producto; la impresora con la función «Etiqueta» (Impresión).
 Sale: el papel, o un trabajo en la cola del hub con la clave del SKU (la misma cada vez).
-Si falla: si la puerta de impresión del hub no lo puede mandar a ningún sitio, dentro de la ficha sale «No se pudo imprimir la etiqueta del código de barras» con el motivo. En un navegador, si la cola no lo acepta, se abre el diálogo de imprimir del navegador (código, SKU y nombre, sin precio). «Ninguna impresora tiene el rol «Etiqueta»: asígnale una en Impresión» solo saldría si la puerta contestara «navegador» dentro de la app instalada, y para una etiqueta no lo hace (leído en el hub, sin confirmar en pantalla). Se arregla asignando la función «Etiqueta» a una impresora (PRINTING-F04).
+Si falla: si la puerta de impresión del hub no lo puede mandar a ningún sitio, dentro de la ficha sale «No se pudo imprimir la etiqueta del código de barras» con el motivo. En un navegador, si la cola no lo acepta, se abre el diálogo de imprimir del navegador (código, SKU y nombre, sin precio). El aviso «Ninguna impresora tiene el rol «Etiqueta»: asígnale una en Impresión» no sale nunca: dentro de la app instalada la puerta del hub contesta «ningún sitio» para una etiqueta, nunca «navegador». Se arregla asignando la función «Etiqueta» a una impresora (PRINTING-F04).
 Implicados: pendiente
 Pendiente de enlazar: printing — PRINTING-F12 imprimir la etiqueta de un código de barras
 Pendiente de enlazar: printing — PRINTING-F04 asignar la función «Etiqueta» a una impresora

@@ -93,7 +93,7 @@ Pendiente de enlazar: taxes — TAXES-F01 el selector de categoría fiscal del p
 QA: qa-hub §4
 
 ### INVENTORY-F06 Crear y editar una categoría
-Estado: parcial — icono, color, orden, descripción e imagen solo por el asistente o la API, y el TPV ordena las categorías por nombre; el «Tipo de IVA / Impuesto» de la categoría se guarda pero ningún módulo lo usa (los productos no lo heredan); editar desde la pantalla borra la descripción puesta por el asistente; no hay desactivar en pantalla, y una categoría desactivada por la API desaparece de la lista sin forma de volver
+Estado: parcial — icono, color, orden y descripción solo por el asistente o la API, y la imagen no la escribe ninguna orden; y el TPV ordena las categorías por nombre; el «Tipo de IVA / Impuesto» de la categoría se guarda pero ningún módulo lo usa (los productos no lo heredan); editar desde la pantalla borra la descripción puesta por el asistente; no hay desactivar en pantalla, y una categoría desactivada por la API desaparece de la lista sin forma de volver
 Vertical: comun
 Actor: administrador, responsable
 Pantalla: Categorías

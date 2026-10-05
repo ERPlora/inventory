@@ -84,7 +84,7 @@ exige el permiso de cada acción aunque la pantalla enseñe el botón.
 
 ### Panel
 Cifras de arriba (cada una lleva a Productos, salvo el valor): «Productos seguidos», «En stock»,
-«Agotados», «Stock bajo» y «Valor de existencias» («a coste»). Si hay artículos con stock sin coste,
+«Agotados», «Stock bajo» y «Valor de existencias» («a coste»). Si hay artículos con control de stock sin coste,
 la nota «N producto(s) sin coste registrado: el valor mostrado es parcial». Debajo, la tabla
 «Productos con stock bajo» (Nombre, SKU, Stock, Umbral), 5 por página. Vacía: «Sin productos en stock
 bajo.». Cargando: «Cargando…». Error: «No se pudieron cargar las métricas del inventario.» y el aviso
@@ -181,7 +181,7 @@ de cada hueco (`parcial`, `no hecho`) está en su línea `Estado:`.
 | INVENTORY-F20 | Decidir qué artículos llevan control de stock | comun | hecho | [workflow/stock.md](workflow/stock.md) |
 | INVENTORY-F21 | Bajar el stock al cobrarse una venta | comun | parcial | [workflow/con-otros-modulos.md](workflow/con-otros-modulos.md) |
 | INVENTORY-F22 | Bajar el stock de los componentes de un menú o un pack | comun | hecho | [workflow/con-otros-modulos.md](workflow/con-otros-modulos.md) |
-| INVENTORY-F23 | Reponer el stock al anularse una venta | comun | hecho | [workflow/con-otros-modulos.md](workflow/con-otros-modulos.md) |
+| INVENTORY-F23 | Reponer el stock al anularse una venta | comun | parcial | [workflow/con-otros-modulos.md](workflow/con-otros-modulos.md) |
 | INVENTORY-F24 | Reponer el stock de una devolución | comun | no hecho | [workflow/con-otros-modulos.md](workflow/con-otros-modulos.md) |
 | INVENTORY-F25 | Imprimir la etiqueta del código de barras | comun | parcial | [workflow/con-otros-modulos.md](workflow/con-otros-modulos.md) |
 | INVENTORY-F26 | Vender al peso o por medida: unidades y escalón | comun | parcial | [workflow/con-otros-modulos.md](workflow/con-otros-modulos.md) |
@@ -223,16 +223,16 @@ ajuste por vertical. Tocar una pieza de esta tabla afecta a los dos negocios.
 | Actualizar precios de productos existentes por CSV | no hecho: un SKU que ya existe se omite | F09 |
 | Exportar el catálogo entero | parcial: solo la página que se ve, con cifras internas | F11 |
 | Control de stock por artículo con valor por defecto del negocio | hecho | F20 |
-| Recepción de mercancía con coste | parcial: una línea por producto y sin número de albarán en pantalla | F13 |
+| Recepción de mercancía con coste | parcial: en pantalla una línea por producto y sin número de albarán; un albarán entero solo por el asistente | F13 |
 | Recuento absoluto con motivo | hecho | F14 |
-| Merma, rotura o consumo propio con motivo | parcial: solo por el asistente o la API | F15 |
+| Merma, rotura o consumo propio con motivo | parcial: solo por el asistente | F15 |
 | Historial de movimientos con quién y cuándo | parcial: no enseña quién; sin filtro de fecha ni de producto en pantalla | F16 |
 | Alerta de stock bajo | parcial: panel, paneles del inicio y un aviso para Flujos; sin notificación | F17, F18 |
 | No vender lo que no hay, o vender en negativo, según el ajuste | parcial: el TPV no lo bloquea; apagado, la venta no baja nada | F19, F21 |
 | Agotado / 86 y cantidad restante en el TPV | no hecho | F27 |
 | La venta baja el stock, una sola vez | hecho | F21 |
 | Menú o pack baja sus componentes | hecho | F22 |
-| La anulación repone exactamente lo que salió | hecho | F23 |
+| La anulación repone exactamente lo que salió | parcial: si la bajada de la venta llega después de la anulación (reintento), queda bajada | F23 |
 | La devolución repone el stock | no hecho: no escucha la devolución | F24 |
 | Etiqueta de código de barras con nombre y precio | parcial: por la cola del hub sale una sola vez por producto y sin aviso si nadie la imprime | F25 |
 | Lectura del código de barras en el TPV | no hecho: el TPV no busca por EAN-13 y la etiqueta lleva el SKU | F25, F27 |
@@ -257,7 +257,8 @@ ajuste por vertical. Tocar una pieza de esta tabla afecta a los dos negocios.
   enrutado), Menús (los productos que pueden ser componente) y el hub (las cifras de los paneles del
   inicio y el primer paso de la configuración). Nadie toca sus tablas.
 - **Datos personales** (inventario RGPD, recorrido por las 10 migraciones): no guarda clientes. Sí
-  guarda, en todas las tablas, quién creó y quién cambió cada fila; en el libro, quién hizo cada
+  guarda, en casi todas las tablas (no en los enlaces producto–categoría ni en la marca de venta
+  repuesta), quién creó y quién cambió cada fila; en el libro, quién hizo cada
   movimiento y el **motivo** libre de recuentos y bajas (puede llevar un nombre); en productos y
   categorías, la **descripción** libre. La referencia de un movimiento de venta es el identificador de
   la venta. Los avisos que declaran las órdenes (alta, cambio y borrado de producto, enlaces con
@@ -291,10 +292,12 @@ impide la pantalla está como hueco en su flujo.
   no alcanza, no baja nada (y el descuento directo lo rechaza con «No hay stock suficiente para
   completar la operación.»).
 - **Un servicio no baja ni se cuenta**; un artículo sin control de stock no baja por una venta.
-- **La anulación repone una sola vez y solo lo que salió**, leído del propio libro.
+- **La anulación repone una sola vez y solo lo que salió**, leído del propio libro (si la bajada de la
+  venta llega después de la anulación, no la deshace nadie: F23).
 - **Permisos**: ver productos, categorías y movimientos (empleado, cajero, responsable,
-  administrador); crear, cambiar, borrar, importar, exportar, recibir y contar (responsable,
-  administrador); los ajustes, la orden los acepta del responsable, pero la pestaña solo deja guardar
+  administrador); crear, cambiar, borrar, recibir y contar (responsable, administrador). Los permisos de importar
+  y de exportar solo los mira la pantalla: el servidor pide el de alta (importar) y el de ver
+  productos (exportar), un hueco anotado en F09 y F11; los ajustes, la orden los acepta del responsable, pero la pestaña solo deja guardar
   al administrador.
 - **Borrado lógico**: un producto o una categoría borrados no desaparecen de la base de datos, y sus
   movimientos se conservan.
@@ -323,7 +326,7 @@ Se resuelven con `market-decision`; no las decide el worker.
    (F15)?
 4. El «Tipo de IVA / Impuesto» de una categoría no lo usa nadie (F06): ¿se quita, o los productos de la
    categoría deben heredarlo?
-5. «Umbral de stock bajo» de Ajustes solo lo hereda un producto creado por el asistente o la API (F19):
+5. «Umbral de stock bajo» de Ajustes solo lo hereda un producto creado de uno en uno por el asistente o la API sin umbral (F19):
    ¿debe el formulario dejar el campo vacío para heredarlo, y debe un cambio del ajuste alcanzar a los
    productos que lo heredaron?
 6. ¿Entra en el MVP la foto del artículo en la ficha y el orden de las categorías en el TPV (F01, F06)?
@@ -340,13 +343,13 @@ Contra `origin/main` v1.2.74 (05/10/2026). Una línea por discrepancia; manda el
 - **`docs/screens.md`**: la ficha deja poner «image»; no hay campo de imagen (F01). Filtra «by product type»; no hay filtro de tipo en pantalla. Categorías «50 rows per page»; son 25. Movimientos «Filter by product … or date range»; en pantalla solo Tipo y Referencia (F16). «A reception shows the delivery note number that was typed»: la pantalla no pide albarán (F13).
 - **`docs/screens.md`** («The widgets refresh on their own when `inventory.stock_changed` … arrives»): la venta no emite ese aviso, así que los paneles no se refrescan solos tras cobrar (F17, F21).
 - **`docs/concepts.md`** («Settings: Track stock — Whether the hub keeps stock at all»): desde inventory#48 es el valor por defecto de los artículos que no lo fijan (F19, F20).
-- **`docs/limits.md`** («A product uses its own threshold if it has one, otherwise the global threshold»), **`locales/es.json`** (`settings.fields.low_stock_threshold.description`) y el manual: el formulario y el CSV mandan siempre un umbral (10 si se deja vacío), así que el ajuste solo lo hereda un alta por el asistente o la API, y solo al crearse (F19).
+- **`docs/limits.md`** («A product uses its own threshold if it has one, otherwise the global threshold»), **`locales/es.json`** (`settings.fields.low_stock_threshold.description`) y el manual: el formulario y el CSV mandan siempre un umbral (10 si se deja vacío), y el alta en bloque del asistente pone 10, así que el ajuste solo lo hereda un alta de uno en uno por el asistente o la API sin umbral, y solo al crearse (F19).
 - **Manual (`hand-book`)**: «Desde Productos o Movimientos, inicie una recepción. Añada cada producto»; la recepción es de un producto y solo desde Productos; Movimientos es de solo lectura (F13). Lo mismo para el recuento (F14). Llama «Configuración» a la pestaña «Ajustes».
 - **Documento técnico** (§Integración): la anulación lee las líneas de la venta en una tabla de Ventas; hoy lee el propio libro de movimientos y no mira el control de stock de hoy (F23). Y «un void solo restituye las líneas cuyo producto controla»: devuelve lo que salió, sin mirar el ajuste actual.
 - **Documento técnico**: llama «import CSV (`bulk_create`)» a la importación; la pantalla crea fila a fila con el alta normal y `bulk_create` solo lo usa el asistente (F09).
 - **`docs/overview.md`**: «A void restock does not emit» el cruce de mínimo; cierto, y tampoco emite «stock_changed» (F23).
 - **TAXES-F15**: «si no carga la lista de categorías, la importación falla»; no falla entera: las filas con texto fiscal acaban en «Fallidas» con «Falta la categoría fiscal» y las que no traen columna se preguntan igual (F09).
-- **PRINTING-F12**: el aviso «Ninguna impresora tiene el rol «Etiqueta»…» solo sale si la puerta contesta «navegador» dentro de la app instalada, cosa que hoy no hace para una etiqueta: ahí sale «No se pudo imprimir la etiqueta del código de barras» con el motivo (leído en el código del hub, sin ejecutar) (F25).
+- **PRINTING-F12**: en la clave fija de la etiqueta (una sola por producto por la cola) coincide con este documento; discrepa en que el aviso «Ninguna impresora tiene el rol «Etiqueta»…» saldría si la cola rechaza el trabajo dentro de la app instalada: no sale nunca, porque ahí la puerta del hub contesta «ningún sitio» y la pantalla pone «No se pudo imprimir la etiqueta del código de barras» con el motivo (F25).
 - **`docs/limits.md` de Flujos**: «No hay evento de nivel de stock»; existe el aviso de cruce de mínimo desde inventory#47 (F18).
 - **QA `qa-hub §4` y `qa-hub-beauty`**: dar de alta productos «con `tax_rate_id`»; el campo es `tax_category_key` (ADR-0085).
 - **QA `qa-hub-restaurant` §7.12 y §7.13** esperan merma, devolución con reposición y receta: la merma solo existe por el asistente, la devolución no repone y no hay recetas (F15, F24).

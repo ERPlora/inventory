@@ -5,7 +5,7 @@ Prefijo: INVENTORY
 ## Flujos
 
 ### INVENTORY-F13 Recibir mercancía
-Estado: parcial — en pantalla se recibe un producto cada vez y sin número de albarán (un albarán con varios productos y su número, hasta 200 líneas, solo por el asistente o la API); el coste unitario sustituye el coste del producto, sin coste medio; la pantalla deja recibir stock en un servicio
+Estado: parcial — en pantalla se recibe un producto cada vez y sin número de albarán (un albarán con varios productos y su número, hasta 200 líneas, solo por el asistente: la orden no está en la API pública); el coste unitario sustituye el coste del producto, sin coste medio; la pantalla deja recibir stock en un servicio
 Vertical: comun
 Actor: administrador, responsable
 Pantalla: Recepción
@@ -15,8 +15,8 @@ Pasos:
 3. Pulsa «Registrar recepción». La ventana se cierra y la fila enseña el stock nuevo.
 4. En **Movimientos** sale una línea «Recepción» con la cantidad en positivo y el saldo.
 Entra: el producto y el escalón de su unidad (la pantalla no deja una cantidad que no encaje).
-Sale: el stock sube; el movimiento «Recepción» con cantidad, saldo, coste y, si lo trae la API, el albarán; si se escribió coste, pasa a ser el coste del producto. Se aplica aunque el artículo no lleve control de stock. Si un artículo con control sube por encima de su umbral, avisa del cruce (INVENTORY-F18).
-Si falla: «Registrar recepción» está apagado sin cantidad. «Introduce una cantidad válida con un máximo de 6 decimales», «La cantidad no respeta el incremento permitido para esta unidad», un coste ilegible («Esto no es un importe…») o «No se pudo registrar la recepción» salen dentro de la ventana. Por la API, una línea sin producto o con cantidad cero se salta sin avisar.
+Sale: el stock sube; el movimiento «Recepción» con cantidad, saldo, coste y, si lo da el asistente, el albarán; si se escribió coste, pasa a ser el coste del producto. Se aplica aunque el artículo no lleve control de stock. Si un artículo con control sube por encima de su umbral, avisa del cruce (INVENTORY-F18).
+Si falla: «Registrar recepción» está apagado sin cantidad. «Introduce una cantidad válida con un máximo de 6 decimales», «La cantidad no respeta el incremento permitido para esta unidad», un coste ilegible («Esto no es un importe…») o «No se pudo registrar la recepción» salen dentro de la ventana. Por el asistente, una línea sin producto o con cantidad cero hace rechazar la recepción entera (el hub valida el esquema antes); una línea con un producto que no existe o está borrado no mueve nada y no avisa.
 Implicados: ninguno
 QA: qa-hub-restaurant §7.12
 
@@ -37,7 +37,7 @@ Implicados: ninguno
 QA: qa-hub-restaurant §7.12
 
 ### INVENTORY-F15 Dar de baja stock sin venta (merma, rotura, consumo propio)
-Estado: parcial — no hay pantalla: se hace con el asistente o la API; en pantalla, lo que hay es contar el stock (INVENTORY-F14)
+Estado: parcial — no hay pantalla ni API pública: se hace con el asistente; en pantalla, lo que hay es contar el stock (INVENTORY-F14)
 Vertical: comun
 Actor: asistente
 Pantalla: asistente
@@ -80,7 +80,7 @@ Pasos:
 3. En el **Inicio** del hub, los paneles «Stock bajo», «Valor de inventario» y «Productos con menos stock» (y, si se añade, «Productos en stock») dan las mismas cifras.
 Entra: los productos activos, físicos y con control de stock; el valor es la suma de coste por saldo de los que tienen saldo positivo (un saldo negativo no resta).
 Sale: nada.
-Si falla: «No se pudieron cargar las métricas del inventario.» y el aviso de la tabla con reintento. Los paneles del Inicio se refrescan solos con un recuento, un descuento directo o el alta, el cambio o el borrado de un producto, pero no tras una venta ni una recepción: hasta recargar enseñan la cifra anterior.
+Si falla: «No se pudieron cargar las métricas del inventario.» y el aviso de la tabla con reintento. Los paneles del Inicio se refrescan solos con un recuento, un descuento directo, el alta o el borrado de un producto (cambiar un producto, también activarlo o desactivarlo, solo refresca «Valor de inventario»), pero no tras una venta ni una recepción: hasta recargar enseñan la cifra anterior.
 Implicados: pendiente
 Pendiente de enlazar: hub — los paneles (widgets) del Inicio y cuándo se refrescan
 QA: qa-hub-restaurant §7.12
@@ -91,19 +91,19 @@ Vertical: comun
 Actor: sistema
 Pantalla: ninguna
 Pasos:
-1. Una venta, un descuento, una recepción o un recuento lleva un artículo con control de stock de estar por encima de su umbral a estar en él o por debajo: Inventario emite el aviso de cruce «por debajo».
-2. Mientras siga por debajo, no se repite. Cuando vuelve a subir por encima, emite «recuperado», y eso rearma el siguiente.
+1. Una venta, un descuento o un recuento lleva un artículo con control de stock de estar por encima de su umbral a estar en él o por debajo: Inventario emite el aviso de cruce «por debajo».
+2. Mientras siga por debajo, no se repite. Cuando una recepción o un recuento lo sube otra vez por encima, emite «recuperado», y eso rearma el siguiente.
 3. Si el mismo artículo va en varias líneas de una venta (suelto y dentro de un menú), se decide una vez sobre el total.
 4. Para que alguien se entere, el responsable crea un flujo en **Flujos** que se dispare con este aviso (por ejemplo, avisar para reponer).
 Entra: el saldo de antes, leído justo antes del movimiento, y el umbral del producto.
 Sale: el aviso (inventory.low_stock_crossed) con el producto, su SKU y su nombre, la cantidad de antes y la de después, el umbral, el tipo de movimiento y la venta o el albarán.
-Si falla: si no se pudo leer el saldo de antes, no se emite ningún cruce (no se adivina). Si dos movimientos se cruzan en el tiempo, uno puede perderse (nunca se duplica).
+Si falla: si no se pudo leer el saldo de antes, no se emite ningún cruce (no se adivina). Si dos movimientos se cruzan en el tiempo, el aviso puede perderse o salir dos veces (cada uno decide con el saldo que leyó antes).
 Implicados: pendiente
 Pendiente de enlazar: flows — disparar un flujo cuando un artículo cruza su mínimo
 QA: qa-hub-restaurant §7.12
 
 ### INVENTORY-F19 Ajustar el inventario
-Estado: parcial — en la pestaña solo guarda el administrador (el responsable tiene el permiso y lo puede hacer por el asistente); «Permitir vender sin stock» apagado no impide vender: deja el stock sin bajar (INVENTORY-F21); «Umbral de stock bajo» solo lo hereda un producto creado por el asistente o la API, y solo al crearse
+Estado: parcial — en la pestaña solo guarda el administrador (el responsable tiene el permiso y lo puede hacer por el asistente); «Permitir vender sin stock» apagado no impide vender: deja el stock sin bajar (INVENTORY-F21); «Umbral de stock bajo» solo lo hereda un producto creado de uno en uno por el asistente o la API sin umbral, y solo al crearse (el alta en bloque del asistente, el formulario y el CSV ponen 10)
 Vertical: comun
 Actor: administrador
 Pantalla: Ajustes
@@ -111,7 +111,7 @@ Pasos:
 1. Abre **Inventario → Ajustes**.
 2. «Controlar stock» (de fábrica, encendido): es lo que hacen los artículos que no han decidido por sí mismos (INVENTORY-F20).
 3. «Permitir vender sin stock» (de fábrica, apagado): encendido, una venta baja el stock aunque quede en negativo; apagado, si una venta pide más de lo que queda, ese artículo no baja nada (la venta se cobra igual) y un descuento directo se rechaza.
-4. «Umbral de stock bajo» (de fábrica, 10, en unidades enteras): el umbral con el que nace un producto que no trae el suyo. El formulario y el CSV siempre mandan uno (10 si se deja vacío) y cambiarlo no toca los productos que ya existen.
+4. «Umbral de stock bajo» (de fábrica, 10, en unidades enteras): el umbral con el que nace un producto creado de uno en uno sin el suyo (solo por el asistente o la API). El formulario y el CSV siempre mandan uno (10 si se deja vacío), el alta en bloque del asistente pone 10, y cambiarlo no toca los productos que ya existen.
 5. Pulsa «Guardar»: «Ajustes guardados.».
 Entra: los ajustes guardados del negocio (uno por negocio); sin guardar nunca, valen los de fábrica.
 Sale: los ajustes. No avisan a nadie; se aplican desde el siguiente movimiento.
