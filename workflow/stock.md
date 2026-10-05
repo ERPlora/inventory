@@ -79,8 +79,7 @@ Pasos:
 Entra: los productos activos, físicos y con control de stock; el valor es la suma de coste por saldo de los que tienen saldo positivo (un saldo negativo no resta).
 Sale: nada.
 Si falla: «No se pudieron cargar las métricas del inventario.» y el aviso de la tabla con reintento. Los paneles del Inicio se refrescan solos con un recuento, un descuento directo, el alta o el borrado de un producto (cambiar un producto, también activarlo o desactivarlo, solo refresca «Valor de inventario»), pero no tras una venta ni una recepción: hasta recargar enseñan la cifra anterior.
-Implicados: pendiente
-Pendiente de enlazar: hub — los paneles (widgets) del Inicio y cuándo se refrescan
+Implicados: HUB-F34, HUB_SHELL-F33, HUB_SHELL-F35
 QA: qa-hub-restaurant §7.12
 
 ### INVENTORY-F18 Avisar cuando un artículo cruza su mínimo
@@ -113,8 +112,7 @@ Pasos:
 Entra: los ajustes guardados del negocio (uno por negocio); sin guardar nunca, valen los de fábrica.
 Sale: los ajustes. No avisan a nadie; se aplican desde el siguiente movimiento.
 Si falla: «No se pudieron guardar los ajustes.». A quien no es administrador: «Solo un administrador puede cambiar estos ajustes.». Sin el permiso de ajustes (empleado, cajero), la pestaña enseña los valores de fábrica («Controlar stock» encendido, «Permitir vender sin stock» apagado, umbral 10) como si fueran los del negocio, sin avisar.
-Implicados: SALES-F01
-Pendiente de enlazar: hub — la pestaña Ajustes de un módulo, que solo deja guardar al administrador
+Implicados: SALES-F01, HUB-F33, HUB_SHELL-F43, HUB_SHELL-F44
 QA: qa-hub-restaurant §7.03 (discrepa)
 
 ### INVENTORY-F20 Decidir qué artículos llevan control de stock
