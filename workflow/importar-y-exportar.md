@@ -64,8 +64,7 @@ Pasos:
 3. El hub instala las apps que falten y aplica sus datos; Inventario recibe sus productos, categorías y enlaces.
 4. Comprueba en **Productos** que están y que ninguno sale «Sin configurar» (INVENTORY-F05).
 Entra: la plantilla (hub).
-Sale: los productos, con su categoría fiscal, su stock y su umbral, y las categorías de la plantilla. La base de datos rechaza un stock o un umbral escrito sin la escala de cantidades (lo que dejó una plantilla mal exportada en agosto, inventory#42). Qué pasa al volver a importar una plantilla sobre un catálogo con los mismos SKU lo decide el hub (sin confirmar aquí).
+Sale: los productos, con su categoría fiscal, su stock y su umbral, y las categorías de la plantilla. La base de datos rechaza un stock o un umbral escrito sin la escala de cantidades (lo que dejó una plantilla mal exportada en agosto, inventory#42). Al volver a importar sobre un catálogo con los mismos SKU, el hub salta esos productos: no cambia su precio ni su stock.
 Si falla: el hub aplica cada sección por separado: si la de Inventario falla, sale en el informe de la importación y el resto se aplica (lo pinta el hub).
-Implicados: pendiente
-Pendiente de enlazar: hub — importar una plantilla (blueprint) y su informe por secciones
+Implicados: HUB-F234, HUB-F235, HUB-F239, HUB_SHELL-F175, HUB_SHELL-F177, HUB_SHELL-F178, HUB-F238
 QA: BD-01, qa-hub §4, qa-hub-restaurant §7.00
