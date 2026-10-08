@@ -148,8 +148,10 @@ desvincular» / «Cancelar». Vacía: «Sin categorías.». Cargando: «Cargando
 
 ### Ajustes
 Pestaña «Ajustes» que añade el hub, con la cabecera «Inventario»: «Permitir vender sin stock», «Umbral
-de stock bajo» (con su explicación) y «Controlar stock», y «Guardar». Solo guarda el administrador; al
-resto le sale «Solo un administrador puede cambiar estos ajustes.». Cargando: «Cargando ajustes…».
+de stock bajo» (con su explicación) y «Controlar stock», y «Guardar». La ven quienes tienen el permiso
+`inventory.manage_settings` (de fábrica, el administrador y el responsable) y solo guarda el
+administrador: al responsable le sale «Solo un administrador puede cambiar estos ajustes.»; al
+empleado y al cajero el hub no les enseña la pestaña (HUB_SHELL-F43, hub#2588). Cargando: «Cargando ajustes…».
 Error: «No se pudieron cargar los ajustes.».
 
 ## Flujos

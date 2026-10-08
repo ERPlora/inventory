@@ -111,7 +111,7 @@ Pasos:
 5. Pulsa «Guardar»: «Ajustes guardados.».
 Entra: los ajustes guardados del negocio (uno por negocio); sin guardar nunca, valen los de fábrica.
 Sale: los ajustes. No avisan a nadie; se aplican desde el siguiente movimiento.
-Si falla: «No se pudieron guardar los ajustes.». A quien no es administrador: «Solo un administrador puede cambiar estos ajustes.». Sin el permiso de ajustes (empleado, cajero), la pestaña dice «No puedes ver estos ajustes» en lugar del formulario; y si la lectura falla por un corte, «No se pudieron cargar los ajustes.» con «Reintentar», nunca los valores de fábrica como si fueran los del negocio (HUB_SHELL-F43, hub#2511).
+Si falla: «No se pudieron guardar los ajustes.». A quien no es administrador: «Solo un administrador puede cambiar estos ajustes.». Sin el permiso de ajustes (empleado, cajero) el hub no le enseña la pestaña, y si teclea la dirección ve «Esta página no existe» (HUB_SHELL-F43, hub#2588); y si la lectura falla por un corte, «No se pudieron cargar los ajustes.» con «Reintentar», nunca los valores de fábrica como si fueran los del negocio (HUB_SHELL-F43, hub#2511).
 Implicados: SALES-F01, HUB-F33, HUB_SHELL-F43, HUB_SHELL-F44
 QA: qa-hub-restaurant §7.03 (discrepa)
 
