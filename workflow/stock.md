@@ -99,19 +99,19 @@ Implicados: FLOWS-F13
 QA: qa-hub-restaurant §7.12
 
 ### INVENTORY-F19 Ajustar el inventario
-Estado: parcial — en la pestaña solo guarda el administrador (el responsable tiene el permiso y lo puede hacer por el asistente); «Permitir vender sin stock» apagado no impide vender: deja el stock sin bajar (INVENTORY-F21); «Umbral de stock bajo» solo lo hereda un producto creado de uno en uno por el asistente o la API sin umbral, y solo al crearse (el alta en bloque del asistente, el formulario y el CSV ponen 10)
+Estado: parcial — «Permitir vender sin stock» apagado no impide vender: deja el stock sin bajar (INVENTORY-F21); «Umbral de stock bajo» solo lo hereda un producto creado de uno en uno por el asistente o la API sin umbral, y solo al crearse (el alta en bloque del asistente, el formulario y el CSV ponen 10)
 Vertical: comun
-Actor: administrador
+Actor: responsable, administrador
 Pantalla: Ajustes
 Pasos:
-1. Abre **Inventario → Ajustes**.
+1. Abre **Inventario → Ajustes**. La ve y la guarda quien tiene el permiso `inventory.manage_settings`: de fábrica, el administrador y el responsable, igual desde la pestaña que por el asistente (HUB_SHELL-F44, ERPlora/hub#2621).
 2. «Controlar stock» (de fábrica, encendido): es lo que hacen los artículos que no han decidido por sí mismos (INVENTORY-F20).
 3. «Permitir vender sin stock» (de fábrica, apagado): encendido, una venta baja el stock aunque quede en negativo; apagado, si una venta pide más de lo que queda, ese artículo no baja nada (la venta se cobra igual) y un descuento directo se rechaza.
 4. «Umbral de stock bajo» (de fábrica, 10, en unidades enteras): el umbral con el que nace un producto creado de uno en uno sin el suyo (solo por el asistente o la API). El formulario y el CSV siempre mandan uno (10 si se deja vacío), el alta en bloque del asistente pone 10, y cambiarlo no toca los productos que ya existen.
 5. Pulsa «Guardar»: «Ajustes guardados.».
 Entra: los ajustes guardados del negocio (uno por negocio); sin guardar nunca, valen los de fábrica.
 Sale: los ajustes. No avisan a nadie; se aplican desde el siguiente movimiento.
-Si falla: «No se pudieron guardar los ajustes.». A quien no es administrador: «Solo un administrador puede cambiar estos ajustes.». Sin el permiso de ajustes (empleado, cajero) el hub no le enseña la pestaña, y si teclea la dirección ve «Esta página no existe» (HUB_SHELL-F43, hub#2588); y si la lectura falla por un corte, «No se pudieron cargar los ajustes.» con «Reintentar», nunca los valores de fábrica como si fueran los del negocio (HUB_SHELL-F43, hub#2511).
+Si falla: «No se pudieron guardar los ajustes.». Si con la pestaña abierta entra otra persona sin el permiso (relevo de turno), los campos se bloquean, desaparece «Guardar» y sale «No tienes permiso para cambiar estos ajustes. Pídeselo a un administrador si lo necesitas.» (HUB_SHELL-F44). Sin el permiso de ajustes (empleado, cajero) el hub no le enseña la pestaña, y si teclea la dirección ve «Esta página no existe» (HUB_SHELL-F43, hub#2588); y si la lectura falla por un corte, «No se pudieron cargar los ajustes.» con «Reintentar», nunca los valores de fábrica como si fueran los del negocio (HUB_SHELL-F43, hub#2511).
 Implicados: SALES-F01, HUB-F33, HUB_SHELL-F43, HUB_SHELL-F44
 QA: qa-hub-restaurant §7.03 (discrepa)
 
